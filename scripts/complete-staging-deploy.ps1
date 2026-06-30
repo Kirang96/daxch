@@ -54,14 +54,14 @@ Then re-run:
 }
 
 function Invoke-Terraform {
-    param([string[]]$Args)
+    param([string[]]$TerraformArgs)
     Import-AwsLoginCredentials | Out-Null
     $terraform = Get-TerraformExe
     Push-Location $InfraDir
     try {
-        & $terraform @Args
+        & $terraform @TerraformArgs
         if ($LASTEXITCODE -ne 0) {
-            Write-Error "terraform $($Args -join ' ') failed (exit $LASTEXITCODE)"
+            Write-Error "terraform $($TerraformArgs -join ' ') failed (exit $LASTEXITCODE)"
         }
     } finally {
         Pop-Location
