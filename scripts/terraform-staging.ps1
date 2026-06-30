@@ -23,12 +23,28 @@ function Get-TerraformExe {
     return $exe
 }
 
-function Import-AwsLoginCredentials {
-    $credLines = @(aws configure export-credentials --format env 2>$null)
-    if ($LASTEXITCODE -ne 0) {
-        Write-Error "AWS not authenticated. Run: aws login"
+function Invoke-AwsCli {
+    param([Parameter(ValueFromRemainingArguments = $true)][string[]]$AwsArgs)
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        $output = & aws @AwsArgs 2>&1
+        return [PSCustomObject]@{
+            ExitCode = $LASTEXITCODE
+            Output   = ($output | Out-String).Trim()
+        }
+    } finally {
+        $ErrorActionPreference = $previous
     }
-    foreach ($line in $credLines) {
+}
+
+function Import-AwsLoginCredentials {
+    $export = Invoke-AwsCli configure export-credentials --format env
+    if ($export.ExitCode -ne 0) {
+        $detail = if ($export.Output) { "`n$($export.Output)" } else { "" }
+        throw "AWS not authenticated or session expired.$detail`nRun: aws login"
+    }
+    foreach ($line in ($export.Output -split "`n")) {
         $line = $line.Trim()
         if ($line -match '^export\s+([^=]+)=(.*)$') {
             Set-Item -Path "env:$($matches[1])" -Value $matches[2].Trim('"')
