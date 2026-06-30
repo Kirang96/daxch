@@ -19,6 +19,7 @@ $ErrorActionPreference = "Stop"
 $Root = Split-Path $PSScriptRoot -Parent
 $InfraDir = Join-Path $Root "infrastructure"
 $TfvarsPath = Join-Path $InfraDir "terraform.tfvars"
+. (Join-Path $PSScriptRoot "aws-auth.ps1")
 
 function Get-TerraformExe {
     $candidates = @(
@@ -30,40 +31,6 @@ function Get-TerraformExe {
         Write-Error "terraform not found. Install: winget install Hashicorp.Terraform"
     }
     return $exe
-}
-
-function Invoke-AwsCli {
-    param([Parameter(ValueFromRemainingArguments = $true)][string[]]$AwsArgs)
-    $previous = $ErrorActionPreference
-    $ErrorActionPreference = "Continue"
-    try {
-        $output = & aws @AwsArgs 2>&1
-        return [PSCustomObject]@{
-            ExitCode = $LASTEXITCODE
-            Output   = ($output | Out-String).Trim()
-        }
-    } finally {
-        $ErrorActionPreference = $previous
-    }
-}
-
-function Import-AwsLoginCredentials {
-    $export = Invoke-AwsCli configure export-credentials --format env
-    if ($export.ExitCode -ne 0) {
-        $detail = if ($export.Output) { "`n$($export.Output)" } else { "" }
-        throw "AWS not authenticated or session expired.$detail`nRun: aws login`nThen: .\scripts\complete-staging-deploy.ps1"
-    }
-    foreach ($line in ($export.Output -split "`n")) {
-        $line = $line.Trim()
-        if ($line -match '^export\s+([^=]+)=(.*)$') {
-            Set-Item -Path "env:$($matches[1])" -Value $matches[2].Trim('"')
-        }
-    }
-    $identity = Invoke-AwsCli sts get-caller-identity --query Account --output text
-    if ($identity.ExitCode -ne 0) {
-        throw "AWS credentials could not be validated. Run: aws login"
-    }
-    Write-Host "AWS account: $($identity.Output)" -ForegroundColor Green
 }
 
 function Invoke-Terraform {
