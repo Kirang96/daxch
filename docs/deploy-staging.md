@@ -2,6 +2,36 @@
 
 Deploy target: **AWS ECS Fargate** in `ap-south-1`, triggered by push to `develop` on [Kirang96/daxch](https://github.com/Kirang96/daxch.git).
 
+## Terraform on Windows
+
+`aws login` credentials are not picked up by Terraform directly. Use:
+
+```powershell
+aws login
+.\scripts\complete-staging-deploy.ps1
+```
+
+This unlocks state, finishes RDS/secrets, updates ALB URLs, and re-applies.
+
+For individual steps:
+
+```powershell
+aws login
+.\scripts\terraform-staging.ps1 force-unlock 54dbcbea-abf2-3d6a-9e3e-fd0f6c4378ae
+.\scripts\terraform-staging.ps1 apply
+.\scripts\terraform-staging.ps1 output
+```
+
+If apply fails with **ExpiredToken**, run `aws login` again and re-run apply. If state lock is stuck:
+
+```powershell
+cd infrastructure
+.\scripts\terraform-staging.ps1 init
+# then with fresh login:
+terraform force-unlock <lock-id-from-error>
+.\scripts\terraform-staging.ps1 apply
+```
+
 ## Repository bootstrap (first time)
 
 If the repo is not on GitHub yet:

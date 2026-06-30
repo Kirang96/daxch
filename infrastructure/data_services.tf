@@ -8,7 +8,7 @@ resource "aws_db_instance" "postgres" {
   identifier              = "${local.name_prefix}-postgres"
   allocated_storage       = 30
   engine                  = "postgres"
-  engine_version          = "16.4"
+  engine_version          = "16.14"
   instance_class          = "db.t4g.micro"
   db_name                 = var.db_name
   username                = var.db_username
