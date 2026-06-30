@@ -32,6 +32,7 @@ tmp/
 # Terraform (never commit secrets or local state)
 infrastructure/terraform.tfvars
 infrastructure/staging-secrets.local
+infrastructure/backend.tf
 infrastructure/.terraform/
 infrastructure/*.tfstate
 infrastructure/*.tfstate.*
