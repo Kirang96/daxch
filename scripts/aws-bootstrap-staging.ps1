@@ -10,11 +10,11 @@ param(
 $ErrorActionPreference = "Stop"
 
 function Require-Aws {
-    try {
-        return aws sts get-caller-identity --output json | ConvertFrom-Json
-    } catch {
-        Write-Error "AWS CLI not authenticated. Run: aws login (or aws sso login) and retry."
+    $result = aws sts get-caller-identity --output json 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "AWS CLI not authenticated. Run: aws login (or aws sso login) and retry.`n$result"
     }
+    return $result | ConvertFrom-Json
 }
 
 $identity = Require-Aws
