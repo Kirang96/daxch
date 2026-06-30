@@ -63,10 +63,23 @@ Rotate any API keys that lived in local files before pushing if the repo is publ
 
 ```bash
 cp infrastructure/terraform.tfvars.example infrastructure/terraform.tfvars
-# Edit with real domain, secrets, and plan IDs
+# Or regenerate from local backend/.env:
+python scripts/generate-staging-tfvars.py
 ```
 
+Values copied from `.env` land in `infrastructure/terraform.tfvars`; generated `DB_PASSWORD_STAGING` is in `infrastructure/staging-secrets.local` (both gitignored).
+
 **First bootstrap:** run `terraform apply` locally once with full `terraform.tfvars` (including `app_secrets` and `backend_env_vars`). CI only passes `db_password` and image URIs; secrets must already exist in Secrets Manager from the first apply.
+
+### 3b. AWS one-time bootstrap (script)
+
+After `aws login` (or SSO):
+
+```powershell
+.\scripts\aws-bootstrap-staging.ps1
+```
+
+Creates ECR repos, Terraform state bucket + lock table, GitHub OIDC deploy role, and prints GitHub secret values.
 
 ### 4. External providers
 
