@@ -1,0 +1,87 @@
+from datetime import datetime, timedelta, timezone
+
+from jose import jwt
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from backend.app.core.config import get_settings
+from backend.app.models.entities import User
+from backend.app.utils.security import create_access_token
+
+
+class AuthService:
+    def __init__(self) -> None:
+        self.settings = get_settings()
+
+    def register_or_login_user(self, db: Session, email: str, name: str | None = None) -> str:
+        email = email.lower().strip()
+        stmt = select(User).where(User.email == email)
+        user = db.execute(stmt).scalar_one_or_none()
+        if not user:
+            user = User(email=email, name=name)
+            db.add(user)
+            db.flush()
+            db.commit()
+            db.refresh(user)
+        return create_access_token(str(user.id))
+
+    def create_magic_link_token(self, email: str, name: str | None = None) -> str:
+        expire_at = datetime.now(tz=timezone.utc) + timedelta(minutes=self.settings.magic_link_expire_minutes)
+        payload = {"sub": email.lower().strip(), "name": name, "purpose": "magic_link", "exp": expire_at}
+        return jwt.encode(payload, self.settings.secret_key, algorithm="HS256")
+
+    def verify_magic_link_token(self, db: Session, token: str) -> str:
+        payload = jwt.decode(token, self.settings.secret_key, algorithms=["HS256"])
+        if payload.get("purpose") != "magic_link":
+            raise ValueError("Invalid magic link token")
+
+        email = str(payload["sub"]).lower().strip()
+        name = payload.get("name")
+        return self.register_or_login_user(db, email, name)
+
+    async def authenticate_google(self, db: Session, code: str) -> str:
+        # Check if code is a mock code or if Google settings are not configured
+        is_mock = code.startswith("mock_code_") or not (
+            self.settings.google_client_id
+            and self.settings.google_client_secret
+            and self.settings.google_redirect_uri
+        )
+
+        if is_mock:
+            if code.startswith("mock_code_"):
+                email = code.replace("mock_code_", "")
+            else:
+                email = code
+
+            if not email or "@" not in email:
+                email = "demo_google_user@daxch.com"
+
+            name = email.split("@")[0].replace(".", " ").title()
+            return self.register_or_login_user(db, email, name)
+
+        # Real Google OAuth2 flow
+        import httpx
+        async with httpx.AsyncClient(timeout=10) as client:
+            token_url = "https://oauth2.googleapis.com/token"
+            payload = {
+                "code": code,
+                "client_id": self.settings.google_client_id,
+                "client_secret": self.settings.google_client_secret,
+                "redirect_uri": self.settings.google_redirect_uri,
+                "grant_type": "authorization_code",
+            }
+            res = await client.post(token_url, data=payload)
+            res.raise_for_status()
+            tokens = res.json()
+            access_token = tokens["access_token"]
+
+            userinfo_url = "https://www.googleapis.com/oauth2/v3/userinfo"
+            res = await client.get(userinfo_url, headers={"Authorization": f"Bearer {access_token}"})
+            res.raise_for_status()
+            userinfo = res.json()
+
+        email = userinfo["email"]
+        name = userinfo.get("name")
+        return self.register_or_login_user(db, email, name)
+
+

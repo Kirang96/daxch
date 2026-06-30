@@ -1,0 +1,17 @@
+alembic==1.16.2
+boto3==1.35.62
+celery==5.4.0
+cryptography==43.0.0
+email-validator==2.2.0
+fastapi==0.115.0
+firebase-admin==6.5.0
+httpx==0.27.2
+passlib[bcrypt]==1.7.4
+psycopg[binary]==3.2.13
+pydantic-settings==2.5.2
+python-jose[cryptography]==3.3.0
+python-multipart==0.0.9
+redis==5.0.8
+sqlalchemy==2.0.36
+uvicorn[standard]==0.30.6
+pytest==8.3.3

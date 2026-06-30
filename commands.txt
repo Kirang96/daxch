@@ -1,0 +1,21 @@
+1. Start Postgres & Redis inside WSL (Run once)
+powershell
+wsl -u root service postgresql start; wsl -u root service redis-server start
+
+2. Start Application Services (Run in 4 separate terminal windows)
+Terminal 1: Backend API Server (FastAPI)
+powershell
+$env:PYTHONPATH="d:\projects\daxch"
+.venv\Scripts\python -m uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --env-file backend/.env
+Terminal 2: Celery Worker
+powershell
+$env:PYTHONPATH="d:\projects\daxch"
+.venv\Scripts\celery -A backend.app.agents.celery_app.celery_app worker --loglevel=info --pool=solo
+Terminal 3: Celery Beat (Scheduler)
+powershell
+$env:PYTHONPATH="d:\projects\daxch"
+.venv\Scripts\celery -A backend.app.agents.celery_app.celery_app beat --loglevel=info
+Terminal 4: Frontend Development Server
+powershell
+cd frontend
+npm run dev

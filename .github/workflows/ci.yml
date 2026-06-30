@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "develop"]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt
+      - name: Compile check
+        run: python -m compileall backend
+      - name: Run tests
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          SECRET_KEY: ci-secret
+          DATABASE_URL: sqlite:///./ci.db
+          REDIS_URL: redis://localhost:6379/0
+          CELERY_BROKER_URL: redis://localhost:6379/1
+          CELERY_RESULT_BACKEND: redis://localhost:6379/2
+        run: pytest backend/tests -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm install
+      - name: Type check
+        working-directory: frontend
+        run: npx tsc --noEmit
+
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - name: Terraform format check
+        working-directory: infrastructure
+        run: terraform fmt -check
+      - name: Terraform init
+        working-directory: infrastructure
+        run: terraform init -backend=false
+      - name: Terraform validate
+        working-directory: infrastructure
+        run: terraform validate

@@ -1,0 +1,237 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { Check, Download } from "lucide-react";
+
+import { AiUnitsUsageCard } from "@/components/daxch/ai-units-usage-card";
+import { AppShell } from "@/components/layout/app-shell";
+import { AlertBanner, Badge, Disclaimer, GlassCard, StatCard } from "@/components/daxch/primitives";
+import { Button } from "@/components/ui/button";
+import { api } from "@/lib/api";
+import { Invoice, PlanInfo, Subscription } from "@/types";
+
+const PLAN_FEATURES: Record<string, string[]> = {
+  starter: [
+    "3,000 AI Units/month",
+    "Up to 10 agents",
+    "2 analysis strategies",
+    "Standard frequency",
+    "Buy extra AI Units anytime"
+  ],
+  pro: [
+    "12,000 AI Units/month",
+    "Unlimited agents",
+    "All 3 analysis strategies",
+    "Custom frequency",
+    "Buy extra AI Units anytime"
+  ],
+  ultra: [
+    "35,000 AI Units/month",
+    "Unlimited agents",
+    "All 3 analysis strategies",
+    "Highest priority AI processing",
+    "Buy extra AI Units anytime"
+  ]
+};
+
+type PlanId = "starter" | "pro" | "ultra";
+
+export default function SubscriptionPage() {
+  const [current, setCurrent] = useState<Subscription | null>(null);
+  const [planMap, setPlanMap] = useState<Record<string, PlanInfo>>({});
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [status, setStatus] = useState("");
+  const [devActivateAvailable, setDevActivateAvailable] = useState(false);
+
+  const refresh = async () => {
+    try {
+      const [subscription, invoiceData, plans, config] = await Promise.all([
+        api.get<Subscription | null>("/subscriptions/current"),
+        api.get<Invoice[]>("/subscriptions/invoices"),
+        api.get<Record<string, PlanInfo>>("/subscriptions/plans"),
+        api.get<{ dev_activate_available: boolean }>("/subscriptions/config")
+      ]);
+      setCurrent(subscription);
+      setInvoices(invoiceData);
+      setPlanMap(plans);
+      setDevActivateAvailable(config.dev_activate_available);
+      setStatus("");
+    } catch (error) {
+      setStatus((error as Error).message);
+    }
+  };
+
+  const subscribe = async (plan: PlanId) => {
+    try {
+      const response = await api.post<Subscription>("/subscriptions", { plan });
+      if (response.checkout_url) {
+        setStatus("Redirecting to Razorpay checkout...");
+        window.location.href = response.checkout_url;
+        return;
+      }
+      setStatus(`Subscription request submitted for ${plan}.`);
+      await refresh();
+    } catch (error) {
+      setStatus((error as Error).message);
+    }
+  };
+
+  const devActivate = async (plan: PlanId) => {
+    try {
+      await api.post<Subscription>("/subscriptions/dev-activate", { plan });
+      setStatus(`Dev subscription activated (${plan}).`);
+      await refresh();
+    } catch (error) {
+      setStatus((error as Error).message);
+    }
+  };
+
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  const isActive = current?.status === "active";
+
+  const plans = useMemo(
+    () =>
+      Object.entries(planMap).map(([id, info]) => ({
+        id,
+        name: info.name,
+        price: `₹${info.price}`,
+        desc:
+          id === "ultra"
+            ? "Maximum AI capacity for power users and larger portfolios."
+            : id === "pro"
+              ? "Unlimited coverage with advanced cadence controls."
+              : "For focused portfolios and standard monitoring.",
+        features: PLAN_FEATURES[id] ?? [],
+        highlighted: id === "pro",
+        agentLimit: info.agent_limit
+      })),
+    [planMap]
+  );
+
+  const statusLabel = (current?.status ?? "none").toUpperCase();
+  const renewalLabel = current?.current_period_end
+    ? new Date(current.current_period_end).toLocaleDateString()
+    : "—";
+
+  return (
+    <AppShell title="Subscription" subtitle="Manage plan entitlements, billing status, and invoices.">
+      {!isActive && (
+        <AlertBanner variant="warning" className="mb-4" title="No active subscription">
+          Subscribe below to create agents and use monitoring. Checkout is processed securely via Razorpay.
+        </AlertBanner>
+      )}
+      {status && <p className="mb-4 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-sm text-muted-foreground">{status}</p>}
+
+      <div className="space-y-8">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <StatCard label="Current Plan" value={(current?.plan || "—").toUpperCase()} hint={isActive ? "billed monthly" : "subscribe to unlock"} />
+          <StatCard
+            label="Status"
+            value={statusLabel}
+            delta={isActive ? "paid" : "action needed"}
+            trend={isActive ? "up" : "flat"}
+          />
+          <StatCard label="Renewal" value={renewalLabel} hint={isActive ? "current cycle end" : "after you subscribe"} />
+        </div>
+
+        <section id="top-up">
+          <h2 className="mb-4 text-lg font-semibold tracking-tight">AI Units</h2>
+          <AiUnitsUsageCard variant="subscription" showTopup={isActive} />
+        </section>
+
+        <section>
+          <h2 className="mb-4 text-lg font-semibold tracking-tight">Plans</h2>
+          <div className="grid gap-6 lg:grid-cols-3">
+            {plans.map((plan) => {
+              const isCurrent = isActive && current?.plan?.toLowerCase() === plan.id;
+              return (
+                <GlassCard
+                  key={plan.id}
+                  className={`flex h-full flex-col ${plan.highlighted ? "border-primary/40 ring-1 ring-primary/25" : ""}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-medium">{plan.name}</h3>
+                    {isCurrent ? <Badge variant="success">Current</Badge> : plan.highlighted ? <Badge variant="primary">Popular</Badge> : null}
+                  </div>
+                  <div className="mt-3 flex items-baseline gap-1">
+                    <span className="text-3xl font-semibold tracking-tight">{plan.price}</span>
+                    <span className="text-sm text-muted-foreground">/ month</span>
+                  </div>
+                  <p className="mt-2 text-sm text-muted-foreground">{plan.desc}</p>
+                  <ul className="mt-5 flex-1 space-y-2 text-sm">
+                    {plan.features.map((feature) => (
+                      <li key={feature} className="flex items-start gap-2">
+                        <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" /> {feature}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-6 space-y-2">
+                    <Button
+                      className="w-full"
+                      variant={plan.highlighted ? "primary" : "secondary"}
+                      disabled={isCurrent}
+                      onClick={() => !isCurrent && subscribe(plan.id as PlanId)}
+                    >
+                      {isCurrent ? "Current plan" : `Subscribe to ${plan.name}`}
+                    </Button>
+                    {devActivateAvailable && !isCurrent && (
+                      <Button className="w-full" variant="secondary" onClick={() => devActivate(plan.id as PlanId)}>
+                        Activate {plan.name} (dev only)
+                      </Button>
+                    )}
+                  </div>
+                </GlassCard>
+              );
+            })}
+          </div>
+        </section>
+
+        <GlassCard className="overflow-hidden p-0">
+        <div className="border-b border-white/5 px-6 py-4 text-sm font-medium">Invoices</div>
+        <div className="grid grid-cols-[1.1fr_1fr_1fr_auto] gap-3 border-b border-white/5 px-6 py-3 text-[11px] uppercase tracking-wider text-muted-foreground">
+          <span>Invoice</span>
+          <span>Date</span>
+          <span>Amount</span>
+          <span />
+        </div>
+        {invoices.map((invoice) => (
+          <div key={invoice.id} className="grid grid-cols-[1.1fr_1fr_1fr_auto] items-center gap-3 border-b border-white/5 px-6 py-3 text-sm">
+            <span className="font-mono text-xs">{invoice.invoice_id}</span>
+            <span className="text-muted-foreground">{new Date(invoice.invoice_date).toLocaleDateString()}</span>
+            <span>
+              {invoice.currency} {invoice.amount.toFixed(2)}
+            </span>
+            {invoice.download_url ? (
+              <a
+                href={invoice.download_url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-xs hover:bg-white/[0.06]"
+              >
+                <Download className="h-3.5 w-3.5" /> PDF
+              </a>
+            ) : (
+              <span className="text-xs text-muted-foreground">N/A</span>
+            )}
+          </div>
+        ))}
+        {invoices.length === 0 && (
+          <div className="px-6 py-3 text-sm text-muted-foreground">No invoices yet.</div>
+        )}
+        </GlassCard>
+
+        <p className="text-xs text-muted-foreground">
+          Payments processed securely via Razorpay. Daxch does not store card details.
+        </p>
+      </div>
+
+      <div className="mt-8">
+        <Disclaimer />
+      </div>
+    </AppShell>
+  );
+}

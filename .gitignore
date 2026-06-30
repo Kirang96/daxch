@@ -1,0 +1,41 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Node
+node_modules/
+.next/
+dist/
+coverage/
+
+# IDE
+.idea/
+.vscode/
+
+# Build
+*.log
+tmp/
+
+# Terraform (never commit secrets or local state)
+infrastructure/terraform.tfvars
+infrastructure/staging-secrets.local
+infrastructure/.terraform/
+infrastructure/*.tfstate
+infrastructure/*.tfstate.*
+
+# Celery / local DB
+celerybeat-schedule*
+*.db

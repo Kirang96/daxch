@@ -1,0 +1,127 @@
+name: Deploy Production
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      AWS_REGION: ap-south-1
+      PROJECT_NAME: daxch
+      ENVIRONMENT: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push backend image
+        id: backend_image
+        run: |
+          IMAGE_TAG=${GITHUB_SHA::12}
+          IMAGE_URI="${{ secrets.ECR_BACKEND_REPOSITORY }}:${IMAGE_TAG}"
+          docker build -f backend/Dockerfile -t "${IMAGE_URI}" .
+          docker push "${IMAGE_URI}"
+          echo "image_uri=${IMAGE_URI}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push frontend image
+        id: frontend_image
+        run: |
+          IMAGE_TAG=${GITHUB_SHA::12}
+          IMAGE_URI="${{ secrets.ECR_FRONTEND_REPOSITORY }}:${IMAGE_TAG}"
+          docker build -f frontend/Dockerfile --build-arg NEXT_PUBLIC_API_BASE_URL=/api/v1 -t "${IMAGE_URI}" .
+          docker push "${IMAGE_URI}"
+          echo "image_uri=${IMAGE_URI}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform init
+        working-directory: infrastructure
+        run: terraform init
+
+      - name: Terraform plan (production)
+        working-directory: infrastructure
+        run: |
+          terraform plan \
+            -var="environment=${ENVIRONMENT}" \
+            -var="db_password=${{ secrets.DB_PASSWORD_PRODUCTION }}" \
+            -var="backend_image=${{ steps.backend_image.outputs.image_uri }}" \
+            -var="worker_image=${{ steps.backend_image.outputs.image_uri }}" \
+            -var="beat_image=${{ steps.backend_image.outputs.image_uri }}" \
+            -var="frontend_image=${{ steps.frontend_image.outputs.image_uri }}"
+
+      - name: Terraform apply (production)
+        working-directory: infrastructure
+        run: |
+          terraform apply -auto-approve \
+            -var="environment=${ENVIRONMENT}" \
+            -var="db_password=${{ secrets.DB_PASSWORD_PRODUCTION }}" \
+            -var="backend_image=${{ steps.backend_image.outputs.image_uri }}" \
+            -var="worker_image=${{ steps.backend_image.outputs.image_uri }}" \
+            -var="beat_image=${{ steps.backend_image.outputs.image_uri }}" \
+            -var="frontend_image=${{ steps.frontend_image.outputs.image_uri }}"
+
+      - name: Run database migrations via ECS
+        run: |
+          set -euo pipefail
+          NAME_PREFIX="${PROJECT_NAME}-${ENVIRONMENT}"
+          CLUSTER="${NAME_PREFIX}-cluster"
+          SERVICE="${NAME_PREFIX}-backend"
+          TASK_DEF="${NAME_PREFIX}-migrate"
+
+          NET_CFG=$(aws ecs describe-services \
+            --cluster "${CLUSTER}" \
+            --services "${SERVICE}" \
+            --region "${AWS_REGION}" \
+            --query 'services[0].networkConfiguration' \
+            --output json)
+
+          TASK_ARN=$(aws ecs run-task \
+            --cluster "${CLUSTER}" \
+            --task-definition "${TASK_DEF}" \
+            --launch-type FARGATE \
+            --network-configuration "${NET_CFG}" \
+            --region "${AWS_REGION}" \
+            --query 'tasks[0].taskArn' \
+            --output text)
+
+          echo "Migration task: ${TASK_ARN}"
+          aws ecs wait tasks-stopped --cluster "${CLUSTER}" --tasks "${TASK_ARN}" --region "${AWS_REGION}"
+
+          EXIT_CODE=$(aws ecs describe-tasks \
+            --cluster "${CLUSTER}" \
+            --tasks "${TASK_ARN}" \
+            --region "${AWS_REGION}" \
+            --query 'tasks[0].containers[0].exitCode' \
+            --output text)
+
+          if [ "${EXIT_CODE}" != "0" ]; then
+            echo "Migration failed with exit code ${EXIT_CODE}"
+            aws logs tail "/ecs/${NAME_PREFIX}-migrate" --since 30m --region "${AWS_REGION}" || true
+            exit 1
+          fi
+          echo "Migration completed successfully"
+
+      - name: Force ECS rolling deployment
+        run: |
+          NAME_PREFIX="${PROJECT_NAME}-${ENVIRONMENT}"
+          aws ecs update-service --cluster "${NAME_PREFIX}-cluster" --service "${NAME_PREFIX}-backend" --force-new-deployment --region "${AWS_REGION}"
+          aws ecs update-service --cluster "${NAME_PREFIX}-cluster" --service "${NAME_PREFIX}-worker" --force-new-deployment --region "${AWS_REGION}"
+          aws ecs update-service --cluster "${NAME_PREFIX}-cluster" --service "${NAME_PREFIX}-beat" --force-new-deployment --region "${AWS_REGION}"
+          aws ecs update-service --cluster "${NAME_PREFIX}-cluster" --service "${NAME_PREFIX}-frontend" --force-new-deployment --region "${AWS_REGION}"
+
