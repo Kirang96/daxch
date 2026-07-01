@@ -49,6 +49,45 @@ function Invoke-Terraform {
     }
 }
 
+function Ensure-TerraformBackend {
+    $backendTf = Join-Path $InfraDir "backend.tf"
+    $backendExample = Join-Path $InfraDir "backend.tf.example"
+    if (-not (Test-Path $backendTf)) {
+        if (-not (Test-Path $backendExample)) {
+            Write-Error "Missing infrastructure/backend.tf and backend.tf.example"
+        }
+        Copy-Item $backendExample $backendTf
+        Write-Host "Created backend.tf from example" -ForegroundColor Yellow
+    } else {
+        $content = Get-Content $backendTf -Raw
+        if ($content -match 'dynamodb_table') {
+            Write-Host "Updating backend.tf to use S3 lockfile (matches CI)..." -ForegroundColor Yellow
+            $bucket = if ($content -match 'bucket\s*=\s*"([^"]+)"') { $Matches[1] } else { "daxch-terraform-state-264711513534" }
+            $key = if ($content -match 'key\s*=\s*"([^"]+)"') { $Matches[1] } else { "staging/terraform.tfstate" }
+            $region = if ($content -match 'region\s*=\s*"([^"]+)"') { $Matches[1] } else { "ap-south-1" }
+            @"
+# Copy to backend.tf and fill in your bucket/table names before first shared apply.
+# Create the S3 bucket and DynamoDB table once per AWS account (or per environment).
+
+terraform {
+  backend "s3" {
+    bucket       = "$bucket"
+    key          = "$key"
+    region       = "$region"
+    use_lockfile = true
+    encrypt      = true
+  }
+}
+
+# Production: use a separate key, e.g. key = "production/terraform.tfstate"
+"@ | Set-Content -Path $backendTf -Encoding utf8 -NoNewline
+        }
+    }
+
+    Write-Host "Reinitializing Terraform backend..." -ForegroundColor Yellow
+    Invoke-Terraform @("init", "-reconfigure")
+}
+
 function Update-TfvarsWithAlbUrl {
     param([string]$AlbDns)
     if (-not (Test-Path $TfvarsPath)) {
@@ -65,6 +104,7 @@ function Update-TfvarsWithAlbUrl {
 
 Write-Host "=== Daxch staging deploy (resume) ===" -ForegroundColor Cyan
 Import-AwsLoginCredentials
+Ensure-TerraformBackend
 
 if (-not $SkipUnlock) {
     Write-Host "Releasing stale state lock (if any)..." -ForegroundColor Yellow

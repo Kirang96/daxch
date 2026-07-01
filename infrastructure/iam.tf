@@ -25,6 +25,29 @@ resource "aws_iam_role_policy_attachment" "ecs_execution_ssm" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess"
 }
 
+data "aws_iam_policy_document" "ecs_execution_secrets" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "secretsmanager:GetSecretValue",
+      "secretsmanager:DescribeSecret",
+    ]
+    resources = [aws_secretsmanager_secret.app.arn]
+  }
+
+  statement {
+    effect = "Allow"
+    actions = ["kms:Decrypt"]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_role_policy" "ecs_execution_secrets" {
+  name   = "${local.name_prefix}-ecs-execution-secrets"
+  role   = aws_iam_role.ecs_execution.id
+  policy = data.aws_iam_policy_document.ecs_execution_secrets.json
+}
+
 resource "aws_iam_role" "ecs_task" {
   name               = "${local.name_prefix}-ecs-task-role"
   assume_role_policy = data.aws_iam_policy_document.ecs_task_assume_role.json
