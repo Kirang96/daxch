@@ -119,8 +119,7 @@ variable "backend_env_vars" {
   description = "Non-secret backend env vars"
   type        = map(string)
   default = {
-    ENVIRONMENT = "production"
-    API_PREFIX  = "/api/v1"
+    API_PREFIX = "/api/v1"
   }
 }
 

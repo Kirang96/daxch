@@ -32,8 +32,10 @@ resource "aws_ecs_cluster" "main" {
 }
 
 locals {
+  backend_env = merge(var.backend_env_vars, { ENVIRONMENT = var.environment })
+
   base_env = [
-    for key, value in var.backend_env_vars : {
+    for key, value in local.backend_env : {
       name  = key
       value = value
     }
