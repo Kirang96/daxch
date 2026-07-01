@@ -52,23 +52,35 @@ jobs:
 
       - name: Terraform init
         working-directory: infrastructure
-        run: terraform init
-
-      - name: Terraform plan (production)
-        working-directory: infrastructure
+        env:
+          TF_STATE_BUCKET: ${{ secrets.TF_STATE_BUCKET }}
         run: |
-          terraform plan \
-            -var="environment=${ENVIRONMENT}" \
-            -var="db_password=${{ secrets.DB_PASSWORD_PRODUCTION }}" \
-            -var="backend_image=${{ steps.backend_image.outputs.image_uri }}" \
-            -var="worker_image=${{ steps.backend_image.outputs.image_uri }}" \
-            -var="beat_image=${{ steps.backend_image.outputs.image_uri }}" \
-            -var="frontend_image=${{ steps.frontend_image.outputs.image_uri }}"
+          RAW_BUCKET="${TF_STATE_BUCKET}"
+          TF_STATE_BUCKET="$(printf '%s' "${RAW_BUCKET}" | tr '[:upper:]' '[:lower:]' | sed 's/[[:space:]]//g' | tr -d '"' | sed 's|^s3://||' | sed 's|/.*||')"
+          DEFAULT_BUCKET="daxch-terraform-state-264711513534"
+          if [ -z "${TF_STATE_BUCKET}" ] || ! printf '%s' "${TF_STATE_BUCKET}" | grep -Eq '^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$'; then
+            echo "TF_STATE_BUCKET secret missing or invalid; using default: ${DEFAULT_BUCKET}"
+            TF_STATE_BUCKET="${DEFAULT_BUCKET}"
+          else
+            echo "Using Terraform state bucket (length ${#TF_STATE_BUCKET})"
+          fi
+          printf '%s\n' \
+            'terraform {' \
+            '  backend "s3" {' \
+            "    bucket       = \"${TF_STATE_BUCKET}\"" \
+            '    key          = "production/terraform.tfstate"' \
+            '    region       = "ap-south-1"' \
+            '    use_lockfile = true' \
+            '    encrypt      = true' \
+            '  }' \
+            '}' > backend.tf
+          terraform init -input=false
 
       - name: Terraform apply (production)
         working-directory: infrastructure
         run: |
           terraform apply -auto-approve \
+            -var-file=production.tfvars \
             -var="environment=${ENVIRONMENT}" \
             -var="db_password=${{ secrets.DB_PASSWORD_PRODUCTION }}" \
             -var="backend_image=${{ steps.backend_image.outputs.image_uri }}" \
@@ -136,4 +148,3 @@ jobs:
           aws ecs update-service --cluster "${NAME_PREFIX}-cluster" --service "${NAME_PREFIX}-worker" --force-new-deployment --region "${AWS_REGION}"
           aws ecs update-service --cluster "${NAME_PREFIX}-cluster" --service "${NAME_PREFIX}-beat" --force-new-deployment --region "${AWS_REGION}"
           aws ecs update-service --cluster "${NAME_PREFIX}-cluster" --service "${NAME_PREFIX}-frontend" --force-new-deployment --region "${AWS_REGION}"
-

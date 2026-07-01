@@ -1,0 +1,37 @@
+# Copy to terraform.production.tfvars (gitignored). Fill before first production apply.
+# Live Razorpay keys, fresh SECRET_KEY/FERNET_KEY — never reuse staging values.
+
+aws_region   = "ap-south-1"
+environment  = "production"
+project_name = "daxch"
+
+# Set after first ECR push or CI release build:
+backend_image  = "264711513534.dkr.ecr.ap-south-1.amazonaws.com/daxch-backend:REPLACE_SHA"
+frontend_image = "264711513534.dkr.ecr.ap-south-1.amazonaws.com/daxch-frontend:REPLACE_SHA"
+worker_image   = "264711513534.dkr.ecr.ap-south-1.amazonaws.com/daxch-backend:REPLACE_SHA"
+beat_image     = "264711513534.dkr.ecr.ap-south-1.amazonaws.com/daxch-backend:REPLACE_SHA"
+
+db_username = "daxch"
+db_password = "replace-with-strong-production-password"
+db_name     = "daxch"
+
+app_secrets = {
+  SECRET_KEY               = "replace-with-secrets.token_urlsafe-48-chars-min"
+  FERNET_KEY               = "replace-with-Fernet.generate_key"
+  OPENAI_API_KEY           = "replace-me"
+  UPSTOX_CLIENT_ID         = "replace-me"
+  UPSTOX_CLIENT_SECRET     = "replace-me"
+  RAZORPAY_KEY_ID          = "rzp_live_xxx"
+  RAZORPAY_KEY_SECRET      = "replace-me"
+  RAZORPAY_WEBHOOK_SECRET  = "replace-me"
+  RAZORPAY_PLAN_STARTER_ID = "plan_xxx"
+  RAZORPAY_PLAN_PRO_ID     = "plan_yyy"
+  RAZORPAY_PLAN_ULTRA_ID   = "plan_zzz"
+  TAVILY_API_KEY           = "replace-me"
+  NEWS_API_KEY             = "replace-me"
+  SES_FROM_EMAIL           = "no-reply@daxch.app"
+  FCM_CREDENTIALS_JSON     = "{\"type\":\"service_account\"}"
+  GOOGLE_CLIENT_ID         = "replace-me"
+  GOOGLE_CLIENT_SECRET     = "replace-me"
+  GOOGLE_REDIRECT_URI      = "https://daxch.app/auth/google/callback"
+}

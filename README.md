@@ -39,4 +39,5 @@ Daxch is an AI-assisted trading operations platform for Indian users. The app do
 - Terraform stack is under `infrastructure/`.
 - CI/CD workflows are under `.github/workflows/`.
 - Use `deploy-staging.yml` from `develop` and `deploy-production.yml` from release tags.
+- Guides: [docs/deploy-staging.md](docs/deploy-staging.md), [docs/deploy-production.md](docs/deploy-production.md)
 

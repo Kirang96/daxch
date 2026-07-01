@@ -38,13 +38,23 @@ function Get-TerraformExe {
     return $exe
 }
 
+function Get-TerraformVarFileArgs {
+    $stagingTfvars = Join-Path $InfraDir "staging.tfvars"
+    if (Test-Path $stagingTfvars) {
+        return @("-var-file=staging.tfvars")
+    }
+    return @()
+}
+
 function Invoke-Terraform {
     param([string[]]$TerraformArgs)
     Import-AwsLoginCredentials | Out-Null
     $terraform = Get-TerraformExe
     Push-Location $InfraDir
     try {
-        & $terraform @TerraformArgs
+        $cmd = $TerraformArgs | Select-Object -First 1
+        $extra = if ($cmd -in @("apply", "plan", "destroy")) { Get-TerraformVarFileArgs } else { @() }
+        & $terraform @($extra + $TerraformArgs)
         if ($LASTEXITCODE -ne 0) {
             Write-Error "terraform $($TerraformArgs -join ' ') failed (exit $LASTEXITCODE)"
         }
@@ -189,7 +199,7 @@ if ($customDomain) {
 Write-Host "Terraform apply (finish RDS + secrets)..." -ForegroundColor Yellow
 if ($RestoreSecrets) {
     Write-Host "Restoring app secrets from terraform.tfvars (one-time after CI wipe)..." -ForegroundColor Yellow
-    Invoke-Terraform @("apply", "-auto-approve", "-replace=aws_secretsmanager_secret_version.app")
+    Invoke-Terraform @("apply", "-auto-approve", '-replace=aws_secretsmanager_secret_version.app')
 } else {
     Invoke-Terraform @("apply", "-auto-approve")
 }
