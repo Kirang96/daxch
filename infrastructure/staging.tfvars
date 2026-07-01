@@ -1,7 +1,7 @@
 # Non-secret staging infrastructure config (used by CI deploy).
 # Secrets and db_password are passed separately at apply time.
 
-domain_name = "staging.daxch.app"
+domain_name                    = "staging.daxch.app"
 cloudfront_acm_certificate_arn = "arn:aws:acm:us-east-1:264711513534:certificate/3641dae1-b4ae-489f-ab3d-d80a8e8b8e5b"
 
 backend_env_vars = {
