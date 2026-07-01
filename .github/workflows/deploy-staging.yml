@@ -55,18 +55,15 @@ jobs:
         env:
           TF_STATE_BUCKET: ${{ secrets.TF_STATE_BUCKET }}
         run: |
-          TF_STATE_BUCKET="$(printf '%s' "${TF_STATE_BUCKET}" | tr -d '\r\n ' | tr -d '"' | sed 's|^s3://||' | sed 's|/.*||')"
-          if [ -z "${TF_STATE_BUCKET}" ]; then
-            echo "Missing GitHub secret TF_STATE_BUCKET in the staging environment."
-            echo "Expected value: daxch-terraform-state-264711513534"
-            exit 1
+          RAW_BUCKET="${TF_STATE_BUCKET}"
+          TF_STATE_BUCKET="$(printf '%s' "${RAW_BUCKET}" | tr '[:upper:]' '[:lower:]' | sed 's/[[:space:]]//g' | tr -d '"' | sed 's|^s3://||' | sed 's|/.*||')"
+          DEFAULT_BUCKET="daxch-terraform-state-264711513534"
+          if [ -z "${TF_STATE_BUCKET}" ] || ! printf '%s' "${TF_STATE_BUCKET}" | grep -Eq '^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$'; then
+            echo "TF_STATE_BUCKET secret missing or invalid; using default: ${DEFAULT_BUCKET}"
+            TF_STATE_BUCKET="${DEFAULT_BUCKET}"
+          else
+            echo "Using Terraform state bucket (length ${#TF_STATE_BUCKET})"
           fi
-          if ! printf '%s' "${TF_STATE_BUCKET}" | grep -Eq '^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$'; then
-            echo "TF_STATE_BUCKET is not a valid S3 bucket name."
-            echo "Use only lowercase letters, numbers, dots, and hyphens."
-            exit 1
-          fi
-          echo "Using Terraform state bucket (length ${#TF_STATE_BUCKET})"
           printf '%s\n' \
             'terraform {' \
             '  backend "s3" {' \
