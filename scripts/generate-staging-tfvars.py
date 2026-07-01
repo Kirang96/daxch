@@ -67,7 +67,6 @@ backend_env_vars = {{
   CORS_ORIGINS        = "http://REPLACE_AFTER_ALB_APPLY"
   AWS_REGION          = "ap-south-1"
   UPSTOX_REDIRECT_URI = "http://REPLACE_AFTER_ALB_APPLY/broker/callback"
-  GOOGLE_REDIRECT_URI = "http://REPLACE_AFTER_ALB_APPLY/auth/google/callback"
 }}
 
 app_secrets = {{
@@ -88,6 +87,7 @@ app_secrets = {{
   FCM_CREDENTIALS_JSON     = "{fcm_escaped}"
   GOOGLE_CLIENT_ID         = "{pick("GOOGLE_CLIENT_ID")}"
   GOOGLE_CLIENT_SECRET     = "{pick("GOOGLE_CLIENT_SECRET")}"
+  GOOGLE_REDIRECT_URI      = "http://REPLACE_AFTER_ALB_APPLY/auth/google/callback"
 }}
 """
 

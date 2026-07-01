@@ -126,6 +126,10 @@ locals {
       name      = "GOOGLE_CLIENT_SECRET"
       valueFrom = "${aws_secretsmanager_secret.app.arn}:GOOGLE_CLIENT_SECRET::"
     },
+    {
+      name      = "GOOGLE_REDIRECT_URI"
+      valueFrom = "${aws_secretsmanager_secret.app.arn}:GOOGLE_REDIRECT_URI::"
+    },
   ]
 }
 
