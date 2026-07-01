@@ -192,7 +192,7 @@ export default function AgentsPage() {
       {error && <AlertBanner variant="error" className="mb-4">{error}</AlertBanner>}
 
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <div className="relative min-w-[220px] max-w-md flex-1">
+        <div className="relative min-w-0 w-full flex-1 sm:min-w-[220px] sm:max-w-md">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             value={search}
@@ -201,7 +201,7 @@ export default function AgentsPage() {
             className="w-full rounded-xl border border-white/10 bg-white/[0.03] py-2 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
           />
         </div>
-        <div className="flex gap-1 rounded-lg border border-white/10 bg-white/[0.03] p-1 text-xs">
+        <div className="flex w-full gap-1 overflow-x-auto rounded-lg border border-white/10 bg-white/[0.03] p-1 text-xs sm:w-auto">
           {["All", "Healthy", "Watch", "Alert"].map((t, i) => (
             <button
               key={t}

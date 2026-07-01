@@ -156,10 +156,10 @@ export default function WatchlistPage() {
           const up = (item.delta ?? 0) >= 0;
           return (
             <GlassCard key={item.id}>
-              <div className="flex items-start justify-between">
-                <div>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
                   <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">{item.ticker}</div>
-                  <div className="mt-1 text-sm font-medium">{item.exchange}</div>
+                  <div className="mt-1 truncate text-sm font-medium">{item.exchange}</div>
                 </div>
                 <button
                   onClick={() => removeItem(item.id)}
@@ -183,7 +183,7 @@ export default function WatchlistPage() {
               <div className="mt-4 flex items-end justify-between">
                 <div>
                   <div className="text-xs text-muted-foreground">Current price</div>
-                  <div className="text-lg font-semibold">
+                  <div className="text-lg font-semibold tabular-nums">
                     {item.ltp != null ? `₹${item.ltp.toFixed(2)}` : "Unavailable"}
                   </div>
                 </div>

@@ -9,6 +9,7 @@ import { Badge, Disclaimer, GlassCard, AlertBanner } from "@/components/daxch/pr
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { logger } from "@/lib/logger";
+import { cn } from "@/lib/utils";
 import { UserSettings } from "@/types";
 
 export default function SettingsPage() {
@@ -105,7 +106,10 @@ export default function SettingsPage() {
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={t === tab ? "rounded-md bg-primary/12 px-3 py-1.5 font-semibold text-primary ring-1 ring-primary/20" : "rounded-md px-3 py-1.5 text-muted-foreground hover:text-foreground"}
+            className={cn(
+              "shrink-0 whitespace-nowrap rounded-md px-3 py-1.5",
+              t === tab ? "bg-primary/12 font-semibold text-primary ring-1 ring-primary/20" : "text-muted-foreground hover:text-foreground"
+            )}
           >
             {t}
           </button>

@@ -73,7 +73,7 @@ export default function NotificationsPage() {
             key={t}
             onClick={() => setFilter(t)}
             className={cn(
-              "rounded-md px-3 py-1.5 whitespace-nowrap",
+              "shrink-0 whitespace-nowrap rounded-md px-3 py-1.5",
               filter === t ? "bg-primary/12 font-semibold text-primary ring-1 ring-primary/20" : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -92,23 +92,23 @@ export default function NotificationsPage() {
               {group.items.map((item) => {
                 const Icon = iconForType(item.event_type);
                 return (
-                  <div key={item.id} className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-3 hover:border-white/10">
+                  <div key={item.id} className="flex items-start gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-3 hover:border-white/10">
                     <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-white/10 bg-white/[0.04] text-muted-foreground">
                       <Icon className="h-4 w-4" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <Badge variant={badgeVariant(item.event_type)}>{item.event_type}</Badge>
                         <span className="text-xs text-muted-foreground">
                           {new Date(item.created_at).toLocaleTimeString()}
                         </span>
                       </div>
-                      <p className="mt-1 truncate text-sm">{item.title}</p>
-                      <p className="text-xs text-muted-foreground">{item.body}</p>
+                      <p className="mt-1 line-clamp-2 text-sm">{item.title}</p>
+                      <p className="break-words text-xs text-muted-foreground">{item.body}</p>
                     </div>
                     <button
                       onClick={() => markRead(item.id)}
-                      className="grid h-8 w-8 place-items-center rounded-lg border border-white/10 bg-white/[0.03] text-muted-foreground hover:text-foreground"
+                      className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-white/10 bg-white/[0.03] text-muted-foreground hover:text-foreground"
                     >
                       <Bell className="h-4 w-4" />
                     </button>

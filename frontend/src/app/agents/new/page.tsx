@@ -368,21 +368,21 @@ function NewAgentWizard() {
           )}
         </AlertBanner>
       )}
-      <div className="mb-8">
-        <div className="grid grid-cols-5 gap-2">
+      <div className="mb-8 -mx-1 overflow-x-auto px-1">
+        <div className="grid min-w-[28rem] grid-cols-5 gap-2 sm:min-w-0">
           {steps.map((s) => (
             <div key={s.n}>
               <div className={cn("h-1 rounded-full", step >= (s.n as Step) ? "bg-gradient-to-r from-primary to-emerald-400" : "bg-white/5")} />
               <div className="mt-2 flex items-center gap-2 text-xs">
                 <span
                   className={cn(
-                    "grid h-5 w-5 place-items-center rounded-full text-[10px] font-medium",
+                    "grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-medium",
                     step >= (s.n as Step) ? "bg-primary text-primary-foreground" : "bg-white/5 text-muted-foreground"
                   )}
                 >
                   {step > s.n ? <Check className="h-3 w-3" /> : s.n}
                 </span>
-                <span className={step === s.n ? "font-medium text-foreground" : "text-muted-foreground"}>{s.label}</span>
+                <span className={cn("hidden truncate sm:inline", step === s.n ? "font-medium text-foreground" : "text-muted-foreground")}>{s.label}</span>
               </div>
             </div>
           ))}
@@ -573,7 +573,7 @@ function Step1Stock({
               </div>
             </div>
           </div>
-          <div className="mt-5 grid grid-cols-4 gap-3 text-sm">
+          <div className="mt-5 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
             <Mini
               label="Current"
               value={quote ? `₹${quote.ltp.toFixed(2)}` : "—"}
@@ -719,7 +719,7 @@ function Step2Investment({
           />
         </div>
 
-        <div className="mt-6 flex items-center justify-between">
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
           <button onClick={onBack} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-medium hover:bg-white/[0.06]">
             <ArrowLeft className="h-4 w-4" /> Back
           </button>
@@ -1033,7 +1033,7 @@ function Step3Assessment({
         </div>
       </GlassCard>
 
-      <div className="mt-6 flex items-center justify-between">
+      <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
         <button onClick={onBack} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-medium hover:bg-white/[0.06]">
           <ArrowLeft className="h-4 w-4" /> Back
         </button>
@@ -1313,7 +1313,7 @@ function Step2Goal({
           Current intention: <span className="font-medium text-foreground">{intention}</span>
         </p>
 
-        <div className="mt-6 flex items-center justify-between">
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
           <button onClick={onBack} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-medium hover:bg-white/[0.06]">
             <ArrowLeft className="h-4 w-4" /> Back
           </button>
@@ -1406,7 +1406,7 @@ function Step5Configure({
           <p className="mt-2 text-xs text-muted-foreground">Push and SMS coming soon. In-app notifications always appear in your feed.</p>
         </div>
 
-        <div className="mt-6 flex items-center justify-between">
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
           <button onClick={onBack} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-medium hover:bg-white/[0.06]">
             <ArrowLeft className="h-4 w-4" /> Back
           </button>

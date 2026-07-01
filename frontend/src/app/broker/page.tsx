@@ -74,7 +74,7 @@ export default function BrokerPage() {
           <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary">
             <PlugZap className="h-6 w-6" />
           </div>
-          <div className="flex-1">
+          <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-lg font-medium">Upstox</h2>
               {status?.connected && !status.expired ? (

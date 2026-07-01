@@ -7,13 +7,14 @@ import { ArrowUpRight, Bell, Bot, ListChecks, Plus, Sparkles, TrendingUp } from 
 import { api } from "@/lib/api";
 import { AiUnitsUsageCard } from "@/components/daxch/ai-units-usage-card";
 import { AppShell } from "@/components/layout/app-shell";
-import { AreaChart, Disclaimer, GlassCard, Sparkline, StatCard, TimeframeTabs } from "@/components/daxch/primitives";
+import { AreaChart, ChartCardHeader, Disclaimer, GlassCard, Sparkline, StatCard, TimeframeTabs } from "@/components/daxch/primitives";
 import { FirstRunChecklist } from "@/components/daxch/first-run-checklist";
 import { MarketLiveBadge } from "@/components/daxch/market-live-badge";
 import { sliceByTimeframe } from "@/lib/chart";
 import { logger } from "@/lib/logger";
 import { MonitorAgent, NotificationEvent, StockHolding, UserSettings, AiUnitsQuota, ExchangePositionsResponse } from "@/types";
 import { formatAiUnits, formatPercentUsed } from "@/lib/ai-units";
+import { cn } from "@/lib/utils";
 
 type MarketIndex = {
   name: string;
@@ -273,22 +274,29 @@ export default function DashboardPage() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         <GlassCard className="lg:col-span-2">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="text-xs uppercase tracking-wider text-muted-foreground">Portfolio Performance</div>
-              <div className="mt-1 flex items-baseline gap-3">
-                <div className="text-3xl font-semibold tracking-tight">₹{currentValue.toFixed(2)}</div>
-                <span className={pnl >= 0 ? "text-sm font-medium text-emerald-400" : "text-sm font-medium text-red-400"}>
-                  {pnl >= 0 ? "+" : ""}₹{pnl.toFixed(2)} · {pnlPct > 0 ? "+" : ""}
-                  {pnlPct.toFixed(2)}%
-                </span>
+          <ChartCardHeader
+            title={
+              <div>
+                <div className="text-xs uppercase tracking-wider text-muted-foreground">Portfolio Performance</div>
+                <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                  <div className="text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl">₹{currentValue.toFixed(2)}</div>
+                  <span className={pnl >= 0 ? "text-sm font-medium text-emerald-400" : "text-sm font-medium text-red-400"}>
+                    {pnl >= 0 ? "+" : ""}₹{pnl.toFixed(2)} · {pnlPct > 0 ? "+" : ""}
+                    {pnlPct.toFixed(2)}%
+                  </span>
+                </div>
               </div>
-            </div>
-            <TimeframeTabs value={timeframe} onChange={setTimeframe} options={TIMEFRAME_OPTIONS} />
-          </div>
+            }
+            tabs={<TimeframeTabs value={timeframe} onChange={setTimeframe} options={TIMEFRAME_OPTIONS} />}
+          />
           <div className="mt-6">
             {displayChartData.length >= 2 ? (
-              <AreaChart data={displayChartData} color="oklch(var(--primary))" height={260} />
+              <AreaChart
+                data={displayChartData}
+                color="oklch(var(--primary))"
+                height={260}
+                wrapperClassName="h-44 sm:h-56 md:h-[260px]"
+              />
             ) : (
               <p className="py-16 text-center text-sm text-muted-foreground">
                 {holdings.length === 0 ? "Add holdings to see portfolio performance." : "Chart data unavailable."}
@@ -302,19 +310,19 @@ export default function DashboardPage() {
           <div className="mt-5 space-y-4">
             {marketSummary.length > 0 ? (
               marketSummary.map((m) => (
-                <div key={m.name} className="grid grid-cols-[1fr_auto_auto] items-center gap-4">
+                <div key={m.name} className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 sm:gap-4">
                   <div className="min-w-0">
                     <div className="truncate text-sm font-medium">{m.name}</div>
-                    <div className="text-xs text-muted-foreground">{m.value}</div>
+                    <div className="truncate text-xs text-muted-foreground">{m.value}</div>
                   </div>
                   {m.data?.length >= 2 ? (
-                    <div className="h-8 w-20">
+                    <div className="h-8 w-16 shrink-0 sm:w-20">
                       <Sparkline data={m.data} color={m.up ? "oklch(var(--success))" : "oklch(var(--destructive))"} height={32} />
                     </div>
                   ) : (
-                    <span className="text-xs text-muted-foreground">—</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">—</span>
                   )}
-                  <span className={m.up ? "text-xs font-medium text-emerald-400" : "text-xs font-medium text-red-400"}>{m.delta}</span>
+                  <span className={cn("shrink-0 text-xs font-medium", m.up ? "text-emerald-400" : "text-red-400")}>{m.delta}</span>
                 </div>
               ))
             ) : (
@@ -326,7 +334,7 @@ export default function DashboardPage() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         <GlassCard className="lg:col-span-2">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-lg font-medium tracking-tight">Latest Notifications</h3>
             <Link href="/notifications" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
               View all <ArrowUpRight className="h-3 w-3" />
@@ -335,11 +343,11 @@ export default function DashboardPage() {
           <div className="mt-5 space-y-2">
             {notifications.slice(0, 5).map((n) => (
               <div key={n.id} className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-3 hover:border-white/10">
-                <span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                <span className="shrink-0 rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
                   {n.event_type}
                 </span>
-                <div className="flex-1 truncate text-sm">{n.title}</div>
-                <span className="text-xs text-muted-foreground">{new Date(n.created_at).toLocaleTimeString()}</span>
+                <div className="min-w-0 flex-1 truncate text-sm">{n.title}</div>
+                <span className="shrink-0 text-xs text-muted-foreground">{new Date(n.created_at).toLocaleTimeString()}</span>
               </div>
             ))}
             {!notifications.length && (

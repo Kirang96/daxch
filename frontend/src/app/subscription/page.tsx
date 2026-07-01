@@ -211,36 +211,70 @@ export default function SubscriptionPage() {
         </section>
 
         <GlassCard className="overflow-hidden p-0">
-        <div className="border-b border-white/5 px-6 py-4 text-sm font-medium">Invoices</div>
-        <div className="grid grid-cols-[1.1fr_1fr_1fr_auto] gap-3 border-b border-white/5 px-6 py-3 text-[11px] uppercase tracking-wider text-muted-foreground">
-          <span>Invoice</span>
-          <span>Date</span>
-          <span>Amount</span>
-          <span />
-        </div>
-        {invoices.map((invoice) => (
-          <div key={invoice.id} className="grid grid-cols-[1.1fr_1fr_1fr_auto] items-center gap-3 border-b border-white/5 px-6 py-3 text-sm">
-            <span className="font-mono text-xs">{invoice.invoice_id}</span>
-            <span className="text-muted-foreground">{new Date(invoice.invoice_date).toLocaleDateString()}</span>
-            <span>
-              {invoice.currency} {invoice.amount.toFixed(2)}
-            </span>
-            {invoice.download_url ? (
-              <a
-                href={invoice.download_url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-xs hover:bg-white/[0.06]"
-              >
-                <Download className="h-3.5 w-3.5" /> PDF
-              </a>
-            ) : (
-              <span className="text-xs text-muted-foreground">N/A</span>
-            )}
+        <div className="border-b border-white/5 px-4 py-4 text-sm font-medium sm:px-6">Invoices</div>
+
+        {/* Desktop table */}
+        <div className="hidden overflow-x-auto sm:block">
+          <div className="min-w-[520px]">
+            <div className="grid grid-cols-[1.1fr_1fr_1fr_auto] gap-3 border-b border-white/5 px-6 py-3 text-[11px] uppercase tracking-wider text-muted-foreground">
+              <span>Invoice</span>
+              <span>Date</span>
+              <span>Amount</span>
+              <span />
+            </div>
+            {invoices.map((invoice) => (
+              <div key={invoice.id} className="grid grid-cols-[1.1fr_1fr_1fr_auto] items-center gap-3 border-b border-white/5 px-6 py-3 text-sm">
+                <span className="font-mono text-xs">{invoice.invoice_id}</span>
+                <span className="text-muted-foreground">{new Date(invoice.invoice_date).toLocaleDateString()}</span>
+                <span className="tabular-nums">
+                  {invoice.currency} {invoice.amount.toFixed(2)}
+                </span>
+                {invoice.download_url ? (
+                  <a
+                    href={invoice.download_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-xs hover:bg-white/[0.06]"
+                  >
+                    <Download className="h-3.5 w-3.5" /> PDF
+                  </a>
+                ) : (
+                  <span className="text-xs text-muted-foreground">N/A</span>
+                )}
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
+
+        {/* Mobile cards */}
+        <div className="divide-y divide-white/5 sm:hidden">
+          {invoices.map((invoice) => (
+            <div key={invoice.id} className="space-y-2 px-4 py-3 text-sm">
+              <div className="font-mono text-xs break-all">{invoice.invoice_id}</div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">{new Date(invoice.invoice_date).toLocaleDateString()}</span>
+                <span className="font-medium tabular-nums">
+                  {invoice.currency} {invoice.amount.toFixed(2)}
+                </span>
+              </div>
+              {invoice.download_url ? (
+                <a
+                  href={invoice.download_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5 text-xs hover:bg-white/[0.06]"
+                >
+                  <Download className="h-3.5 w-3.5" /> Download PDF
+                </a>
+              ) : (
+                <span className="text-xs text-muted-foreground">PDF unavailable</span>
+              )}
+            </div>
+          ))}
+        </div>
+
         {invoices.length === 0 && (
-          <div className="px-6 py-3 text-sm text-muted-foreground">No invoices yet.</div>
+          <div className="px-4 py-3 text-sm text-muted-foreground sm:px-6">No invoices yet.</div>
         )}
         </GlassCard>
 

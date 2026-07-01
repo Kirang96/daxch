@@ -237,7 +237,7 @@ export default function AgentDetailPage() {
       title={`${data?.holding?.ticker || "Agent"} · Monitoring`}
       subtitle="AI monitoring for a stock you chose · Approve actions before anything is sent to your broker."
       actions={
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {data?.agent.status === "active" && (
             <Button variant="secondary" onClick={pauseAgent}>
               <Pause className="h-4 w-4" /> Pause
@@ -265,9 +265,9 @@ export default function AgentDetailPage() {
 
       <div className="grid gap-4 lg:grid-cols-3">
         <GlassCard className="lg:col-span-2">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
+          <div className="flex flex-col gap-4 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
             <div className="min-w-0">
-              <div className="flex items-center gap-2 text-xs">
+              <div className="flex flex-wrap items-center gap-2 text-xs">
                 <Badge variant={data?.agent.status === "active" ? "success" : "warning"}>
                   ● {data?.agent.status || "unknown"}
                 </Badge>
@@ -275,14 +275,14 @@ export default function AgentDetailPage() {
                   Last analysis · {latestDecision ? new Date(latestDecision.decided_at).toLocaleString() : "n/a"}
                 </span>
               </div>
-              <h2 className="mt-3 truncate text-2xl font-semibold tracking-tight">
+              <h2 className="mt-3 truncate text-xl font-semibold tracking-tight sm:text-2xl">
                 {data?.holding?.ticker || id}
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">{data?.holding?.exchange || "NSE"}</p>
             </div>
-            <div className="shrink-0 text-right">
+            <div className="shrink-0 sm:text-right">
               <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Market price</div>
-              <div className="text-3xl font-semibold tracking-tight">
+              <div className="text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl">
                 {currentPrice != null ? `₹${currentPrice.toFixed(2)}` : "—"}
               </div>
               <div className="mt-1 text-sm font-medium text-muted-foreground">
@@ -292,7 +292,12 @@ export default function AgentDetailPage() {
           </div>
           <div className="mt-6">
             {candlesData.length >= 2 ? (
-              <AreaChart data={candlesData} color="oklch(var(--primary))" height={220} />
+              <AreaChart
+                data={candlesData}
+                color="oklch(var(--primary))"
+                height={220}
+                wrapperClassName="h-44 sm:h-56 md:h-[220px]"
+              />
             ) : (
               <p className="py-16 text-center text-sm text-muted-foreground">Chart data unavailable.</p>
             )}
@@ -496,19 +501,39 @@ export default function AgentDetailPage() {
                   ? resolveExchangeTradeStage(decision, decision.order ?? null).label
                   : null;
               return (
-              <li key={decision.id} className="grid grid-cols-[120px_1fr_auto_auto] items-center gap-3 rounded-lg border border-white/5 bg-white/[0.02] p-3">
-                <span className="text-xs text-muted-foreground">
-                  {new Date(decision.decided_at).toLocaleDateString()}
-                </span>
-                <span>{decision.decision_type.replace("_", " ")}</span>
-                <Badge variant={decision.confirmation_status === "approved" ? "success" : "warning"}>
-                  {decision.confirmation_status}
-                </Badge>
-                {stage ? (
-                  <Badge variant="primary">{stage}</Badge>
-                ) : decision.order ? (
-                  <OrderStatusBadge status={decision.order.broker_status ?? decision.order.status} />
-                ) : null}
+              <li key={decision.id} className="rounded-lg border border-white/5 bg-white/[0.02] p-3">
+                <div className="hidden items-center gap-3 sm:grid sm:grid-cols-[120px_1fr_auto_auto]">
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(decision.decided_at).toLocaleDateString()}
+                  </span>
+                  <span>{decision.decision_type.replace("_", " ")}</span>
+                  <Badge variant={decision.confirmation_status === "approved" ? "success" : "warning"}>
+                    {decision.confirmation_status}
+                  </Badge>
+                  {stage ? (
+                    <Badge variant="primary">{stage}</Badge>
+                  ) : decision.order ? (
+                    <OrderStatusBadge status={decision.order.broker_status ?? decision.order.status} />
+                  ) : null}
+                </div>
+                <div className="space-y-2 sm:hidden">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-medium capitalize">{decision.decision_type.replace("_", " ")}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">
+                      {new Date(decision.decided_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant={decision.confirmation_status === "approved" ? "success" : "warning"}>
+                      {decision.confirmation_status}
+                    </Badge>
+                    {stage ? (
+                      <Badge variant="primary">{stage}</Badge>
+                    ) : decision.order ? (
+                      <OrderStatusBadge status={decision.order.broker_status ?? decision.order.status} />
+                    ) : null}
+                  </div>
+                </div>
               </li>
             );
             })}
@@ -563,7 +588,7 @@ function TradeExecutionCard({
 
           <p className="text-xs leading-relaxed text-muted-foreground">{stageInfo.description}</p>
 
-          <div className="grid grid-cols-4 gap-1">
+          <div className="grid grid-cols-2 gap-1 sm:grid-cols-4">
             {LIFECYCLE_STEPS.map((step, index) => {
               const done = index < activeStep;
               const current = index === activeStep;

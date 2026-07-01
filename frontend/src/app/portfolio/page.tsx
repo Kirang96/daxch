@@ -5,10 +5,11 @@ import Link from "next/link";
 import { Bot, Clock } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
-import { Badge, Disclaimer, GlassCard, Sparkline, StatCard, AlertBanner, TimeframeTabs } from "@/components/daxch/primitives";
+import { Badge, ChartCardHeader, Disclaimer, GlassCard, Sparkline, StatCard, AlertBanner, TimeframeTabs } from "@/components/daxch/primitives";
 import { api } from "@/lib/api";
 import { sliceByTimeframe } from "@/lib/chart";
 import { logger } from "@/lib/logger";
+import { cn } from "@/lib/utils";
 import { ExchangePositionsResponse, MonitorAgent, StockHolding } from "@/types";
 
 const TIMEFRAME_OPTIONS = ["1D", "1W", "1M", "3M", "1Y", "All"] as const;
@@ -172,54 +173,117 @@ export default function PortfolioPage() {
       </div>
 
       <GlassCard className="mt-6 overflow-hidden p-0">
-        <div className="grid grid-cols-[1.5fr_repeat(5,minmax(0,1fr))_auto] gap-4 border-b border-white/5 px-6 py-3 text-[11px] uppercase tracking-wider text-muted-foreground">
-          <span>Stock</span>
-          <span>Plan qty</span>
-          <span>Entry / Market</span>
-          <span>Exchange value</span>
-          <span>P/L</span>
-          <span>Agent</span>
-          <span>Next</span>
+        {/* Desktop table */}
+        <div className="hidden md:block">
+          <div className="grid grid-cols-[1.5fr_repeat(5,minmax(0,1fr))_auto] gap-4 border-b border-white/5 px-6 py-3 text-[11px] uppercase tracking-wider text-muted-foreground">
+            <span>Stock</span>
+            <span>Plan qty</span>
+            <span>Entry / Market</span>
+            <span>Exchange value</span>
+            <span>P/L</span>
+            <span>Agent</span>
+            <span>Next</span>
+          </div>
+          {holdings.map((holding) => {
+            const quote = quotes[`${holding.ticker}:${holding.exchange}`];
+            const ltp = quote?.ltp ?? null;
+            const pos = positionsByHolding[holding.id];
+            const pnlRow = pos?.has_exchange_position ? pos.unrealized_pnl_pct : null;
+            const up = (pnlRow ?? 0) >= 0;
+            const linkedAgent = agentsByHolding[holding.id];
+            return (
+              <Link
+                key={holding.id}
+                href={linkedAgent ? `/agents/${linkedAgent.id}#exchange-trades` : "/agents"}
+                className="grid grid-cols-[1.5fr_repeat(5,minmax(0,1fr))_auto] items-center gap-4 border-b border-white/5 px-6 py-4 text-sm hover:bg-white/[0.02]"
+              >
+                <div className="min-w-0">
+                  <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">{holding.ticker}</div>
+                  <div className="truncate font-medium">{holding.exchange}</div>
+                </div>
+                <span title="Planned quantity for AI">{holding.quantity}</span>
+                <div className="text-xs">
+                  <div title="Planned entry">₹{holding.entry_price.toFixed(2)}</div>
+                  <div className="text-muted-foreground" title="Live market price">{ltp != null ? `₹${ltp.toFixed(2)}` : "—"}</div>
+                </div>
+                <span>{pos?.has_exchange_position && pos.market_value != null ? `₹${pos.market_value.toLocaleString("en-IN")}` : "—"}</span>
+                <span className={pnlRow != null ? (up ? "text-emerald-400" : "text-red-400") : "text-muted-foreground"}>
+                  {pnlRow != null ? `${up ? "+" : ""}${pnlRow}%` : "—"}
+                </span>
+                <div className="flex items-center gap-2">
+                  <Bot className="h-3.5 w-3.5 text-primary" />
+                  <Badge variant={linkedAgent?.status === "active" ? "success" : "warning"}>
+                    {linkedAgent?.status || "No agent"}
+                  </Badge>
+                </div>
+                <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                  <Clock className="h-3 w-3" />{" "}
+                  {linkedAgent?.next_poll_at ? new Date(linkedAgent.next_poll_at).toLocaleTimeString() : "N/A"}
+                </span>
+              </Link>
+            );
+          })}
         </div>
-        {holdings.map((holding) => {
-          const quote = quotes[`${holding.ticker}:${holding.exchange}`];
-          const ltp = quote?.ltp ?? null;
-          const pos = positionsByHolding[holding.id];
-          const pnlRow = pos?.has_exchange_position ? pos.unrealized_pnl_pct : null;
-          const up = (pnlRow ?? 0) >= 0;
-          const linkedAgent = agentsByHolding[holding.id];
-          return (
-            <Link
-              key={holding.id}
-              href={linkedAgent ? `/agents/${linkedAgent.id}#exchange-trades` : "/agents"}
-              className="grid grid-cols-[1.5fr_repeat(5,minmax(0,1fr))_auto] items-center gap-4 border-b border-white/5 px-6 py-4 text-sm hover:bg-white/[0.02]"
-            >
-              <div className="min-w-0">
-                <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">{holding.ticker}</div>
-                <div className="truncate font-medium">{holding.exchange}</div>
-              </div>
-              <span title="Planned quantity for AI">{holding.quantity}</span>
-              <div className="text-xs">
-                <div title="Planned entry">₹{holding.entry_price.toFixed(2)}</div>
-                <div className="text-muted-foreground" title="Live market price">{ltp != null ? `₹${ltp.toFixed(2)}` : "—"}</div>
-              </div>
-              <span>{pos?.has_exchange_position && pos.market_value != null ? `₹${pos.market_value.toLocaleString("en-IN")}` : "—"}</span>
-              <span className={pnlRow != null ? (up ? "text-emerald-400" : "text-red-400") : "text-muted-foreground"}>
-                {pnlRow != null ? `${up ? "+" : ""}${pnlRow}%` : "—"}
-              </span>
-              <div className="flex items-center gap-2">
-                <Bot className="h-3.5 w-3.5 text-primary" />
-                <Badge variant={linkedAgent?.status === "active" ? "success" : "warning"}>
-                  {linkedAgent?.status || "No agent"}
-                </Badge>
-              </div>
-              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                <Clock className="h-3 w-3" />{" "}
-                {linkedAgent?.next_poll_at ? new Date(linkedAgent.next_poll_at).toLocaleTimeString() : "N/A"}
-              </span>
-            </Link>
-          );
-        })}
+
+        {/* Mobile cards */}
+        <div className="divide-y divide-white/5 md:hidden">
+          {holdings.map((holding) => {
+            const quote = quotes[`${holding.ticker}:${holding.exchange}`];
+            const ltp = quote?.ltp ?? null;
+            const pos = positionsByHolding[holding.id];
+            const pnlRow = pos?.has_exchange_position ? pos.unrealized_pnl_pct : null;
+            const up = (pnlRow ?? 0) >= 0;
+            const linkedAgent = agentsByHolding[holding.id];
+            return (
+              <Link
+                key={holding.id}
+                href={linkedAgent ? `/agents/${linkedAgent.id}#exchange-trades` : "/agents"}
+                className="block space-y-3 px-4 py-4 hover:bg-white/[0.02]"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">{holding.ticker}</div>
+                    <div className="font-medium">{holding.exchange}</div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Bot className="h-3.5 w-3.5 text-primary" />
+                    <Badge variant={linkedAgent?.status === "active" ? "success" : "warning"}>
+                      {linkedAgent?.status || "No agent"}
+                    </Badge>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                  <div>
+                    <div className="text-muted-foreground">Plan qty</div>
+                    <div className="mt-0.5 font-medium">{holding.quantity}</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">Exchange value</div>
+                    <div className="mt-0.5 font-medium tabular-nums">
+                      {pos?.has_exchange_position && pos.market_value != null ? `₹${pos.market_value.toLocaleString("en-IN")}` : "—"}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">Entry / Market</div>
+                    <div className="mt-0.5 font-medium tabular-nums">₹{holding.entry_price.toFixed(2)}</div>
+                    <div className="text-muted-foreground tabular-nums">{ltp != null ? `₹${ltp.toFixed(2)}` : "—"}</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">P/L</div>
+                    <div className={cn("mt-0.5 font-medium tabular-nums", pnlRow != null ? (up ? "text-emerald-400" : "text-red-400") : "text-muted-foreground")}>
+                      {pnlRow != null ? `${up ? "+" : ""}${pnlRow}%` : "—"}
+                    </div>
+                  </div>
+                </div>
+                <div className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                  <Clock className="h-3 w-3" />
+                  Next poll: {linkedAgent?.next_poll_at ? new Date(linkedAgent.next_poll_at).toLocaleTimeString() : "N/A"}
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+
         {holdings.length === 0 && (
           <div className="px-6 py-8 text-center">
             <p className="text-sm text-muted-foreground">No monitored stocks yet.</p>
@@ -255,10 +319,10 @@ export default function PortfolioPage() {
         </GlassCard>
 
         <GlassCard>
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium">Exchange equity curve</h3>
-            <TimeframeTabs value={timeframe} onChange={setTimeframe} options={TIMEFRAME_OPTIONS} size="xs" />
-          </div>
+          <ChartCardHeader
+            title={<h3 className="text-sm font-medium">Exchange equity curve</h3>}
+            tabs={<TimeframeTabs value={timeframe} onChange={setTimeframe} options={TIMEFRAME_OPTIONS} size="xs" />}
+          />
           {displayChartData.length >= 2 ? (
             <Sparkline data={displayChartData} color="oklch(var(--primary))" height={120} className="mt-4" />
           ) : (

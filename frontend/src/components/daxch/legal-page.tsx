@@ -23,7 +23,7 @@ export function LegalPage({ title, children }: LegalPageProps) {
         </div>
       </header>
       <main className="mx-auto max-w-3xl px-6 py-12">
-        <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h1>
         <div className="prose-daxch mt-8 space-y-4 text-sm leading-relaxed text-muted-foreground">{children}</div>
         <div className="mt-12">
           <Disclaimer />

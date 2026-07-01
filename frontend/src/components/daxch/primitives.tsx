@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 export function GlassCard({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div {...props} className={cn("glass rounded-2xl p-6 transition-all duration-300 hover:shadow-[0_4px_24px_-4px_oklch(var(--border)/0.18)]", className)}>
+    <div {...props} className={cn("glass rounded-2xl p-4 transition-all duration-300 hover:shadow-[0_4px_24px_-4px_oklch(var(--border)/0.18)] sm:p-6", className)}>
       {children}
     </div>
   );
@@ -35,7 +35,7 @@ export function StatCard({
         {icon && <span className="text-muted-foreground/70">{icon}</span>}
       </div>
       <div className="space-y-1">
-        <div className="text-3xl font-semibold tracking-tight">{value}</div>
+        <div className="text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl">{value}</div>
         <div className="flex items-center gap-2 text-xs">
           {delta && <span className={cn("font-medium", trendColor)}>{delta}</span>}
           {hint && <span className="text-muted-foreground">{hint}</span>}
@@ -153,23 +153,42 @@ export function TimeframeTabs<T extends string>({
   const text = size === "xs" ? "text-[11px]" : "text-xs";
 
   return (
-    <div className={cn("flex gap-1 rounded-lg border border-border/15 bg-muted/60 p-1", text)}>
-      {options.map((option) => (
-        <button
-          key={option}
-          type="button"
-          onClick={() => onChange(option)}
-          className={cn(
-            "rounded-md transition-colors",
-            pad,
-            value === option
-              ? "bg-primary/12 font-semibold text-primary shadow-sm ring-1 ring-primary/20"
-              : "font-medium text-muted-foreground hover:bg-background hover:text-foreground"
-          )}
-        >
-          {option}
-        </button>
-      ))}
+    <div className="-mx-1 overflow-x-auto px-1">
+      <div className={cn("inline-flex min-w-max gap-1 rounded-lg border border-border/15 bg-muted/60 p-1", text)}>
+        {options.map((option) => (
+          <button
+            key={option}
+            type="button"
+            onClick={() => onChange(option)}
+            className={cn(
+              "shrink-0 rounded-md transition-colors",
+              pad,
+              value === option
+                ? "bg-primary/12 font-semibold text-primary shadow-sm ring-1 ring-primary/20"
+                : "font-medium text-muted-foreground hover:bg-background hover:text-foreground"
+            )}
+          >
+            {option}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function ChartCardHeader({
+  title,
+  tabs,
+  className
+}: {
+  title: ReactNode;
+  tabs?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={cn("flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between", className)}>
+      <div className="min-w-0">{title}</div>
+      {tabs && <div className="w-full shrink-0 sm:w-auto sm:self-auto">{tabs}</div>}
     </div>
   );
 }
@@ -197,16 +216,18 @@ export function Sparkline({
   const id = `sg-${toHash(`${data.join(",")}-${color}`)}`;
 
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className={cn("w-full", className)} preserveAspectRatio="none">
-      <defs>
-        <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.35" />
-          <stop offset="100%" stopColor={color} stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <path d={area} fill={`url(#${id})`} />
-      <path d={d} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <div className={cn("w-full", className)} style={{ height }}>
+      <svg viewBox={`0 0 ${w} ${h}`} className="h-full w-full" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.35" />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path d={area} fill={`url(#${id})`} />
+        <path d={d} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </div>
   );
 }
 
@@ -214,12 +235,14 @@ export function AreaChart({
   data,
   height = 240,
   color = "oklch(var(--chart-1))",
-  className
+  className,
+  wrapperClassName
 }: {
   data: number[];
   height?: number;
   color?: string;
   className?: string;
+  wrapperClassName?: string;
 }) {
   const w = 800;
   const h = height;
@@ -234,20 +257,22 @@ export function AreaChart({
   const id = `ac-${toHash(`${data.join(",")}-${color}`)}`;
 
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className={cn("w-full", className)} preserveAspectRatio="none">
-      <defs>
-        <linearGradient id={`${id}-fill`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.45" />
-          <stop offset="100%" stopColor={color} stopOpacity="0" />
-        </linearGradient>
-        <pattern id={`${id}-grid`} width="80" height="40" patternUnits="userSpaceOnUse">
-          <path d="M 80 0 L 0 0 0 40" fill="none" stroke="oklch(0.24 0.01 258 / 0.07)" strokeWidth="1" />
-        </pattern>
-      </defs>
-      <rect width={w} height={h} fill={`url(#${id}-grid)`} />
-      <path d={area} fill={`url(#${id}-fill)`} />
-      <path d={d} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <div className={cn("w-full", wrapperClassName ?? className)} style={wrapperClassName ? undefined : { height }}>
+      <svg viewBox={`0 0 ${w} ${h}`} className="h-full w-full" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <linearGradient id={`${id}-fill`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.45" />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          </linearGradient>
+          <pattern id={`${id}-grid`} width="80" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 80 0 L 0 0 0 40" fill="none" stroke="oklch(0.24 0.01 258 / 0.07)" strokeWidth="1" />
+          </pattern>
+        </defs>
+        <rect width={w} height={h} fill={`url(#${id}-grid)`} />
+        <path d={area} fill={`url(#${id}-fill)`} />
+        <path d={d} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </div>
   );
 }
 

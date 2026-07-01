@@ -8,7 +8,7 @@ import { BarChart3, Bot, Search, ShieldAlert, Loader2 } from "lucide-react";
 import { AnalysisResultPanel } from "@/components/analysis/analysis-result-panel";
 import { StrategySelector } from "@/components/analysis/strategy-selector";
 import { AppShell } from "@/components/layout/app-shell";
-import { AreaChart, Badge, Disclaimer, GlassCard, AlertBanner, TimeframeTabs } from "@/components/daxch/primitives";
+import { AreaChart, Badge, ChartCardHeader, Disclaimer, GlassCard, AlertBanner, TimeframeTabs } from "@/components/daxch/primitives";
 import { api } from "@/lib/api";
 import { decisionTone, formatConfidence, formatDecision } from "@/lib/analysis-strategies";
 import { sliceByTimeframe } from "@/lib/chart";
@@ -318,30 +318,37 @@ function ResearchContent() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         <GlassCard className="lg:col-span-2">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
-                {displayTicker ? displayTicker.toUpperCase() : "—"} · {snapshot?.exchange || exchange}
-              </div>
-              <h2 className="text-xl font-semibold tracking-tight">Price and momentum</h2>
-              {displayPrice != null ? (
-                <div className="mt-1 flex items-baseline gap-2">
-                  <span className="text-3xl font-bold tracking-tight">₹{displayPrice.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+          <ChartCardHeader
+            title={
+              <div>
+                <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+                  {displayTicker ? displayTicker.toUpperCase() : "—"} · {snapshot?.exchange || exchange}
                 </div>
-              ) : (
-                <p className="mt-2 text-sm text-muted-foreground">Search for a ticker to see price and chart.</p>
-              )}
-            </div>
-            <div className="flex flex-col items-end gap-2">
-              <Badge variant={(displayChange ?? 0) >= 0 ? "success" : "danger"}>
-                {quoteLoading ? "Searching…" : displayChange != null ? `${displayChange > 0 ? "+" : ""}${displayChange.toFixed(2)}%` : liveQuote ? "0.00%" : "n/a"}
-              </Badge>
-              <TimeframeTabs value={timeframe} onChange={setTimeframe} options={TIMEFRAME_OPTIONS} size="xs" />
-            </div>
-          </div>
+                <h2 className="text-lg font-semibold tracking-tight sm:text-xl">Price and momentum</h2>
+                {displayPrice != null ? (
+                  <div className="mt-1 flex flex-wrap items-baseline gap-2">
+                    <span className="text-2xl font-bold tracking-tight tabular-nums sm:text-3xl">
+                      ₹{displayPrice.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                    <Badge variant={(displayChange ?? 0) >= 0 ? "success" : "danger"}>
+                      {quoteLoading ? "Searching…" : displayChange != null ? `${displayChange > 0 ? "+" : ""}${displayChange.toFixed(2)}%` : liveQuote ? "0.00%" : "n/a"}
+                    </Badge>
+                  </div>
+                ) : (
+                  <p className="mt-2 text-sm text-muted-foreground">Search for a ticker to see price and chart.</p>
+                )}
+              </div>
+            }
+            tabs={<TimeframeTabs value={timeframe} onChange={setTimeframe} options={TIMEFRAME_OPTIONS} size="xs" />}
+          />
           <div className="mt-5">
             {displayChartData.length >= 2 ? (
-              <AreaChart data={displayChartData} color="oklch(var(--chart-2))" height={250} />
+              <AreaChart
+                data={displayChartData}
+                color="oklch(var(--chart-2))"
+                height={250}
+                wrapperClassName="h-44 sm:h-56 md:h-[250px]"
+              />
             ) : (
               <p className="py-16 text-center text-sm text-muted-foreground">
                 {quoteError ? "No chart — stock not found." : "Search for a stock to load the chart."}
@@ -357,7 +364,7 @@ function ResearchContent() {
             {activeResult?.reasoning || (liveQuote ? "Pick a strategy and run analysis." : "Search for a stock first.")}
           </p>
 
-          <div className="mt-5 grid grid-cols-2 gap-2 text-sm">
+          <div className="mt-5 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
             <Metric
               label="Decision"
               value={activeResult ? formatDecision(activeResult.decision_type) : "N/A"}

@@ -269,7 +269,7 @@ export function AppShell({ title, subtitle, actions, children }: AppShellProps) 
 
         {open && <div className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm md:hidden" onClick={() => setOpen(false)} />}
 
-        <main className="min-h-screen flex-1 overflow-x-hidden">
+        <main className="min-h-screen min-w-0 flex-1">
           {/* Top bar */}
           <div className="sticky top-0 z-20 hidden items-center gap-4 border-b border-border/12 bg-white/80 px-8 py-3.5 backdrop-blur-xl md:flex">
             <form className="relative w-full max-w-sm" onSubmit={handleSearch}>
@@ -306,12 +306,12 @@ export function AppShell({ title, subtitle, actions, children }: AppShellProps) 
                 </Link>
               </AlertBanner>
             ) : null}
-            <div className="mb-8 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4">
+            <div className="mb-8 flex flex-col gap-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end sm:gap-4">
               <div className="min-w-0">
-                <h1 className="truncate text-2xl font-bold tracking-tight text-foreground md:text-3xl">{title}</h1>
+                <h1 className="truncate text-xl font-bold tracking-tight text-foreground sm:text-2xl md:text-3xl">{title}</h1>
                 {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
               </div>
-              {actions && <div className="shrink-0">{actions}</div>}
+              {actions && <div className="flex flex-wrap gap-2 sm:shrink-0 sm:justify-end">{actions}</div>}
             </div>
             <div className="fade-up">{children}</div>
           </div>
