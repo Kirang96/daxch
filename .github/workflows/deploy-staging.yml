@@ -59,18 +59,18 @@ jobs:
             echo "Missing GitHub secret TF_STATE_BUCKET (e.g. daxch-terraform-state-ACCOUNT_ID)"
             exit 1
           fi
-          cat > backend.tf <<EOF
-          terraform {
-            backend "s3" {
-              bucket         = "${TF_STATE_BUCKET}"
-              key            = "staging/terraform.tfstate"
-              region         = "ap-south-1"
-              dynamodb_table = "daxch-terraform-locks"
-              encrypt        = true
-            }
-          }
-          EOF
-          terraform init
+          printf '%s\n' \
+            'terraform {' \
+            '  backend "s3" {' \
+            "    bucket         = \"${TF_STATE_BUCKET}\"" \
+            '    key            = "staging/terraform.tfstate"' \
+            '    region         = "ap-south-1"' \
+            '    dynamodb_table = "daxch-terraform-locks"' \
+            '    encrypt        = true' \
+            '  }' \
+            '}' > backend.tf
+          cat backend.tf
+          terraform init -input=false
 
       - name: Terraform apply (staging)
         working-directory: infrastructure
