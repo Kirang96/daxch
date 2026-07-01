@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useState, useEffect, useMemo, Suspense } from "react";
@@ -216,7 +216,7 @@ function ResearchContent() {
                     void searchQuote();
                   }
                 }}
-                className="h-11 w-full rounded-xl border border-white/10 bg-white/[0.03] pl-10 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                className="h-11 w-full rounded-xl border border-border/20 bg-background pl-10 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
                 placeholder="e.g. RELIANCE, INFY, TCS"
               />
             </div>
@@ -229,7 +229,7 @@ function ResearchContent() {
               <select
                 value={exchange}
                 onChange={(event) => handleExchangeChange(event.target.value)}
-                className="h-10 rounded-xl border border-white/10 bg-white/[0.03] px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                className="h-10 rounded-xl border border-border/20 bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
               >
                 <option value="NSE">NSE</option>
                 <option value="BSE">BSE</option>
@@ -239,7 +239,7 @@ function ResearchContent() {
               type="button"
               onClick={() => void searchQuote()}
               disabled={quoteLoading || !ticker.trim()}
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground hover:brightness-110 disabled:opacity-50"
+              className="inline-flex h-10 items-center gap-2 rounded-sm bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-[oklch(0.15_0_0)] disabled:opacity-50"
             >
               {quoteLoading ? (
                 <>
@@ -280,7 +280,7 @@ function ResearchContent() {
               <select
                 value={intention}
                 onChange={(e) => setIntention(e.target.value)}
-                className="mt-1 block h-9 rounded-lg border border-white/10 bg-white/[0.03] px-2 text-sm"
+                className="mt-1 block h-9 rounded-lg border border-border/20 bg-background px-2 text-sm"
               >
                 <option value="long_term">Long term</option>
                 <option value="swing">Swing trade</option>
@@ -293,21 +293,21 @@ function ResearchContent() {
                 type="number"
                 value={capital}
                 onChange={(e) => setCapital(e.target.value)}
-                className="mt-1 block h-9 w-32 rounded-lg border border-white/10 bg-white/[0.03] px-2 text-sm"
+                className="mt-1 block h-9 w-32 rounded-lg border border-border/20 bg-background px-2 text-sm"
               />
             </label>
             <button
               type="button"
               onClick={() => void runResearch()}
               disabled={loading || !liveQuote}
-              className="inline-flex h-9 items-center rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground hover:brightness-110 disabled:opacity-50"
+              className="inline-flex h-9 items-center rounded-sm bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-[oklch(0.15_0_0)] disabled:opacity-50"
             >
               {loading ? "Analyzing…" : "Run Analysis"}
             </button>
             {liveQuote && (
               <Link
                 href={`/agents/new?ticker=${encodeURIComponent(ticker.toUpperCase())}`}
-                className="inline-flex h-9 items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-4 text-sm font-medium text-primary hover:bg-primary/15"
+                className="inline-flex h-9 items-center gap-2 rounded-sm border border-primary/30 bg-primary/10 px-4 text-sm font-medium text-primary hover:bg-primary/15"
               >
                 <Bot className="h-4 w-4" /> Monitor this stock
               </Link>
@@ -404,7 +404,7 @@ function ResearchContent() {
                   className={`rounded-lg border px-3 py-1 text-xs font-medium ${
                     (activeRunId ?? activeResult?.strategy) === run.strategy
                       ? "border-primary/50 bg-primary/10 text-primary"
-                      : "border-white/10 bg-white/[0.02] text-muted-foreground hover:bg-white/[0.04]"
+                      : "border-border/20 bg-muted/60 text-muted-foreground hover:bg-muted"
                   }`}
                 >
                   {run.strategy.replace(/_/g, " ")}
@@ -434,7 +434,7 @@ function ResearchContent() {
           <h3 className="text-sm font-medium">Recent decisions for this ticker</h3>
           <div className="mt-3 space-y-2 text-sm">
             {snapshot.recent_decisions.map((decision, index) => (
-              <div key={`${decision.decided_at}-${index}`} className="rounded-lg border border-white/5 bg-white/[0.02] p-3">
+              <div key={`${decision.decided_at}-${index}`} className="rounded-lg border border-border/15 bg-muted/60 p-3">
                 <div className="text-xs text-muted-foreground">{new Date(decision.decided_at).toLocaleString()}</div>
                 <div className="font-medium">{decision.decision_type.replace("_", " ")}</div>
                 <div className="text-xs text-muted-foreground">{decision.reasoning}</div>
@@ -469,7 +469,7 @@ function Metric({
           ? "text-red-400"
           : "text-foreground";
   return (
-    <div className="rounded-lg border border-white/5 bg-white/[0.02] p-2">
+    <div className="rounded-lg border border-border/15 bg-muted/60 p-2">
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
       <div className={`text-sm font-medium ${toneClass}`}>{value}</div>
     </div>

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -228,7 +228,7 @@ export default function DashboardPage() {
       actions={
         <div className="flex flex-wrap items-center gap-2">
           <MarketLiveBadge />
-          <Link href="/agents/new" className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:brightness-110">
+          <Link href="/agents/new" className="inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-[oklch(0.15_0_0)]">
             <Plus className="h-4 w-4" /> New Agent
           </Link>
         </div>
@@ -342,7 +342,7 @@ export default function DashboardPage() {
           </div>
           <div className="mt-5 space-y-2">
             {notifications.slice(0, 5).map((n) => (
-              <div key={n.id} className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-3 hover:border-white/10">
+              <div key={n.id} className="flex items-center gap-3 rounded-xl border border-border/15 bg-muted/60 p-3 hover:border-border/25">
                 <span className="shrink-0 rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
                   {n.event_type}
                 </span>
@@ -351,7 +351,7 @@ export default function DashboardPage() {
               </div>
             ))}
             {!notifications.length && (
-              <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3 text-sm text-muted-foreground">
+              <div className="rounded-xl border border-border/15 bg-muted/60 p-3 text-sm text-muted-foreground">
                 No new system updates
               </div>
             )}
@@ -375,7 +375,7 @@ export default function DashboardPage() {
               const holdingPnlPct = pos?.has_exchange_position ? pos.unrealized_pnl_pct : null;
               const up = (holdingPnlPct ?? 0) >= 0;
               return (
-                <div key={holding.id} className="rounded-xl border border-white/5 bg-white/[0.02] p-3 text-sm">
+                <div key={holding.id} className="rounded-xl border border-border/15 bg-muted/60 p-3 text-sm">
                   <div className="flex items-center justify-between">
                     <p className="font-medium">
                       {holding.ticker} <span className="text-xs text-muted-foreground">({holding.exchange})</span>
@@ -386,7 +386,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="mt-1 flex items-center justify-between">
                     <p className="text-muted-foreground">
-                      {holding.sector ? <span className="rounded bg-white/[0.06] px-1.5 py-0.5 text-[11px]">{holding.sector}</span> : null}
+                      {holding.sector ? <span className="rounded bg-muted px-1.5 py-0.5 text-[11px]">{holding.sector}</span> : null}
                       <span className="ml-1.5">
                         {pos?.has_exchange_position ? `${pos.net_quantity} on exchange` : `Plan: ${holding.quantity} @ ₹${holding.entry_price.toFixed(0)}`}
                       </span>
@@ -416,8 +416,8 @@ export default function DashboardPage() {
                   <span>{sector}</span>
                   <span>{pct}%</span>
                 </div>
-                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/5">
-                  <div className="h-full rounded-full bg-gradient-to-r from-primary to-emerald-400" style={{ width: `${pct}%` }} />
+                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+                  <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
                 </div>
               </div>
             )) : (

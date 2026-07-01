@@ -111,24 +111,23 @@ function OnboardingSubscriptionContent() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[600px]" style={{ background: "var(--gradient-hero)" }} />
+    <div className="relative min-h-screen overflow-hidden bg-background">
       <div className="relative mx-auto max-w-3xl px-6 py-10">
         <div className="flex items-center justify-between">
           <Link href="/">
             <Logo />
           </Link>
-          <span className="text-xs text-muted-foreground">Step 3 of 4</span>
+          <span className="editorial-label text-muted-foreground">Step 3 of 4</span>
         </div>
-        <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-white/5">
-          <div className="h-full w-3/4 bg-gradient-to-r from-primary to-emerald-400" />
+        <div className="mt-4 h-1 w-full overflow-hidden rounded-sm bg-muted">
+          <div className="h-full w-3/4 bg-primary" />
         </div>
 
         <div className="mt-12 text-center">
           <Badge variant="primary" className="mx-auto">
             <Sparkles className="mr-1 h-3 w-3" /> Subscription required for agents
           </Badge>
-          <h1 className="mt-4 text-balance text-3xl font-semibold tracking-tight md:text-4xl">Choose your plan</h1>
+          <h1 className="mt-4 text-balance font-serif text-3xl font-semibold tracking-tight md:text-4xl">Choose your plan</h1>
           <p className="mx-auto mt-3 max-w-xl text-balance text-sm text-muted-foreground">
             Subscribe to create monitoring agents and unlock AI research. You can skip for now and come back later.
           </p>
@@ -146,7 +145,7 @@ function OnboardingSubscriptionContent() {
           </AlertBanner>
         )}
 
-        {status && <p className="mt-6 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-sm text-muted-foreground">{status}</p>}
+        {status && <p className="mt-6 rounded-sm border border-border/15 bg-muted p-3 text-sm text-muted-foreground">{status}</p>}
 
         <div className="mt-8 grid gap-4 md:grid-cols-3">
           {loading ? (
@@ -157,13 +156,13 @@ function OnboardingSubscriptionContent() {
             plans.map((plan) => {
               const isCurrent = isActive && current?.plan?.toLowerCase() === plan.id;
               return (
-                <GlassCard key={plan.id} className={plan.highlighted ? "border-primary/40 ring-1 ring-primary/25" : ""}>
+                <GlassCard key={plan.id} className={plan.highlighted ? "border-primary ring-1 ring-primary/25" : ""}>
                   <div className="flex items-center justify-between">
-                    <h3 className="text-xl font-medium">{plan.name}</h3>
+                    <h3 className="font-serif text-xl font-medium">{plan.name}</h3>
                     {isCurrent ? <Badge variant="success">Current</Badge> : plan.highlighted ? <Badge variant="primary">Popular</Badge> : null}
                   </div>
                   <div className="mt-3 flex items-baseline gap-1">
-                    <span className="text-3xl font-semibold tracking-tight">{plan.price}</span>
+                    <span className="font-mono text-3xl font-semibold tracking-tight">{plan.price}</span>
                     <span className="text-sm text-muted-foreground">/ month</span>
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground">{plan.desc}</p>
@@ -191,7 +190,7 @@ function OnboardingSubscriptionContent() {
           <button
             type="button"
             onClick={continueToAgent}
-            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:brightness-110"
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-sm bg-primary px-4 py-3 text-sm font-semibold uppercase tracking-wider text-primary-foreground transition-colors hover:bg-[oklch(0.15_0_0)]"
           >
             {isActive ? "Create your first agent" : "Skip for now"} <ArrowRight className="h-4 w-4" />
           </button>

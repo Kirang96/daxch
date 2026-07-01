@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -117,7 +117,7 @@ export default function WatchlistPage() {
       title="Watchlist"
       subtitle="Track ideas before promoting them to active monitoring agents."
       actions={
-        <button onClick={addItem} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-sm hover:bg-white/[0.06]">
+        <button onClick={addItem} className="inline-flex items-center gap-2 rounded-xl border border-border/20 bg-background px-3 py-2 text-sm hover:bg-muted">
           <Plus className="h-4 w-4" /> Add symbol
         </button>
       }
@@ -129,17 +129,17 @@ export default function WatchlistPage() {
             value={ticker}
             onChange={(event) => setTicker(event.target.value.toUpperCase())}
             placeholder="Ticker"
-            className="h-10 rounded-xl border border-white/10 bg-white/[0.03] px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+            className="h-10 rounded-xl border border-border/20 bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
           />
           <select
             value={exchange}
             onChange={(event) => setExchange(event.target.value)}
-            className="h-10 rounded-xl border border-white/10 bg-white/[0.03] px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+            className="h-10 rounded-xl border border-border/20 bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
           >
             <option value="NSE">NSE</option>
             <option value="BSE">BSE</option>
           </select>
-          <button onClick={addItem} className="rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground">
+          <button onClick={addItem} className="rounded-sm bg-primary px-4 text-sm font-medium text-primary-foreground">
             Save
           </button>
         </div>
@@ -163,7 +163,7 @@ export default function WatchlistPage() {
                 </div>
                 <button
                   onClick={() => removeItem(item.id)}
-                  className="grid h-8 w-8 place-items-center rounded-lg border border-white/10 bg-white/[0.03] text-muted-foreground hover:text-foreground"
+                  className="grid h-8 w-8 place-items-center rounded-lg border border-border/20 bg-background text-muted-foreground hover:text-foreground"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -199,7 +199,7 @@ export default function WatchlistPage() {
 
               <Link
                 href={`/agents/new?ticker=${item.ticker}`}
-                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:brightness-110"
+                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-sm bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-[oklch(0.15_0_0)]"
               >
                 <Bot className="h-4 w-4" /> Promote to agent
               </Link>
@@ -213,7 +213,7 @@ export default function WatchlistPage() {
         </GlassCard>
       )}
 
-      <div className="mt-6 rounded-2xl border border-white/5 bg-white/[0.02] p-4 text-sm text-muted-foreground">
+      <div className="mt-6 rounded-2xl border border-border/15 bg-muted/60 p-4 text-sm text-muted-foreground">
         <span className="font-medium text-foreground">Tip:</span> Promote watchlist symbols to active agents only when you
         have a clear thesis and position sizing plan.
         <Link href="/research" className="ml-2 inline-flex items-center gap-1 text-primary hover:underline">

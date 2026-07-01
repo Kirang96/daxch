@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -175,7 +175,7 @@ export default function PortfolioPage() {
       <GlassCard className="mt-6 overflow-hidden p-0">
         {/* Desktop table */}
         <div className="hidden md:block">
-          <div className="grid grid-cols-[1.5fr_repeat(5,minmax(0,1fr))_auto] gap-4 border-b border-white/5 px-6 py-3 text-[11px] uppercase tracking-wider text-muted-foreground">
+          <div className="grid grid-cols-[1.5fr_repeat(5,minmax(0,1fr))_auto] gap-4 border-b border-border/15 px-6 py-3 text-[11px] uppercase tracking-wider text-muted-foreground">
             <span>Stock</span>
             <span>Plan qty</span>
             <span>Entry / Market</span>
@@ -195,7 +195,7 @@ export default function PortfolioPage() {
               <Link
                 key={holding.id}
                 href={linkedAgent ? `/agents/${linkedAgent.id}#exchange-trades` : "/agents"}
-                className="grid grid-cols-[1.5fr_repeat(5,minmax(0,1fr))_auto] items-center gap-4 border-b border-white/5 px-6 py-4 text-sm hover:bg-white/[0.02]"
+                className="grid grid-cols-[1.5fr_repeat(5,minmax(0,1fr))_auto] items-center gap-4 border-b border-border/15 px-6 py-4 text-sm hover:bg-muted/60"
               >
                 <div className="min-w-0">
                   <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">{holding.ticker}</div>
@@ -226,7 +226,7 @@ export default function PortfolioPage() {
         </div>
 
         {/* Mobile cards */}
-        <div className="divide-y divide-white/5 md:hidden">
+        <div className="divide-y divide-border/15 md:hidden">
           {holdings.map((holding) => {
             const quote = quotes[`${holding.ticker}:${holding.exchange}`];
             const ltp = quote?.ltp ?? null;
@@ -238,7 +238,7 @@ export default function PortfolioPage() {
               <Link
                 key={holding.id}
                 href={linkedAgent ? `/agents/${linkedAgent.id}#exchange-trades` : "/agents"}
-                className="block space-y-3 px-4 py-4 hover:bg-white/[0.02]"
+                className="block space-y-3 px-4 py-4 hover:bg-muted/60"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -287,7 +287,7 @@ export default function PortfolioPage() {
         {holdings.length === 0 && (
           <div className="px-6 py-8 text-center">
             <p className="text-sm text-muted-foreground">No monitored stocks yet.</p>
-            <Link href="/agents/new" className="mt-4 inline-flex rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:brightness-110">
+            <Link href="/agents/new" className="mt-4 inline-flex rounded-sm bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-[oklch(0.15_0_0)]">
               Create your first agent
             </Link>
           </div>
@@ -305,8 +305,8 @@ export default function PortfolioPage() {
                     <span>{sector}</span>
                     <span>{value}%</span>
                   </div>
-                  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/5">
-                    <div className="h-full rounded-full bg-gradient-to-r from-primary to-emerald-400" style={{ width: `${value}%` }} />
+                  <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+                    <div className="h-full rounded-full bg-primary" style={{ width: `${value}%` }} />
                   </div>
                 </div>
               ))}

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 
@@ -46,7 +46,7 @@ export function PricingSection({ plans }: { plans: Plan[] }) {
                 href={`/signup?plan=${p.id}`}
                 className={
                   p.highlighted
-                    ? "mt-8 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-[0_4px_16px_-4px_oklch(0.52_0.22_277/0.4)] hover:brightness-110"
+                    ? "mt-8 inline-flex w-full items-center justify-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-[0_4px_16px_-4px_oklch(0.52_0.22_277/0.4)] hover:bg-[oklch(0.15_0_0)]"
                     : "mt-8 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-border/20 bg-muted px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/70"
                 }
               >

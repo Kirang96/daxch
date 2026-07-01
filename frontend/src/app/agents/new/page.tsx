@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useState, useEffect, Suspense } from "react";
@@ -346,8 +346,8 @@ function NewAgentWizard() {
       subtitle={isOnboarding ? "Step 4 of 4 — pick a stock and set your planned investment." : "Five steps. You stay in control throughout."}
     >
       {isOnboarding && (
-        <div className="mb-4 h-1 w-full overflow-hidden rounded-full bg-white/5">
-          <div className="h-full w-full bg-gradient-to-r from-primary to-emerald-400" />
+        <div className="mb-4 h-1 w-full overflow-hidden rounded-full bg-muted">
+          <div className="h-full w-full bg-primary" />
         </div>
       )}
       {brokerJustConnected && (
@@ -372,12 +372,12 @@ function NewAgentWizard() {
         <div className="grid min-w-[28rem] grid-cols-5 gap-2 sm:min-w-0">
           {steps.map((s) => (
             <div key={s.n}>
-              <div className={cn("h-1 rounded-full", step >= (s.n as Step) ? "bg-gradient-to-r from-primary to-emerald-400" : "bg-white/5")} />
+              <div className={cn("h-1 rounded-full", step >= (s.n as Step) ? "bg-primary" : "bg-muted")} />
               <div className="mt-2 flex items-center gap-2 text-xs">
                 <span
                   className={cn(
                     "grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-medium",
-                    step >= (s.n as Step) ? "bg-primary text-primary-foreground" : "bg-white/5 text-muted-foreground"
+                    step >= (s.n as Step) ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
                   )}
                 >
                   {step > s.n ? <Check className="h-3 w-3" /> : s.n}
@@ -516,7 +516,7 @@ function Step1Stock({
                   void onLoadQuote();
                 }
               }}
-              className="h-12 w-full rounded-xl border border-white/10 bg-white/[0.03] pl-10 pr-3 text-base placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+              className="h-12 w-full rounded-xl border border-border/20 bg-background pl-10 pr-3 text-base placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
               placeholder="e.g. RELIANCE, INFY, TCS"
             />
           </div>
@@ -529,7 +529,7 @@ function Step1Stock({
             <select
               value={exchange}
               onChange={(event) => onExchangeChange(event.target.value)}
-              className="h-10 rounded-xl border border-white/10 bg-white/[0.03] px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+              className="h-10 rounded-xl border border-border/20 bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
             >
               <option value="NSE">NSE</option>
               <option value="BSE">BSE</option>
@@ -539,7 +539,7 @@ function Step1Stock({
             type="button"
             onClick={() => void onLoadQuote()}
             disabled={loadingQuote || !ticker.trim()}
-            className="inline-flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground hover:brightness-110 disabled:opacity-50"
+            className="inline-flex h-10 items-center gap-2 rounded-sm bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-[oklch(0.15_0_0)] disabled:opacity-50"
           >
             {loadingQuote ? (
               <>
@@ -559,7 +559,7 @@ function Step1Stock({
           </AlertBanner>
         )}
 
-        <div className="mt-6 rounded-2xl border border-white/5 bg-white/[0.02] p-5">
+        <div className="mt-6 rounded-2xl border border-border/15 bg-muted/60 p-5">
           <div className="flex items-start justify-between">
             <div>
               <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
@@ -595,7 +595,7 @@ function Step1Stock({
             type="button"
             onClick={onNext}
             disabled={!canContinue}
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-[oklch(0.15_0_0)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             Continue <ArrowRight className="h-4 w-4" />
           </button>
@@ -696,7 +696,7 @@ function Step2Investment({
           )}
         </div>
 
-        <div className="mt-6 rounded-xl border border-white/5 bg-white/[0.02] p-4">
+        <div className="mt-6 rounded-xl border border-border/15 bg-muted/60 p-4">
           <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Total investment</div>
           <div className="mt-1 text-2xl font-semibold tracking-tight">
             {total != null ? `₹${total.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
@@ -706,7 +706,7 @@ function Step2Investment({
           </p>
         </div>
 
-        <div className="mt-4 rounded-xl border border-white/5 bg-white/[0.02] p-4 text-xs text-muted-foreground">
+        <div className="mt-4 rounded-xl border border-border/15 bg-muted/60 p-4 text-xs text-muted-foreground">
           Run analysis below to get an enter / don&apos;t enter recommendation at your planned price and size.
         </div>
 
@@ -720,10 +720,10 @@ function Step2Investment({
         </div>
 
         <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <button onClick={onBack} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-medium hover:bg-white/[0.06]">
+          <button onClick={onBack} className="inline-flex items-center gap-2 rounded-xl border border-border/20 bg-background px-4 py-2.5 text-sm font-medium hover:bg-muted">
             <ArrowLeft className="h-4 w-4" /> Back
           </button>
-          <button onClick={onRunAnalysis} disabled={generating || !canContinue} className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50">
+          <button onClick={onRunAnalysis} disabled={generating || !canContinue} className="inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-[oklch(0.15_0_0)] disabled:cursor-not-allowed disabled:opacity-50">
             {generating ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" /> Analyzing...
@@ -768,7 +768,7 @@ function ResearchProgressSteps({ active }: { active: boolean }) {
   if (!active) return null;
 
   return (
-    <div className="mt-6 rounded-2xl border border-white/5 bg-white/[0.02] p-5">
+    <div className="mt-6 rounded-2xl border border-border/15 bg-muted/60 p-5">
       <div className="flex items-center gap-2 text-sm font-medium">
         <Bot className="h-4 w-4 text-primary" /> Agent is researching <ThinkingDots className="ml-2" />
       </div>
@@ -860,7 +860,7 @@ function Field({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           className={cn(
-            "h-11 w-full rounded-xl border border-white/10 bg-white/[0.03] pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40",
+            "h-11 w-full rounded-xl border border-border/20 bg-background pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40",
             prefix ? "pl-8" : "pl-3"
           )}
         />
@@ -963,7 +963,7 @@ function Step3Assessment({
                   "rounded-lg border px-3 py-1.5 text-xs font-medium",
                   (activeAnalysisId ?? activeResult?.strategy) === run.strategy
                     ? "border-primary/50 bg-primary/10 text-primary"
-                    : "border-white/10 bg-white/[0.02] text-muted-foreground hover:bg-white/[0.04]"
+                    : "border-border/20 bg-muted/60 text-muted-foreground hover:bg-muted"
                 )}
               >
                 {run.strategy.replace(/_/g, " ")}
@@ -1034,20 +1034,20 @@ function Step3Assessment({
       </GlassCard>
 
       <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <button onClick={onBack} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-medium hover:bg-white/[0.06]">
+        <button onClick={onBack} className="inline-flex items-center gap-2 rounded-xl border border-border/20 bg-background px-4 py-2.5 text-sm font-medium hover:bg-muted">
           <ArrowLeft className="h-4 w-4" /> Back
         </button>
         <div className="flex flex-wrap justify-end gap-2">
           <button
             onClick={onTryAnother}
-            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-medium hover:bg-white/[0.06]"
+            className="inline-flex items-center gap-2 rounded-xl border border-border/20 bg-background px-4 py-2.5 text-sm font-medium hover:bg-muted"
           >
             Try another strategy
           </button>
           <button
             onClick={onNext}
             disabled={!plannedTrade || !activeResult || (entryChoice === "ai" && !aiEntry)}
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-[oklch(0.15_0_0)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             Continue with {continueLabel} <ArrowRight className="h-4 w-4" />
           </button>
@@ -1100,7 +1100,7 @@ function EntryChoiceCard({
       disabled={disabled}
       className={cn(
         "w-full rounded-2xl border p-5 text-left transition-all disabled:cursor-not-allowed disabled:opacity-50",
-        selected ? "border-primary/50 bg-primary/[0.06] ring-2 ring-primary/25" : "border-white/10 bg-white/[0.02] hover:border-white/20"
+        selected ? "border-primary/50 bg-primary/[0.06] ring-2 ring-primary/25" : "border-border/20 bg-muted/60 hover:border-border/30"
       )}
     >
       <div className="flex items-start justify-between gap-3">
@@ -1158,7 +1158,7 @@ function FrequencyChoiceCard({
         "w-full rounded-2xl border p-5 text-left transition-all disabled:cursor-not-allowed",
         locked && "opacity-90",
         disabled && !locked && "opacity-50",
-        selected ? "border-primary/50 bg-primary/[0.06] ring-2 ring-primary/25" : "border-white/10 bg-white/[0.02] hover:border-white/20"
+        selected ? "border-primary/50 bg-primary/[0.06] ring-2 ring-primary/25" : "border-border/20 bg-muted/60 hover:border-border/30"
       )}
     >
       <div className="flex items-start justify-between gap-3">
@@ -1176,7 +1176,7 @@ function FrequencyChoiceCard({
       {factors && factors.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1.5">
           {factors.map((f) => (
-            <span key={f} className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] text-muted-foreground">
+            <span key={f} className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
               {f}
             </span>
           ))}
@@ -1210,7 +1210,7 @@ function Stat({
   const isVeryLong = value.length > 25;
 
   return (
-    <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3 flex flex-col justify-between min-h-[82px] overflow-hidden">
+    <div className="rounded-xl border border-border/15 bg-muted/60 p-3 flex flex-col justify-between min-h-[82px] overflow-hidden">
       <div>
         <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</div>
         <div
@@ -1287,10 +1287,10 @@ function Step2Goal({
                 }}
                 className={cn(
                   "rounded-2xl border p-4 text-left transition-all",
-                  active ? "border-primary/60 bg-primary/[0.07]" : "border-white/5 bg-white/[0.02] hover:border-white/15"
+                  active ? "border-primary/60 bg-primary/[0.07]" : "border-border/15 bg-muted/60 hover:border-border/30"
                 )}
               >
-                <div className={cn("grid h-9 w-9 place-items-center rounded-lg", active ? "bg-primary text-primary-foreground" : "bg-white/[0.05] text-muted-foreground")}>
+                <div className={cn("grid h-9 w-9 place-items-center rounded-lg", active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>
                   <Icon className="h-4 w-4" />
                 </div>
                 <div className="mt-3 text-sm font-medium">{g.title}</div>
@@ -1306,7 +1306,7 @@ function Step2Goal({
             rows={4}
             value={thesis}
             onChange={(event) => onThesisChange(event.target.value)}
-            className="w-full rounded-xl border border-white/10 bg-white/[0.03] p-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+            className="w-full rounded-xl border border-border/20 bg-background p-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
           />
         </label>
         <p className="mt-2 text-xs text-muted-foreground">
@@ -1314,10 +1314,10 @@ function Step2Goal({
         </p>
 
         <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <button onClick={onBack} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-medium hover:bg-white/[0.06]">
+          <button onClick={onBack} className="inline-flex items-center gap-2 rounded-xl border border-border/20 bg-background px-4 py-2.5 text-sm font-medium hover:bg-muted">
             <ArrowLeft className="h-4 w-4" /> Back
           </button>
-          <button onClick={onNext} className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:brightness-110">
+          <button onClick={onNext} className="inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-[oklch(0.15_0_0)]">
             Continue <ArrowRight className="h-4 w-4" />
           </button>
         </div>
@@ -1366,7 +1366,7 @@ function Step5Configure({
         <div className="text-xs uppercase tracking-wider text-muted-foreground">Step 5 · Agent configuration</div>
         <h2 className="mt-2 text-2xl font-semibold tracking-tight">Assign your AI monitoring agent</h2>
 
-        <div className="mt-6 rounded-2xl border border-white/5 bg-white/[0.02] p-4">
+        <div className="mt-6 rounded-2xl border border-border/15 bg-muted/60 p-4">
           <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
             <Clock className="h-3.5 w-3.5" /> Monitoring cadence
           </div>
@@ -1388,7 +1388,7 @@ function Step5Configure({
           )}
         </div>
 
-        <div className="mt-6 flex items-center justify-between rounded-2xl border border-white/5 bg-white/[0.02] p-4">
+        <div className="mt-6 flex items-center justify-between rounded-2xl border border-border/15 bg-muted/60 p-4">
           <div>
             <div className="text-sm font-medium">Automatic action suggestions</div>
             <div className="text-xs text-muted-foreground">Agent surfaces suggested actions. You still decide and execute.</div>
@@ -1407,13 +1407,13 @@ function Step5Configure({
         </div>
 
         <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <button onClick={onBack} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-medium hover:bg-white/[0.06]">
+          <button onClick={onBack} className="inline-flex items-center gap-2 rounded-xl border border-border/20 bg-background px-4 py-2.5 text-sm font-medium hover:bg-muted">
             <ArrowLeft className="h-4 w-4" /> Back
           </button>
           <button
             onClick={onActivate}
             disabled={submitting}
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:brightness-110 disabled:opacity-70"
+            className="inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-[oklch(0.15_0_0)] disabled:opacity-70"
           >
             <Bot className="h-4 w-4" /> {submitting ? "Activating..." : "Activate Agent"}
           </button>
@@ -1435,7 +1435,7 @@ function Toggle({
   onChange: (value: boolean) => void;
 }) {
   return (
-    <button onClick={() => onChange(!on)} className={cn("flex items-center justify-between rounded-xl border p-3 text-sm", on ? "border-primary/40 bg-primary/[0.06]" : "border-white/5 bg-white/[0.02]")}>
+    <button onClick={() => onChange(!on)} className={cn("flex items-center justify-between rounded-xl border p-3 text-sm", on ? "border-primary/40 bg-primary/[0.06]" : "border-border/15 bg-muted/60")}>
       <span className="flex items-center gap-2">
         <Icon className="h-4 w-4 text-muted-foreground" /> {label}
       </span>
@@ -1449,7 +1449,7 @@ function Switch({ on, onChange }: { on: boolean; onChange?: (value: boolean) => 
     <button
       type="button"
       onClick={() => onChange?.(!on)}
-      className={cn("relative inline-flex h-5 w-9 items-center rounded-full transition-colors", on ? "bg-primary" : "bg-white/10")}
+      className={cn("relative inline-flex h-5 w-9 items-center rounded-full transition-colors", on ? "bg-primary" : "bg-muted")}
     >
       <span className={cn("inline-block h-4 w-4 transform rounded-full bg-white transition-transform", on ? "translate-x-4" : "translate-x-0.5")} />
     </button>

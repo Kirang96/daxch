@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -71,7 +71,7 @@ export default function BrokerPage() {
     >
       <GlassCard>
         <div className="flex items-start gap-4">
-          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary">
+          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-sm bg-primary/15 text-primary">
             <PlugZap className="h-6 w-6" />
           </div>
           <div className="min-w-0 flex-1">
@@ -106,14 +106,14 @@ export default function BrokerPage() {
                   type="button"
                   onClick={connect}
                   disabled={connecting}
-                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:brightness-110 disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-[oklch(0.15_0_0)] disabled:opacity-60"
                 >
                   {connecting ? "Redirecting…" : status?.expired ? "Reconnect Upstox" : "Connect Upstox"}
                 </button>
               ) : (
                 <Link
                   href="/agents"
-                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:brightness-110"
+                  className="inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-[oklch(0.15_0_0)]"
                 >
                   View your agents
                 </Link>

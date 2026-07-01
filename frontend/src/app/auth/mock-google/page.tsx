@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -37,7 +37,7 @@ export default function MockGoogleLoginPage() {
           <p className="mt-1 text-sm text-muted-foreground">Mock sign-in dialog for local development</p>
         </div>
 
-        <GlassCard className="border-white/10 bg-white/[0.02] p-8 shadow-2xl">
+        <GlassCard className="border-border/20 bg-muted/60 p-8 shadow-2xl">
           <div className="space-y-6">
             <div>
               <h2 className="text-sm font-medium text-white/90">Choose a development account</h2>
@@ -46,7 +46,7 @@ export default function MockGoogleLoginPage() {
                   <button
                     key={account.email}
                     onClick={() => handleLogin(account.email)}
-                    className="flex w-full items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-3 text-left text-sm transition-colors hover:border-white/15 hover:bg-white/[0.05]"
+                    className="flex w-full items-center justify-between rounded-xl border border-border/15 bg-muted/60 p-3 text-left text-sm transition-colors hover:border-border/30 hover:bg-muted"
                   >
                     <div>
                       <span className="block font-medium text-white">{account.name}</span>
@@ -59,7 +59,7 @@ export default function MockGoogleLoginPage() {
             </div>
 
             <div className="flex items-center gap-3 text-xs text-muted-foreground">
-              <span className="h-px flex-1 bg-white/5" /> or use a custom one <span className="h-px flex-1 bg-white/5" />
+              <span className="h-px flex-1 bg-muted" /> or use a custom one <span className="h-px flex-1 bg-muted" />
             </div>
 
             <form
@@ -80,7 +80,7 @@ export default function MockGoogleLoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@example.com"
-                    className="h-11 w-full rounded-xl border border-white/10 bg-white/[0.03] pl-10 pr-3 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    className="h-11 w-full rounded-xl border border-border/20 bg-background pl-10 pr-3 text-sm text-white placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
                   />
                 </div>
               </label>
@@ -89,7 +89,7 @@ export default function MockGoogleLoginPage() {
 
               <button
                 type="submit"
-                className="inline-flex w-full items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-[0_8px_24px_-8px_oklch(0.55_0.22_277/0.6)] hover:brightness-110"
+                className="inline-flex w-full items-center justify-center rounded-sm bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-[0_8px_24px_-8px_oklch(0.55_0.22_277/0.6)] hover:bg-[oklch(0.15_0_0)]"
               >
                 Sign in with custom email
               </button>

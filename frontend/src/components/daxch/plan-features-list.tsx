@@ -1,5 +1,3 @@
-import { Check } from "lucide-react";
-
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -12,8 +10,8 @@ export function PlanFeaturesList({ features, className, itemClassName }: Props) 
   return (
     <ul className={cn("space-y-2 text-sm", className)}>
       {features.map((feature) => (
-        <li key={feature} className={cn("flex items-start gap-2", itemClassName)}>
-          <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />
+        <li key={feature} className={cn("flex items-start gap-3", itemClassName)}>
+          <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
           <span>{feature}</span>
         </li>
       ))}

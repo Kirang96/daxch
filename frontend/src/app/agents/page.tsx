@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -184,7 +184,7 @@ export default function AgentsPage() {
             }`
       }
       actions={
-        <Link href="/agents/new" className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:brightness-110">
+        <Link href="/agents/new" className="inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-[oklch(0.15_0_0)]">
           <Plus className="h-4 w-4" /> New Agent
         </Link>
       }
@@ -198,10 +198,10 @@ export default function AgentsPage() {
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search agents..."
-            className="w-full rounded-xl border border-white/10 bg-white/[0.03] py-2 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+            className="w-full rounded-xl border border-border/20 bg-background py-2 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
           />
         </div>
-        <div className="flex w-full gap-1 overflow-x-auto rounded-lg border border-white/10 bg-white/[0.03] p-1 text-xs sm:w-auto">
+        <div className="flex w-full gap-1 overflow-x-auto rounded-lg border border-border/20 bg-background p-1 text-xs sm:w-auto">
           {["All", "Healthy", "Watch", "Alert"].map((t, i) => (
             <button
               key={t}
@@ -232,7 +232,7 @@ export default function AgentsPage() {
               <GlassCard className="cursor-pointer transition-all hover:translate-y-[-2px]">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/25">
+                    <div className="grid h-10 w-10 place-items-center rounded-sm bg-primary/15 text-primary ring-1 ring-primary/25">
                       <Bot className="h-4 w-4" />
                     </div>
                     <div>
@@ -272,7 +272,7 @@ export default function AgentsPage() {
                     <div className="font-medium">{card.confidence}</div>
                   </div>
                 </div>
-                <div className="mt-4 flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2 text-xs">
+                <div className="mt-4 flex items-center justify-between rounded-lg border border-border/15 bg-muted/60 px-3 py-2 text-xs">
                   <span className="flex items-center gap-2 text-muted-foreground">
                     <Activity className="h-3 w-3" /> Conclusion
                   </span>
@@ -289,7 +289,7 @@ export default function AgentsPage() {
           <p className="text-sm text-muted-foreground">No agents configured yet.</p>
           <Link
             href="/agents/new"
-            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:brightness-110"
+            className="mt-4 inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-[oklch(0.15_0_0)]"
           >
             <Plus className="h-4 w-4" /> Create your first agent
           </Link>

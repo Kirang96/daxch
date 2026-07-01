@@ -31,26 +31,23 @@ export default function OnboardingWelcomePage() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-[600px]" style={{ background: "var(--gradient-hero)" }} />
+    <div className="relative min-h-screen overflow-hidden bg-background">
       <div className="relative mx-auto max-w-2xl px-6 py-10">
         <div className="flex items-center justify-between">
           <Link href="/">
             <Logo />
           </Link>
-          <span className="text-xs text-muted-foreground">Step 1 of 4</span>
+          <span className="editorial-label text-muted-foreground">Step 1 of 4</span>
         </div>
-        <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-white/5">
-          <div className="h-full w-1/4 bg-gradient-to-r from-primary to-emerald-400" />
+        <div className="mt-4 h-1 w-full overflow-hidden rounded-sm bg-muted">
+          <div className="h-full w-1/4 bg-primary" />
         </div>
 
         <div className="mt-12 text-center">
           <Badge variant="primary" className="mx-auto">
             <Sparkles className="mr-1 h-3 w-3" /> Subscription required for agents
           </Badge>
-          <h1 className="mt-4 text-balance text-3xl font-semibold tracking-tight md:text-4xl">
-            Welcome to Daxch
-          </h1>
+          <h1 className="mt-4 text-balance font-serif text-3xl font-semibold tracking-tight md:text-4xl">Welcome to Daxch</h1>
           <p className="mx-auto mt-3 max-w-lg text-balance text-sm text-muted-foreground">
             AI watches your stocks on your schedule. You approve every trade. Let&apos;s set up your first monitoring
             agent in a few minutes.
@@ -79,14 +76,14 @@ export default function OnboardingWelcomePage() {
           <button
             type="button"
             onClick={continueToBroker}
-            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-medium text-primary-foreground hover:brightness-110"
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-sm bg-primary px-4 py-3 text-sm font-semibold uppercase tracking-wider text-primary-foreground transition-colors hover:bg-[oklch(0.15_0_0)]"
           >
             Connect broker <ArrowRight className="h-4 w-4" />
           </button>
           <button
             type="button"
             onClick={skipToPlan}
-            className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-border/20 bg-muted px-4 py-3 text-sm font-medium hover:bg-muted/80"
+            className="inline-flex flex-1 items-center justify-center gap-2 rounded-sm border border-border/20 bg-muted px-4 py-3 text-sm font-medium transition-colors hover:bg-background"
           >
             Skip broker setup
           </button>

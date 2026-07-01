@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { AlertTriangle } from "lucide-react";
 
@@ -72,7 +72,7 @@ export function AnalysisResultPanel({ result, className }: AnalysisResultPanelPr
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-white/5 bg-white/[0.02] p-2">
+    <div className="rounded-lg border border-border/15 bg-muted/60 p-2">
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
       <div className="text-sm font-medium">{value}</div>
     </div>

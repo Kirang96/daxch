@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -67,7 +67,7 @@ export default function NotificationsPage() {
   return (
     <AppShell title="Notifications" subtitle="Every action, alert, and insight in one chronological feed.">
       {error && <AlertBanner variant="error" className="mb-4">{error}</AlertBanner>}
-      <div className="mb-6 flex gap-1 overflow-x-auto rounded-lg border border-white/10 bg-white/[0.03] p-1 text-xs">
+      <div className="mb-6 flex gap-1 overflow-x-auto rounded-lg border border-border/20 bg-background p-1 text-xs">
         {["All", "Agent", "Risk", "System"].map((t) => (
           <button
             key={t}
@@ -92,8 +92,8 @@ export default function NotificationsPage() {
               {group.items.map((item) => {
                 const Icon = iconForType(item.event_type);
                 return (
-                  <div key={item.id} className="flex items-start gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-3 hover:border-white/10">
-                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-white/10 bg-white/[0.04] text-muted-foreground">
+                  <div key={item.id} className="flex items-start gap-3 rounded-xl border border-border/15 bg-muted/60 p-3 hover:border-border/25">
+                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-border/20 bg-muted text-muted-foreground">
                       <Icon className="h-4 w-4" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -108,7 +108,7 @@ export default function NotificationsPage() {
                     </div>
                     <button
                       onClick={() => markRead(item.id)}
-                      className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-white/10 bg-white/[0.03] text-muted-foreground hover:text-foreground"
+                      className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-border/20 bg-background text-muted-foreground hover:text-foreground"
                     >
                       <Bell className="h-4 w-4" />
                     </button>
@@ -123,7 +123,7 @@ export default function NotificationsPage() {
             <p className="text-sm text-muted-foreground">No notifications yet. Create an agent to start receiving updates.</p>
             <Link
               href="/agents/new"
-              className="mt-4 inline-flex rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:brightness-110"
+              className="mt-4 inline-flex rounded-sm bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-[oklch(0.15_0_0)]"
             >
               Create agent
             </Link>

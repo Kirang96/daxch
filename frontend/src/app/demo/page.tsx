@@ -33,12 +33,12 @@ export default function DemoPage() {
         </div>
       </header>
       <main className="mx-auto max-w-5xl px-6 py-16">
-        <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">See how Daxch works</h1>
+        <h1 className="font-serif text-3xl font-semibold tracking-tight md:text-4xl">See how Daxch works</h1>
         <p className="mt-3 max-w-2xl text-muted-foreground">
           A quick walkthrough of the agent workflow — from monitoring to approved exchange trades.
         </p>
 
-        <div className="glass mt-10 overflow-hidden rounded-2xl border border-border/15">
+        <div className="glass mt-10 overflow-hidden rounded-sm border border-border/15">
           <DemoYouTube videoIdOrUrl={youtubeId} />
         </div>
 
@@ -59,7 +59,7 @@ export default function DemoPage() {
         <div className="mt-16 text-center">
           <Link
             href="/signup?plan=starter"
-            className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-medium text-primary-foreground hover:brightness-110"
+            className="inline-flex items-center gap-2 rounded-sm bg-primary px-6 py-3 text-sm font-semibold uppercase tracking-wider text-primary-foreground hover:bg-[oklch(0.15_0_0)]"
           >
             Get started <ArrowRight className="h-4 w-4" />
           </Link>

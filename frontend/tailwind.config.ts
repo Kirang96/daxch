@@ -4,6 +4,15 @@ const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
+      fontFamily: {
+        serif: ["var(--font-serif)", "Georgia", "serif"],
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "monospace"]
+      },
+      boxShadow: {
+        editorial: "var(--shadow-editorial)",
+        card: "var(--shadow-card)"
+      },
       animation: {
         float: "daxch-float 8s ease-in-out infinite",
         "float-delayed": "daxch-float 10s ease-in-out infinite -3s",

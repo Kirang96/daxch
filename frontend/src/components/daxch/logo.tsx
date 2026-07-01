@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 export function Logo({ className, showWordmark = true }: { className?: string; showWordmark?: boolean }) {
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <div className="relative grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary/40 shadow-[0_0_0_1px_oklch(1_0_0/0.08),0_8px_24px_-8px_oklch(0.55_0.22_277/0.6)]">
+      <div className="relative grid h-8 w-8 place-items-center rounded-sm bg-gradient-to-br from-primary to-primary/70 shadow-card">
         <svg
           viewBox="0 0 24 24"
           className="h-4 w-4 text-primary-foreground"
@@ -15,10 +15,11 @@ export function Logo({ className, showWordmark = true }: { className?: string; s
         >
           <path d="M4 16l4-6 4 3 4-9 4 12" />
         </svg>
-        <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-emerald-400 ring-2 ring-background pulse-ring" />
+        <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-emerald-600 ring-2 ring-background pulse-ring" />
       </div>
-      {showWordmark && <span className="text-[15px] font-semibold tracking-tight">Daxch</span>}
+      {showWordmark && (
+        <span className="font-serif text-lg font-bold tracking-tight text-[oklch(0.15_0_0)]">Daxch</span>
+      )}
     </div>
   );
 }
-

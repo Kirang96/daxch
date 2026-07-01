@@ -2,9 +2,21 @@ import { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
-export function GlassCard({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+export function GlassCard({
+  className,
+  children,
+  editorialShadow,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement> & { editorialShadow?: boolean }) {
   return (
-    <div {...props} className={cn("glass rounded-2xl p-4 transition-all duration-300 hover:shadow-[0_4px_24px_-4px_oklch(var(--border)/0.18)] sm:p-6", className)}>
+    <div
+      {...props}
+      className={cn(
+        "glass rounded-sm border border-border/15 p-4 transition-shadow duration-200 sm:p-6",
+        editorialShadow && "shadow-editorial",
+        className
+      )}
+    >
       {children}
     </div>
   );
@@ -31,11 +43,11 @@ export function StatCard({
   return (
     <GlassCard className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</span>
+        <span className="editorial-label text-muted-foreground">{label}</span>
         {icon && <span className="text-muted-foreground/70">{icon}</span>}
       </div>
       <div className="space-y-1">
-        <div className="text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl">{value}</div>
+        <div className="font-mono text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl">{value}</div>
         <div className="flex items-center gap-2 text-xs">
           {delta && <span className={cn("font-medium", trendColor)}>{delta}</span>}
           {hint && <span className="text-muted-foreground">{hint}</span>}
@@ -55,17 +67,17 @@ export function Badge({
   className?: string;
 }) {
   const styles: Record<string, string> = {
-    neutral: "bg-muted text-foreground/70 border-border/15",
-    success: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    warning: "bg-amber-50 text-amber-700 border-amber-200",
-    danger: "bg-red-50 text-red-600 border-red-200",
-    primary: "bg-primary/10 text-primary border-primary/20"
+    neutral: "bg-muted text-foreground/70 border-border/20",
+    success: "bg-background text-primary border-primary/30",
+    warning: "bg-background text-amber-800 border-amber-300/60",
+    danger: "bg-background text-red-700 border-red-300/60",
+    primary: "bg-primary text-primary-foreground border-primary"
   };
 
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-medium tracking-wide",
+        "inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wider",
         styles[variant],
         className
       )}
@@ -97,7 +109,7 @@ export function Disclaimer({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "rounded-xl border border-border/15 bg-muted/50 px-4 py-3 text-[11px] leading-relaxed text-muted-foreground",
+        "rounded-sm border border-border/15 bg-muted px-4 py-3 text-[11px] leading-relaxed text-muted-foreground",
         className
       )}
     >
@@ -120,9 +132,9 @@ export function AlertBanner({
   className?: string;
 }) {
   const styles = {
-    warning: "border-amber-300/70 bg-amber-50 text-amber-950",
-    error: "border-red-300/70 bg-red-50 text-red-900",
-    info: "border-border/20 bg-muted/60 text-foreground"
+    warning: "border-amber-400/50 bg-amber-50/80 text-amber-950",
+    error: "border-red-400/50 bg-red-50/80 text-red-900",
+    info: "border-border/20 bg-muted text-foreground"
   };
   const titleStyles = {
     warning: "text-amber-900",
@@ -131,7 +143,7 @@ export function AlertBanner({
   };
 
   return (
-    <div className={cn("rounded-xl border p-4 text-sm", styles[variant], className)}>
+    <div className={cn("rounded-sm border p-4 text-sm", styles[variant], className)}>
       {title && <div className={cn("flex items-center gap-2 font-medium", titleStyles[variant])}>{title}</div>}
       <div className={cn(title ? "mt-1 text-xs leading-relaxed text-inherit/90" : "text-xs leading-relaxed")}>{children}</div>
     </div>
@@ -154,17 +166,17 @@ export function TimeframeTabs<T extends string>({
 
   return (
     <div className="-mx-1 overflow-x-auto px-1">
-      <div className={cn("inline-flex min-w-max gap-1 rounded-lg border border-border/15 bg-muted/60 p-1", text)}>
+      <div className={cn("inline-flex min-w-max gap-1 rounded-sm border border-border/15 bg-muted p-1", text)}>
         {options.map((option) => (
           <button
             key={option}
             type="button"
             onClick={() => onChange(option)}
             className={cn(
-              "shrink-0 rounded-md transition-colors",
+              "shrink-0 rounded-sm transition-colors",
               pad,
               value === option
-                ? "bg-primary/12 font-semibold text-primary shadow-sm ring-1 ring-primary/20"
+                ? "bg-primary font-semibold text-primary-foreground"
                 : "font-medium text-muted-foreground hover:bg-background hover:text-foreground"
             )}
           >
@@ -265,7 +277,7 @@ export function AreaChart({
             <stop offset="100%" stopColor={color} stopOpacity="0" />
           </linearGradient>
           <pattern id={`${id}-grid`} width="80" height="40" patternUnits="userSpaceOnUse">
-            <path d="M 80 0 L 0 0 0 40" fill="none" stroke="oklch(0.24 0.01 258 / 0.07)" strokeWidth="1" />
+            <path d="M 80 0 L 0 0 0 40" fill="none" stroke="oklch(var(--border) / 0.12)" strokeWidth="1" />
           </pattern>
         </defs>
         <rect width={w} height={h} fill={`url(#${id}-grid)`} />
@@ -301,12 +313,12 @@ export function SectionTitle({
     <div className={cn("space-y-3", align === "center" && "mx-auto max-w-2xl text-center")}>
       {eyebrow && (
         <div className={cn("inline-flex", align === "center" && "w-full justify-center")}>
-          <span className="inline-flex items-center gap-2 rounded-full border border-border/15 bg-muted px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+          <span className="editorial-label inline-flex items-center gap-2 border border-border/15 bg-muted px-3 py-1 text-muted-foreground">
             {eyebrow}
           </span>
         </div>
       )}
-      <h2 className="text-balance text-3xl font-semibold tracking-tight md:text-4xl">{title}</h2>
+      <h2 className="font-serif text-balance text-3xl font-semibold tracking-tight md:text-4xl">{title}</h2>
       {description && <p className="text-balance text-base text-muted-foreground md:text-lg">{description}</p>}
     </div>
   );

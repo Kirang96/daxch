@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -100,8 +100,8 @@ export default function SettingsPage() {
 
   return (
     <AppShell title="Settings" subtitle="Control profile, security, broker connectivity, and account preferences.">
-      {status && <p className="mb-4 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-sm text-muted-foreground">{status}</p>}
-      <div className="mb-6 flex gap-1 overflow-x-auto rounded-lg border border-white/10 bg-white/[0.03] p-1 text-xs">
+      {status && <p className="mb-4 rounded-xl border border-border/20 bg-background p-3 text-sm text-muted-foreground">{status}</p>}
+      <div className="mb-6 flex gap-1 overflow-x-auto rounded-lg border border-border/20 bg-background p-1 text-xs">
         {tabs.map((t) => (
           <button
             key={t}
@@ -177,8 +177,8 @@ export default function SettingsPage() {
                   }
                   className={
                     selected
-                      ? "w-full rounded-xl border border-primary/30 bg-primary/10 p-4 text-left ring-1 ring-primary/20"
-                      : "w-full rounded-xl border border-white/5 bg-white/[0.02] p-4 text-left hover:bg-white/[0.04] disabled:cursor-not-allowed disabled:opacity-70"
+                      ? "w-full rounded-sm border border-primary/30 bg-primary/10 p-4 text-left ring-1 ring-primary/20"
+                      : "w-full rounded-xl border border-border/15 bg-muted/60 p-4 text-left hover:bg-muted disabled:cursor-not-allowed disabled:opacity-70"
                   }
                 >
                   <div className="flex items-center justify-between gap-3">
@@ -210,11 +210,11 @@ export default function SettingsPage() {
               Push notifications require the mobile app (coming soon). In-app notifications always appear in your feed.
             </AlertBanner>
             {notificationRows.map(([label, key]) => (
-              <div key={label as string} className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-3 text-sm">
+              <div key={label as string} className="flex items-center justify-between rounded-xl border border-border/15 bg-muted/60 p-3 text-sm">
                 <span>{label}</span>
                 <span
                   onClick={() => toggleNotification(key)}
-                  className={Boolean(settings?.notification_preferences?.[key]) ? "cursor-pointer rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground" : "cursor-pointer rounded-full bg-white/10 px-2 py-0.5 text-xs text-muted-foreground"}
+                  className={Boolean(settings?.notification_preferences?.[key]) ? "cursor-pointer rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground" : "cursor-pointer rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"}
                 >
                   {Boolean(settings?.notification_preferences?.[key]) ? "On" : "Off"}
                 </span>
@@ -241,7 +241,7 @@ export default function SettingsPage() {
               ["Angel One", "Coming soon", "neutral"],
               ["Groww", "Coming soon", "neutral"]
             ].map(([name, status, kind]) => (
-              <div key={name as string} className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+              <div key={name as string} className="rounded-xl border border-border/15 bg-muted/60 p-4">
                 <div className="flex items-center justify-between">
                   <div className="text-sm font-medium">{name}</div>
                   <Badge variant={kind === "success" ? "success" : kind === "warning" ? "warning" : "neutral"}>
@@ -250,7 +250,7 @@ export default function SettingsPage() {
                 </div>
                 {name === "Upstox" && (
                   <div className="mt-3 flex gap-2">
-                    <Link href="/broker" className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs hover:bg-white/[0.06]">
+                    <Link href="/broker" className="rounded-lg border border-border/20 bg-background px-3 py-1.5 text-xs hover:bg-muted">
                       Manage
                     </Link>
                   </div>
@@ -267,17 +267,17 @@ export default function SettingsPage() {
             <Shield className="h-4 w-4 text-primary" /> Security
           </div>
           <div className="space-y-3">
-            <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+            <div className="rounded-xl border border-border/15 bg-muted/60 p-4">
               <div className="text-sm font-medium">Passwordless sign-in</div>
               <div className="mt-1 text-xs text-muted-foreground">Magic-link authentication enabled for this account.</div>
             </div>
-            <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+            <div className="rounded-xl border border-border/15 bg-muted/60 p-4">
               <div className="text-sm font-medium">Session control</div>
               <div className="mt-1 text-xs text-muted-foreground">
                 Auto logout after inactivity: {String(settings?.security_preferences?.auto_logout_hours || 24)}h.
               </div>
             </div>
-            <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+            <div className="rounded-xl border border-border/15 bg-muted/60 p-4">
               <div className="text-sm font-medium">Device activity</div>
               <div className="mt-1 text-xs text-muted-foreground">
                 Last profile update: {settings?.updated_at ? new Date(settings.updated_at).toLocaleString() : "Not available"}.
@@ -328,7 +328,7 @@ function Field({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         disabled={disabled}
-        className="h-11 w-full rounded-xl border border-white/10 bg-white/[0.03] px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+        className="h-11 w-full rounded-xl border border-border/20 bg-background px-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
       />
     </label>
   );

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -171,16 +171,16 @@ export function AiUnitsUsageCard({
         </div>
       </div>
 
-      <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
+      <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
         <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3">
-        <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
+        <div className="rounded-xl border border-border/20 bg-background px-3 py-2.5">
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Plan</div>
           <div className="mt-0.5 text-sm font-medium">{formatAiUnits(quota.plan_remaining)}</div>
         </div>
-        <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2.5">
+        <div className="rounded-xl border border-border/20 bg-background px-3 py-2.5">
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Bonus</div>
           <div className="mt-0.5 text-sm font-medium">{formatAiUnits(quota.bonus_balance)}</div>
         </div>
@@ -211,7 +211,7 @@ export function AiUnitsUsageCard({
             key={pack.id}
             type="button"
             onClick={() => buyPack(pack.id)}
-            className="flex w-full items-center justify-between gap-4 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-left transition hover:border-primary/30 hover:bg-white/[0.05]"
+            className="flex w-full items-center justify-between gap-4 rounded-xl border border-border/20 bg-background px-4 py-3 text-left transition hover:border-primary/30 hover:bg-muted"
           >
             <div className="min-w-0">
               <div className="font-medium">{pack.label}</div>
@@ -228,7 +228,7 @@ export function AiUnitsUsageCard({
         <p className="mt-3 text-sm text-muted-foreground">Top-up packs could not be loaded.</p>
       )}
       {purchases.length > 0 && (
-        <div className="mt-4 border-t border-white/10 pt-4">
+        <div className="mt-4 border-t border-border/20 pt-4">
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Recent</div>
           <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
             {purchases.slice(0, 3).map((p) => (
@@ -305,7 +305,7 @@ export function AiUnitsUsageCard({
             )}
           </div>
 
-          <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
+          <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
             <div className={`h-full rounded-full transition-all ${barColor}`} style={{ width: `${pct}%` }} />
           </div>
 
@@ -332,7 +332,7 @@ export function AiUnitsUsageCard({
       )}
 
       {showTopup && (
-        <div id="top-up-packs" className={cn(quota ? "mt-6 border-t border-white/10 pt-6" : "")}>
+        <div id="top-up-packs" className={cn(quota ? "mt-6 border-t border-border/20 pt-6" : "")}>
           <div className="text-sm font-semibold tracking-tight">Buy more AI Units</div>
           <p className="mt-1 text-sm text-muted-foreground">
             Top-up units roll over in your bonus wallet and are used after your monthly plan allowance.
@@ -343,7 +343,7 @@ export function AiUnitsUsageCard({
                 key={pack.id}
                 type="button"
                 onClick={() => buyPack(pack.id)}
-                className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-left transition hover:border-primary/30 hover:bg-white/[0.05]"
+                className="rounded-xl border border-border/20 bg-background p-4 text-left transition hover:border-primary/30 hover:bg-muted"
               >
                 <div className="font-medium">{pack.label}</div>
                 <div className="mt-1 text-sm text-muted-foreground">{formatAiUnits(pack.units)} units</div>

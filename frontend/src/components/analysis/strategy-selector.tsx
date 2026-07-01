@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { Lock } from "lucide-react";
@@ -39,7 +39,7 @@ export function StrategySelector({
               "relative rounded-xl border p-4 text-left transition-colors",
               isSelected
                 ? "border-primary/50 bg-primary/10"
-                : "border-white/10 bg-white/[0.02] hover:bg-white/[0.04]",
+                : "border-border/20 bg-muted/60 hover:bg-muted",
               locked && "cursor-not-allowed opacity-60"
             )}
           >

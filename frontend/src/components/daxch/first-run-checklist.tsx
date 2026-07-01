@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { Check, Circle } from "lucide-react";
 
 import { GlassCard } from "@/components/daxch/primitives";
@@ -26,7 +26,7 @@ export function FirstRunChecklist({ items }: { items: ChecklistItem[] }) {
             {item.href && !item.done ? (
               <Link
                 href={item.href}
-                className="flex items-center gap-3 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2.5 text-sm hover:border-primary/20"
+                className="flex items-center gap-3 rounded-lg border border-border/15 bg-muted/60 px-3 py-2.5 text-sm hover:border-primary/20"
               >
                 <ItemIcon done={item.done} />
                 <span>
@@ -35,7 +35,7 @@ export function FirstRunChecklist({ items }: { items: ChecklistItem[] }) {
                 </span>
               </Link>
             ) : (
-              <div className="flex items-center gap-3 rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2.5 text-sm">
+              <div className="flex items-center gap-3 rounded-lg border border-border/15 bg-muted/60 px-3 py-2.5 text-sm">
                 <ItemIcon done={item.done} />
                 <span className={item.done ? "text-muted-foreground line-through" : ""}>
                   {item.label}

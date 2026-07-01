@@ -143,23 +143,21 @@ export function AppShell({ title, subtitle, actions, children }: AppShellProps) 
 
   const planBadgeClass =
     planTier === "ultra"
-      ? "border-violet-300/40 bg-gradient-to-r from-violet-500/15 to-primary/15 text-violet-700"
+      ? "border-primary bg-primary text-primary-foreground"
       : planTier === "pro"
-        ? "border-primary/30 bg-primary/10 text-primary"
+        ? "border-primary/40 bg-background text-primary"
         : planTier === "starter"
-          ? "border-emerald-300/40 bg-emerald-500/10 text-emerald-700"
+          ? "border-primary/30 bg-muted text-primary"
           : "border-border/20 bg-muted text-muted-foreground";
 
   return (
     <div className="min-h-screen bg-background">
-      <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-[520px] opacity-70" style={{ background: "var(--gradient-hero)" }} />
-
       {/* Mobile top bar */}
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border/20 bg-white/80 px-4 py-3 backdrop-blur-xl md:hidden">
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border/20 bg-muted px-4 py-3 md:hidden">
         <Logo />
         <button
           onClick={() => setOpen((s) => !s)}
-          className="grid h-9 w-9 place-items-center rounded-lg border border-border/20 bg-muted text-foreground/60 hover:text-foreground"
+          className="grid h-9 w-9 place-items-center rounded-sm border border-border/20 bg-background text-foreground/60 hover:text-foreground"
           aria-label="Toggle navigation"
         >
           {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
@@ -170,7 +168,7 @@ export function AppShell({ title, subtitle, actions, children }: AppShellProps) 
         {/* Sidebar */}
         <aside
           className={cn(
-            "fixed inset-y-0 left-0 z-40 w-[240px] flex-col border-r border-border/12 bg-white/95 px-3 py-5 backdrop-blur-xl md:sticky md:top-0 md:flex md:h-screen",
+            "fixed inset-y-0 left-0 z-40 w-[240px] flex-col border-r border-border/20 bg-muted px-3 py-5 md:sticky md:top-0 md:flex md:h-screen",
             open ? "flex" : "hidden"
           )}
         >
@@ -179,7 +177,7 @@ export function AppShell({ title, subtitle, actions, children }: AppShellProps) 
           </div>
           <div className="flex items-center justify-between md:hidden">
             <Logo />
-            <button onClick={() => setOpen(false)} className="grid h-8 w-8 place-items-center rounded-lg border border-border/20">
+            <button onClick={() => setOpen(false)} className="grid h-8 w-8 place-items-center rounded-sm border border-border/20">
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -188,7 +186,7 @@ export function AppShell({ title, subtitle, actions, children }: AppShellProps) 
           <Link
             href="/agents/new"
             onClick={() => setOpen(false)}
-            className="mt-5 mb-3 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground shadow-[0_4px_16px_-4px_oklch(0.52_0.22_277/0.4)] transition-all hover:brightness-110 hover:shadow-[0_6px_20px_-4px_oklch(0.52_0.22_277/0.5)]"
+            className="mb-3 mt-5 inline-flex items-center justify-center gap-2 rounded-sm bg-primary px-3 py-2.5 text-xs font-semibold uppercase tracking-wider text-primary-foreground transition-colors hover:bg-[oklch(0.15_0_0)]"
           >
             <Plus className="h-4 w-4" /> New Agent
           </Link>
@@ -204,10 +202,10 @@ export function AppShell({ title, subtitle, actions, children }: AppShellProps) 
                   href={link.href}
                   onClick={() => setOpen(false)}
                   className={cn(
-                    "group flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all duration-150",
+                    "group flex items-center gap-3 border-l-2 px-3 py-2 text-xs font-medium uppercase tracking-wider transition-colors",
                     active
-                      ? "bg-primary/[0.08] text-primary font-medium"
-                      : "text-foreground/60 hover:bg-muted hover:text-foreground"
+                      ? "border-primary bg-background text-primary"
+                      : "border-transparent text-foreground/60 hover:border-border/30 hover:bg-background hover:text-foreground"
                   )}
                 >
                   <Icon
@@ -235,9 +233,9 @@ export function AppShell({ title, subtitle, actions, children }: AppShellProps) 
 
           {/* User card */}
           <div className="mt-auto">
-            <div className="rounded-xl border border-border/12 bg-muted/50 p-3.5">
+            <div className="rounded-sm border border-border/15 bg-background p-3.5">
               <div className="flex items-center gap-3">
-                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-primary to-emerald-500 text-xs font-bold text-white shadow-sm">
+                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-sm bg-primary font-mono text-xs font-bold text-primary-foreground">
                   {initials}
                 </div>
                 <div className="min-w-0">
@@ -246,7 +244,7 @@ export function AppShell({ title, subtitle, actions, children }: AppShellProps) 
                     <Link
                       href="/subscription"
                       className={cn(
-                        "mt-1 inline-flex max-w-full items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide transition-opacity hover:opacity-80",
+                        "mt-1 inline-flex max-w-full items-center rounded-sm border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide transition-opacity hover:opacity-80",
                         planBadgeClass
                       )}
                     >
@@ -255,7 +253,7 @@ export function AppShell({ title, subtitle, actions, children }: AppShellProps) 
                   ) : (
                     <div className="truncate text-xs text-muted-foreground">{planLabel}</div>
                   )}
-                  <div className="mt-1 truncate text-[10px] text-muted-foreground">
+                  <div className="mt-1 truncate font-mono text-[10px] text-muted-foreground">
                     {brokerConnected ? "Upstox connected" : "Broker not connected"}
                   </div>
                 </div>
@@ -271,20 +269,20 @@ export function AppShell({ title, subtitle, actions, children }: AppShellProps) 
 
         <main className="min-h-screen min-w-0 flex-1">
           {/* Top bar */}
-          <div className="sticky top-0 z-20 hidden items-center gap-4 border-b border-border/12 bg-white/80 px-8 py-3.5 backdrop-blur-xl md:flex">
+          <div className="sticky top-0 z-20 hidden items-center gap-4 border-b border-border/20 bg-muted px-8 py-3.5 md:flex">
             <form className="relative w-full max-w-sm" onSubmit={handleSearch}>
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder="Search stocks, agents, research..."
-                className="w-full rounded-lg border border-border/15 bg-muted/60 py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="w-full rounded-sm border border-border/15 bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
             </form>
             <div className="ml-auto flex items-center gap-2">
               <Link
                 href="/notifications"
-                className="relative grid h-9 w-9 place-items-center rounded-lg border border-border/15 bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                className="relative grid h-9 w-9 place-items-center rounded-sm border border-border/15 bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
                 <Bell className="h-4 w-4" />
                 {unreadCount > 0 && (
@@ -308,7 +306,7 @@ export function AppShell({ title, subtitle, actions, children }: AppShellProps) 
             ) : null}
             <div className="mb-8 flex flex-col gap-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end sm:gap-4">
               <div className="min-w-0">
-                <h1 className="truncate text-xl font-bold tracking-tight text-foreground sm:text-2xl md:text-3xl">{title}</h1>
+                <h1 className="truncate font-serif text-xl font-bold tracking-tight sm:text-2xl md:text-3xl">{title}</h1>
                 {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
               </div>
               {actions && <div className="flex flex-wrap gap-2 sm:shrink-0 sm:justify-end">{actions}</div>}
