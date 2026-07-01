@@ -143,6 +143,8 @@ variable "app_secrets" {
     SES_FROM_EMAIL           = ""
     FCM_CREDENTIALS_JSON     = ""
     FERNET_KEY               = ""
+    GOOGLE_CLIENT_ID         = ""
+    GOOGLE_CLIENT_SECRET     = ""
   }
 }
 

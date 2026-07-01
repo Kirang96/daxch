@@ -29,6 +29,7 @@ backend_env_vars = {
   CORS_ORIGINS        = "https://app.example.com"
   AWS_REGION          = "ap-south-1"
   UPSTOX_REDIRECT_URI = "https://app.example.com/broker/callback"
+  GOOGLE_REDIRECT_URI = "https://app.example.com/auth/google/callback"
 }
 
 app_secrets = {
@@ -47,5 +48,7 @@ app_secrets = {
   SES_FROM_EMAIL           = "no-reply@example.com"
   FCM_CREDENTIALS_JSON     = "{\"type\":\"service_account\"}"
   FERNET_KEY               = "replace-me-base64-key"
+  GOOGLE_CLIENT_ID         = "replace-me"
+  GOOGLE_CLIENT_SECRET     = "replace-me"
 }
 

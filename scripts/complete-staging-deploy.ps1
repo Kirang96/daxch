@@ -98,6 +98,7 @@ function Update-TfvarsWithAlbUrl {
     $content = $content -replace 'FRONTEND_BASE_URL\s*=\s*"[^"]*"', "FRONTEND_BASE_URL   = `"$base`""
     $content = $content -replace 'CORS_ORIGINS\s*=\s*"[^"]*"', "CORS_ORIGINS        = `"$base`""
     $content = $content -replace 'UPSTOX_REDIRECT_URI\s*=\s*"[^"]*"', "UPSTOX_REDIRECT_URI = `"$base/broker/callback`""
+    $content = $content -replace 'GOOGLE_REDIRECT_URI\s*=\s*"[^"]*"', "GOOGLE_REDIRECT_URI = `"$base/auth/google/callback`""
     Set-Content -Path $TfvarsPath -Value $content -Encoding utf8 -NoNewline
     Write-Host "Updated terraform.tfvars with ALB URL: $base" -ForegroundColor Green
 }

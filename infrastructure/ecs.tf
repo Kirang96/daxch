@@ -118,6 +118,14 @@ locals {
       name      = "FERNET_KEY"
       valueFrom = "${aws_secretsmanager_secret.app.arn}:FERNET_KEY::"
     },
+    {
+      name      = "GOOGLE_CLIENT_ID"
+      valueFrom = "${aws_secretsmanager_secret.app.arn}:GOOGLE_CLIENT_ID::"
+    },
+    {
+      name      = "GOOGLE_CLIENT_SECRET"
+      valueFrom = "${aws_secretsmanager_secret.app.arn}:GOOGLE_CLIENT_SECRET::"
+    },
   ]
 }
 
