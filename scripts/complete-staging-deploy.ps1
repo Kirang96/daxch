@@ -12,7 +12,8 @@
 param(
     [string]$LockId = "54dbcbea-abf2-3d6a-9e3e-fd0f6c4378ae",
     [switch]$SkipUnlock,
-    [switch]$SkipAlbUrlUpdate
+    [switch]$SkipAlbUrlUpdate,
+    [switch]$RestoreSecrets
 )
 
 $ErrorActionPreference = "Stop"
@@ -85,7 +86,12 @@ if (Test-Path $erroredState) {
 }
 
 Write-Host "Terraform apply (finish RDS + secrets)..." -ForegroundColor Yellow
-Invoke-Terraform @("apply", "-auto-approve")
+if ($RestoreSecrets) {
+    Write-Host "Restoring app secrets from terraform.tfvars (one-time after CI wipe)..." -ForegroundColor Yellow
+    Invoke-Terraform @("apply", "-auto-approve", "-replace=aws_secretsmanager_secret_version.app")
+} else {
+    Invoke-Terraform @("apply", "-auto-approve")
+}
 
 Write-Host "Terraform outputs:" -ForegroundColor Yellow
 Invoke-Terraform @("output")

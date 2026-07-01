@@ -57,5 +57,10 @@ resource "aws_secretsmanager_secret_version" "app" {
     CELERY_BROKER_URL     = "redis://${aws_elasticache_cluster.redis.cache_nodes[0].address}:6379/1"
     CELERY_RESULT_BACKEND = "redis://${aws_elasticache_cluster.redis.cache_nodes[0].address}:6379/2"
   }))
+
+  # CI apply does not pass app_secrets; never overwrite secrets set by the initial local apply.
+  lifecycle {
+    ignore_changes = [secret_string]
+  }
 }
 

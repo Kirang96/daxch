@@ -102,27 +102,39 @@ jobs:
             --query 'services[0].networkConfiguration' \
             --output json)
 
-          TASK_ARN=$(aws ecs run-task \
+          RUN_RESULT=$(aws ecs run-task \
             --cluster "${CLUSTER}" \
             --task-definition "${TASK_DEF}" \
             --launch-type FARGATE \
             --network-configuration "${NET_CFG}" \
             --region "${AWS_REGION}" \
-            --query 'tasks[0].taskArn' \
-            --output text)
+            --output json)
 
+          FAILURES=$(printf '%s' "${RUN_RESULT}" | jq -r '.failures[]? | "\(.arn // "n/a"): \(.reason)"')
+          if [ -n "${FAILURES}" ]; then
+            echo "Failed to start migration task:"
+            echo "${FAILURES}"
+            exit 1
+          fi
+
+          TASK_ARN=$(printf '%s' "${RUN_RESULT}" | jq -r '.tasks[0].taskArn')
           echo "Migration task: ${TASK_ARN}"
           aws ecs wait tasks-stopped --cluster "${CLUSTER}" --tasks "${TASK_ARN}" --region "${AWS_REGION}"
 
-          EXIT_CODE=$(aws ecs describe-tasks \
+          TASK_JSON=$(aws ecs describe-tasks \
             --cluster "${CLUSTER}" \
             --tasks "${TASK_ARN}" \
             --region "${AWS_REGION}" \
-            --query 'tasks[0].containers[0].exitCode' \
-            --output text)
+            --output json)
+
+          EXIT_CODE=$(printf '%s' "${TASK_JSON}" | jq -r '.tasks[0].containers[] | select(.name=="migrate") | .exitCode // empty')
+          STOPPED_REASON=$(printf '%s' "${TASK_JSON}" | jq -r '.tasks[0].stoppedReason // empty')
+          CONTAINER_REASON=$(printf '%s' "${TASK_JSON}" | jq -r '.tasks[0].containers[] | select(.name=="migrate") | .reason // empty')
 
           if [ "${EXIT_CODE}" != "0" ]; then
-            echo "Migration failed with exit code ${EXIT_CODE}"
+            echo "Migration failed with exit code: ${EXIT_CODE:-<none>}"
+            echo "Stopped reason: ${STOPPED_REASON}"
+            echo "Container reason: ${CONTAINER_REASON}"
             aws logs tail "/ecs/${NAME_PREFIX}-migrate" --since 30m --region "${AWS_REGION}" || true
             exit 1
           fi

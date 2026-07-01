@@ -19,12 +19,12 @@ resource "aws_ecs_task_definition" "migrate" {
       image     = var.backend_image
       essential = true
       command   = ["alembic", "-c", "backend/alembic.ini", "upgrade", "head"]
-      environment = [
+      environment = concat(local.base_env, [
         {
           name  = "PYTHONPATH"
           value = "/app"
         }
-      ]
+      ])
       secrets = local.secret_env
       logConfiguration = {
         logDriver = "awslogs"
