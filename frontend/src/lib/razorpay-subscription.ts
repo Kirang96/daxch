@@ -36,7 +36,7 @@ function checkoutCallbackUrl(): string | undefined {
 }
 
 export async function syncSubscriptionStatus(): Promise<Subscription> {
-  return api.post<Subscription>("/subscriptions/sync");
+  return api.post<Subscription>("/subscriptions/sync", {});
 }
 
 export async function finalizeSubscriptionReturn(
