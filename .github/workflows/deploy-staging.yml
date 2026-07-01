@@ -80,6 +80,7 @@ jobs:
         working-directory: infrastructure
         run: |
           terraform apply -auto-approve \
+            -var-file=staging.tfvars \
             -var="environment=${ENVIRONMENT}" \
             -var="db_password=${{ secrets.DB_PASSWORD_STAGING }}" \
             -var="backend_image=${{ steps.backend_image.outputs.image_uri }}" \
