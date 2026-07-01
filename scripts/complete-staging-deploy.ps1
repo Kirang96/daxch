@@ -54,7 +54,8 @@ function Invoke-Terraform {
     try {
         $cmd = $TerraformArgs | Select-Object -First 1
         $extra = if ($cmd -in @("apply", "plan", "destroy")) { Get-TerraformVarFileArgs } else { @() }
-        & $terraform @($extra + $TerraformArgs)
+        # -var-file must follow apply/plan/destroy (Terraform 1.x flag ordering)
+        & $terraform @($TerraformArgs + $extra)
         if ($LASTEXITCODE -ne 0) {
             Write-Error "terraform $($TerraformArgs -join ' ') failed (exit $LASTEXITCODE)"
         }

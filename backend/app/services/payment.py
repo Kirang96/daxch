@@ -49,10 +49,16 @@ class PaymentService:
         async with httpx.AsyncClient(timeout=20) as client:
             response = await client.post("https://api.razorpay.com/v1/subscriptions", json=payload, headers=headers)
             if response.status_code == 401:
+                env = self.settings.environment.lower()
+                restore_hint = (
+                    "scripts/restore-production-secrets.py after updating terraform.production.tfvars"
+                    if env == "production"
+                    else "scripts/restore-staging-secrets.ps1 after updating terraform.tfvars"
+                )
                 raise PaymentConfigurationError(
                     "Razorpay error: Authentication failed. "
                     "Verify RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in AWS Secrets Manager "
-                    "(run scripts/restore-staging-secrets.ps1 after updating terraform.tfvars)."
+                    f"(run {restore_hint})."
                 )
             if response.status_code >= 400:
                 detail = response.text

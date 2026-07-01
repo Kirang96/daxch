@@ -9,6 +9,7 @@
 #   aws login
 #   .\scripts\complete-production-deploy.ps1
 #   .\scripts\complete-production-deploy.ps1 -RestoreSecrets
+#   .\scripts\complete-production-deploy.ps1 -RestoreSecrets -LockId <id-from-stale-lock-error>
 
 param(
     [string]$LockId = "",
@@ -53,7 +54,8 @@ function Invoke-Terraform {
     try {
         $cmd = $TerraformArgs | Select-Object -First 1
         $extra = if ($cmd -in @("apply", "plan", "destroy")) { Get-TerraformVarFileArgs } else { @() }
-        & $terraform @($extra + $TerraformArgs)
+        # -var-file must follow apply/plan/destroy (Terraform 1.x flag ordering)
+        & $terraform @($TerraformArgs + $extra)
         if ($LASTEXITCODE -ne 0) {
             Write-Error "terraform $($TerraformArgs -join ' ') failed (exit $LASTEXITCODE)"
         }
@@ -146,6 +148,16 @@ if (-not $SkipUnlock -and $LockId) {
     & $terraform force-unlock -force $LockId 2>&1 | Out-Null
     $ErrorActionPreference = $prev
     Pop-Location
+}
+
+$erroredState = Join-Path $InfraDir "errored.tfstate"
+if (Test-Path $erroredState) {
+    Write-Host "Found errored.tfstate from prior failed apply - pushing to remote state..." -ForegroundColor Yellow
+    if (-not $LockId) {
+        Write-Host "If state push fails with a lock error, re-run with -LockId <ID from Lock Info>." -ForegroundColor Yellow
+    }
+    Invoke-Terraform @("state", "push", "errored.tfstate")
+    Remove-Item $erroredState -Force
 }
 
 $customDomain = Get-ProductionDomain

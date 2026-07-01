@@ -12,6 +12,7 @@ worker_image   = "264711513534.dkr.ecr.ap-south-1.amazonaws.com/daxch-backend:RE
 beat_image     = "264711513534.dkr.ecr.ap-south-1.amazonaws.com/daxch-backend:REPLACE_SHA"
 
 db_username = "daxch"
+# RDS: no spaces or / @ " in password
 db_password = "replace-with-strong-production-password"
 db_name     = "daxch"
 

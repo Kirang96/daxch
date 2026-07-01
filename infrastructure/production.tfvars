@@ -6,7 +6,7 @@ vpc_cidr    = "10.40.0.0/16"
 
 domain_name = "daxch.app"
 # Request in us-east-1 (CloudFront). See docs/deploy-production.md § ACM certificate.
-cloudfront_acm_certificate_arn = "REPLACE_AFTER_ACM_VALIDATION"
+cloudfront_acm_certificate_arn = "arn:aws:acm:us-east-1:264711513534:certificate/5ed8ace6-e106-44de-9291-174a45b19c39"
 
 backend_env_vars = {
   ENVIRONMENT         = "production"
