@@ -1,3 +1,4 @@
+import { api } from "@/lib/api";
 import { Subscription } from "@/types";
 
 type RazorpayInstance = { open: () => void };
@@ -27,6 +28,41 @@ function loadRazorpayScript(): Promise<RazorpayConstructor | null> {
   });
 }
 
+function checkoutCallbackUrl(): string | undefined {
+  if (typeof window === "undefined") {
+    return undefined;
+  }
+  return `${window.location.origin}/api/v1/subscriptions/checkout-callback`;
+}
+
+export async function syncSubscriptionStatus(): Promise<Subscription> {
+  return api.post<Subscription>("/subscriptions/sync");
+}
+
+export async function finalizeSubscriptionReturn(
+  refresh: () => Promise<void>,
+  setStatus: (message: string) => void
+): Promise<void> {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("payment") !== "success") {
+    return;
+  }
+
+  setStatus("Confirming your subscription...");
+  try {
+    await syncSubscriptionStatus();
+    await refresh();
+    setStatus("Subscription active. You're all set!");
+    window.history.replaceState({}, "", window.location.pathname);
+  } catch (error) {
+    setStatus((error as Error).message);
+  }
+}
+
 export async function openSubscriptionCheckout(options: {
   keyId: string;
   subscriptionId: string;
@@ -38,14 +74,19 @@ export async function openSubscriptionCheckout(options: {
     return false;
   }
 
+  const callbackUrl = checkoutCallbackUrl();
+
   return new Promise((resolve) => {
     const rzp = new Razorpay({
       key: options.keyId,
       subscription_id: options.subscriptionId,
       name: "Daxch",
       description: `${options.planName} plan`,
+      callback_url: callbackUrl,
+      redirect: true,
       handler: async () => {
         await options.onSuccess?.();
+        window.location.href = "/subscription?payment=success";
         resolve(true);
       },
       modal: {
@@ -62,12 +103,6 @@ export async function startSubscriptionCheckout(
   onRefresh: () => Promise<void>,
   setStatus: (message: string) => void
 ): Promise<void> {
-  if (response.checkout_url) {
-    setStatus("Redirecting to Razorpay checkout...");
-    window.location.href = response.checkout_url;
-    return;
-  }
-
   if (response.provider_subscription_id && response.key_id) {
     setStatus("Opening Razorpay checkout...");
     const opened = await openSubscriptionCheckout({
@@ -85,6 +120,27 @@ export async function startSubscriptionCheckout(
     return;
   }
 
+  if (response.checkout_url) {
+    setStatus("Opening Razorpay checkout. Return to Daxch after payment.");
+    window.location.href = response.checkout_url;
+    return;
+  }
+
   setStatus(`Subscription created (${response.status}). Waiting for payment confirmation...`);
   await onRefresh();
+}
+
+export async function refreshPendingSubscription(
+  current: Subscription | null,
+  refresh: () => Promise<void>
+): Promise<void> {
+  if (!current?.provider_subscription_id || current.status === "active") {
+    return;
+  }
+  try {
+    await syncSubscriptionStatus();
+    await refresh();
+  } catch {
+    // Ignore sync errors on background refresh.
+  }
 }

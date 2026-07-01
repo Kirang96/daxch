@@ -10,7 +10,7 @@ import { Logo } from "@/components/daxch/logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
-import { startSubscriptionCheckout } from "@/lib/razorpay-subscription";
+import { startSubscriptionCheckout, finalizeSubscriptionReturn, refreshPendingSubscription } from "@/lib/razorpay-subscription";
 import { PlanInfo, Subscription } from "@/types";
 
 const PLAN_FEATURES: Record<string, string[]> = {
@@ -64,6 +64,8 @@ function OnboardingSubscriptionContent() {
         setCurrent(subscription);
         setPlanMap(plans);
         setDevActivateAvailable(config.dev_activate_available);
+        await finalizeSubscriptionReturn(refresh, setStatus);
+        await refreshPendingSubscription(subscription, refresh);
       } catch (error) {
         setStatus((error as Error).message);
       } finally {

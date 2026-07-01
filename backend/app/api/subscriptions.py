@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 import hashlib
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -32,6 +33,40 @@ def _to_response(sub: Subscription) -> SubscriptionResponse:
         is_trial=False,
         provider_subscription_id=sub.razorpay_sub_id,
     )
+
+
+def _apply_razorpay_subscription_state(
+    db: Session,
+    sub: Subscription,
+    user: User,
+    entity: dict,
+    *,
+    notify_active: bool = False,
+) -> None:
+    razorpay_status = (entity.get("status") or "").lower()
+    if razorpay_status in {"active", "authenticated"}:
+        was_active = sub.status == "active"
+        sub.status = "active"
+        user.plan_tier = sub.plan
+        current_end = entity.get("current_end")
+        if current_end:
+            sub.current_period_end = datetime.fromtimestamp(current_end, tz=timezone.utc)
+        if notify_active and not was_active:
+            create_notification_event(
+                db,
+                user.id,
+                NotificationType.system,
+                "Subscription active",
+                f"Your {sub.plan.value} subscription is now active.",
+                {"subscription_id": sub.razorpay_sub_id},
+            )
+    elif razorpay_status in {"halted", "cancelled", "paused", "expired"}:
+        sub.status = "inactive"
+        user.plan_tier = PlanTier.starter
+    elif razorpay_status == "pending":
+        sub.status = "pending"
+    elif razorpay_status:
+        sub.status = razorpay_status
 
 
 @router.get("/config")
@@ -88,10 +123,40 @@ async def create_subscription(
         trial_ends_at=sub.trial_ends_at,
         days_left=None,
         is_trial=False,
-        checkout_url=provider_data.get("checkout_url"),
+        checkout_url=None,
         provider_subscription_id=sub.razorpay_sub_id,
         key_id=get_settings().razorpay_key_id or None,
     )
+
+
+@router.post("/checkout-callback")
+async def subscription_checkout_callback() -> RedirectResponse:
+    """Razorpay redirect target after subscription payment (POST from Razorpay)."""
+    settings = get_settings()
+    return RedirectResponse(
+        url=f"{settings.frontend_base_url.rstrip('/')}/subscription?payment=success",
+        status_code=303,
+    )
+
+
+@router.post("/sync", response_model=SubscriptionResponse)
+async def sync_subscription(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> SubscriptionResponse:
+    sub = get_latest_subscription(db, current_user.id)
+    if not sub or not sub.razorpay_sub_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No subscription to sync")
+
+    try:
+        entity = await payment_service.fetch_subscription(sub.razorpay_sub_id)
+    except PaymentConfigurationError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+
+    _apply_razorpay_subscription_state(db, sub, current_user, entity, notify_active=True)
+    db.commit()
+    db.refresh(sub)
+    return _to_response(sub)
 
 
 @router.get("/current", response_model=SubscriptionResponse | None)

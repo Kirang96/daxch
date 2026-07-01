@@ -9,7 +9,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { AlertBanner, Badge, Disclaimer, GlassCard, StatCard } from "@/components/daxch/primitives";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
-import { startSubscriptionCheckout } from "@/lib/razorpay-subscription";
+import { startSubscriptionCheckout, finalizeSubscriptionReturn, refreshPendingSubscription, syncSubscriptionStatus } from "@/lib/razorpay-subscription";
 import { Invoice, PlanInfo, Subscription } from "@/types";
 
 const PLAN_FEATURES: Record<string, string[]> = {
@@ -83,7 +83,13 @@ export default function SubscriptionPage() {
   };
 
   useEffect(() => {
-    refresh();
+    const load = async () => {
+      await refresh();
+      await finalizeSubscriptionReturn(refresh, setStatus);
+      const subscription = await api.get<Subscription | null>("/subscriptions/current");
+      await refreshPendingSubscription(subscription, refresh);
+    };
+    void load();
   }, []);
 
   const isActive = current?.status === "active";
@@ -120,6 +126,25 @@ export default function SubscriptionPage() {
         </AlertBanner>
       )}
       {status && <p className="mb-4 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-sm text-muted-foreground">{status}</p>}
+      {!isActive && current?.provider_subscription_id && (
+        <div className="mb-4">
+          <Button
+            variant="secondary"
+            onClick={async () => {
+              setStatus("Checking payment status with Razorpay...");
+              try {
+                await syncSubscriptionStatus();
+                await refresh();
+                setStatus("Subscription status updated.");
+              } catch (error) {
+                setStatus((error as Error).message);
+              }
+            }}
+          >
+            Refresh payment status
+          </Button>
+        </div>
+      )}
 
       <div className="space-y-8">
         <div className="grid gap-4 sm:grid-cols-3">
