@@ -36,8 +36,8 @@ data "aws_iam_policy_document" "ecs_execution_secrets" {
   }
 
   statement {
-    effect = "Allow"
-    actions = ["kms:Decrypt"]
+    effect    = "Allow"
+    actions   = ["kms:Decrypt"]
     resources = ["*"]
   }
 }
