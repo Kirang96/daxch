@@ -3,23 +3,17 @@
 import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, Check, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 
 import { AlertBanner, Badge, Disclaimer, GlassCard } from "@/components/daxch/primitives";
+import { PlanFeaturesList } from "@/components/daxch/plan-features-list";
 import { Logo } from "@/components/daxch/logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
+import { buildPlanCardFromApi, type PlanId, PLAN_ORDER } from "@/lib/plan-features";
 import { startSubscriptionCheckout, finalizeSubscriptionReturn, refreshPendingSubscription } from "@/lib/razorpay-subscription";
 import { PlanInfo, Subscription } from "@/types";
-
-const PLAN_FEATURES: Record<string, string[]> = {
-  starter: ["3,000 AI Units/month", "Up to 10 agents", "2 analysis strategies", "Buy extra AI Units anytime"],
-  pro: ["12,000 AI Units/month", "Unlimited agents", "All 3 analysis strategies", "Buy extra AI Units anytime"],
-  ultra: ["35,000 AI Units/month", "Unlimited agents", "Highest priority AI", "Buy extra AI Units anytime"]
-};
-
-type PlanId = "starter" | "pro" | "ultra";
 
 export default function OnboardingSubscriptionPage() {
   return (
@@ -79,19 +73,9 @@ function OnboardingSubscriptionContent() {
 
   const plans = useMemo(
     () =>
-      Object.entries(planMap).map(([id, info]) => ({
-        id,
-        name: info.name,
-        price: `₹${info.price}`,
-        desc:
-          id === "ultra"
-            ? "Maximum AI capacity for power users."
-            : id === "pro"
-              ? "Unlimited coverage with advanced cadence controls."
-              : "For focused portfolios and standard monitoring.",
-        features: PLAN_FEATURES[id] ?? [],
-        highlighted: id === "pro"
-      })),
+      Object.entries(planMap)
+        .sort(([a], [b]) => PLAN_ORDER.indexOf(a as PlanId) - PLAN_ORDER.indexOf(b as PlanId))
+        .map(([id, info]) => buildPlanCardFromApi(id, info)),
     [planMap]
   );
 
@@ -183,13 +167,7 @@ function OnboardingSubscriptionContent() {
                     <span className="text-sm text-muted-foreground">/ month</span>
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground">{plan.desc}</p>
-                  <ul className="mt-5 space-y-2 text-sm">
-                    {plan.features.map((feature) => (
-                      <li key={feature} className="flex items-start gap-2">
-                        <Check className="mt-0.5 h-3.5 w-3.5 text-emerald-400" /> {feature}
-                      </li>
-                    ))}
-                  </ul>
+                  <PlanFeaturesList features={plan.features} className="mt-5" />
                   <Button
                     className="mt-6 w-full"
                     variant={plan.highlighted ? "primary" : "secondary"}

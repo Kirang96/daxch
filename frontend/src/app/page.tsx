@@ -14,6 +14,7 @@ import { FeaturesSection } from "@/components/landing/features-section";
 import { HeroSection } from "@/components/landing/hero-section";
 import { HowItWorksSteps } from "@/components/landing/how-it-works-steps";
 import { PricingSection } from "@/components/landing/pricing-section";
+import { getLandingPlans } from "@/lib/plan-features";
 
 export default function HomePage() {
   const features = [
@@ -49,46 +50,7 @@ export default function HomePage() {
     }
   ];
 
-  const plans = [
-    {
-      id: "starter",
-      name: "Starter",
-      price: "₹499",
-      desc: "For investors stepping into AI-assisted monitoring.",
-      features: ["3,000 AI Units/month", "10 AI Agents", "Standard monitoring", "Buy extra units anytime"],
-      cta: "Get started",
-      highlighted: false
-    },
-    {
-      id: "pro",
-      name: "Professional",
-      price: "₹999",
-      desc: "For serious portfolios that deserve closer watching.",
-      features: [
-        "12,000 AI Units/month",
-        "Unlimited agents",
-        "Custom frequency",
-        "All analysis strategies",
-        "Buy extra units anytime"
-      ],
-      cta: "Get started",
-      highlighted: true
-    },
-    {
-      id: "ultra",
-      name: "Ultra",
-      price: "₹2,499",
-      desc: "Maximum AI capacity for power users.",
-      features: [
-        "35,000 AI Units/month",
-        "Unlimited agents",
-        "Priority AI processing",
-        "Buy extra units anytime"
-      ],
-      cta: "Get started",
-      highlighted: false
-    }
-  ];
+  const plans = getLandingPlans();
 
   const howItWorks = [
     { step: "1", title: "Pick your stock", desc: "Set your planned entry and investment goal." },

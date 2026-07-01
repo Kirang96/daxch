@@ -5,7 +5,8 @@ export function clampPollingFrequency(value: number): number {
 }
 
 export function maxPollingForPlan(plan: string | undefined): number {
-  return plan?.toLowerCase() === "pro" ? 12 : 2;
+  const tier = plan?.toLowerCase();
+  return tier === "pro" || tier === "ultra" ? 12 : 2;
 }
 
 export function describePollingFrequency(freq: number): string {

@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Check } from "lucide-react";
 
 import { LandingCard } from "@/components/landing/landing-card";
 import { MotionItem, MotionReveal, MotionSection } from "@/components/landing/motion-section";
+import { PricingComparisonTable } from "@/components/landing/pricing-comparison-table";
+import { PlanFeaturesList } from "@/components/daxch/plan-features-list";
 
 type Plan = {
   id: string;
@@ -40,13 +41,7 @@ export function PricingSection({ plans }: { plans: Plan[] }) {
                 <span className="text-sm text-muted-foreground">/ month</span>
               </div>
               <p className="mt-2 text-sm text-muted-foreground">{p.desc}</p>
-              <ul className="mt-6 space-y-2.5">
-                {p.features.map((f) => (
-                  <li key={f} className="flex items-center gap-2.5 text-sm">
-                    <Check className="h-4 w-4 text-emerald-400" /> {f}
-                  </li>
-                ))}
-              </ul>
+              <PlanFeaturesList features={p.features} className="mt-6 flex-1" />
               <Link
                 href={`/signup?plan=${p.id}`}
                 className={
@@ -61,6 +56,8 @@ export function PricingSection({ plans }: { plans: Plan[] }) {
           </MotionItem>
         ))}
       </MotionSection>
+
+      <PricingComparisonTable />
     </section>
   );
 }

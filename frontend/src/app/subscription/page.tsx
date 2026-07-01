@@ -2,41 +2,19 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Check, Download } from "lucide-react";
+import { Download } from "lucide-react";
 
 import { AiUnitsUsageCard } from "@/components/daxch/ai-units-usage-card";
+import { PlanFeaturesList } from "@/components/daxch/plan-features-list";
 import { AppShell } from "@/components/layout/app-shell";
 import { AlertBanner, Badge, Disclaimer, GlassCard, StatCard } from "@/components/daxch/primitives";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
+import { buildPlanCardFromApi, type PlanId } from "@/lib/plan-features";
 import { startSubscriptionCheckout, finalizeSubscriptionReturn, refreshPendingSubscription, syncSubscriptionStatus } from "@/lib/razorpay-subscription";
 import { Invoice, PlanInfo, Subscription } from "@/types";
 
-const PLAN_FEATURES: Record<string, string[]> = {
-  starter: [
-    "3,000 AI Units/month",
-    "Up to 10 agents",
-    "2 analysis strategies",
-    "Standard frequency",
-    "Buy extra AI Units anytime"
-  ],
-  pro: [
-    "12,000 AI Units/month",
-    "Unlimited agents",
-    "All 3 analysis strategies",
-    "Custom frequency",
-    "Buy extra AI Units anytime"
-  ],
-  ultra: [
-    "35,000 AI Units/month",
-    "Unlimited agents",
-    "All 3 analysis strategies",
-    "Highest priority AI processing",
-    "Buy extra AI Units anytime"
-  ]
-};
-
-type PlanId = "starter" | "pro" | "ultra";
+const PLAN_IDS: PlanId[] = ["starter", "pro", "ultra"];
 
 export default function SubscriptionPage() {
   const [current, setCurrent] = useState<Subscription | null>(null);
@@ -96,20 +74,9 @@ export default function SubscriptionPage() {
 
   const plans = useMemo(
     () =>
-      Object.entries(planMap).map(([id, info]) => ({
-        id,
-        name: info.name,
-        price: `₹${info.price}`,
-        desc:
-          id === "ultra"
-            ? "Maximum AI capacity for power users and larger portfolios."
-            : id === "pro"
-              ? "Unlimited coverage with advanced cadence controls."
-              : "For focused portfolios and standard monitoring.",
-        features: PLAN_FEATURES[id] ?? [],
-        highlighted: id === "pro",
-        agentLimit: info.agent_limit
-      })),
+      Object.entries(planMap)
+        .sort(([a], [b]) => PLAN_IDS.indexOf(a as PlanId) - PLAN_IDS.indexOf(b as PlanId))
+        .map(([id, info]) => buildPlanCardFromApi(id, info)),
     [planMap]
   );
 
@@ -182,13 +149,7 @@ export default function SubscriptionPage() {
                     <span className="text-sm text-muted-foreground">/ month</span>
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground">{plan.desc}</p>
-                  <ul className="mt-5 flex-1 space-y-2 text-sm">
-                    {plan.features.map((feature) => (
-                      <li key={feature} className="flex items-start gap-2">
-                        <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" /> {feature}
-                      </li>
-                    ))}
-                  </ul>
+                  <PlanFeaturesList features={plan.features} className="mt-5 flex-1" />
                   <div className="mt-6 space-y-2">
                     <Button
                       className="w-full"
