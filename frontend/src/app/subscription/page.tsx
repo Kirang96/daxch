@@ -245,7 +245,14 @@ export default function SubscriptionPage() {
         </GlassCard>
 
         <p className="text-xs text-muted-foreground">
-          Payments processed securely via Razorpay. Daxch does not store card details.
+          Payments processed securely via Razorpay. Daxch does not store card details.{" "}
+          <Link href="/refund-policy" className="underline-offset-4 hover:underline">
+            Refund Policy
+          </Link>
+          {" · "}
+          <Link href="/cancellation-policy" className="underline-offset-4 hover:underline">
+            Cancellation Policy
+          </Link>
         </p>
       </div>
 

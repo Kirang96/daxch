@@ -6,6 +6,10 @@ Complete before DNS cutover to `https://daxch.app`.
 
 - Complete Razorpay KYC if not already done
 - Switch dashboard to **Live mode**
+- Publish merchant policies on your website (required for payment-method requests):
+  - Refund: `https://daxch.app/refund-policy`
+  - Cancellation: `https://daxch.app/cancellation-policy`
+- In **Account & Settings → Payment methods** ([docs](https://razorpay.com/docs/payments/dashboard/account-settings/payment-methods/)), request Cards (Visa/Mastercard/RuPay), UPI, and UPI Autopay for subscriptions
 
 ## 2. API keys
 

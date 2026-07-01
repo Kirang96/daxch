@@ -192,6 +192,8 @@ export default function HomePage() {
                 { label: "Trust", href: "/trust" },
                 { label: "Terms", href: "/terms" },
                 { label: "Privacy", href: "/privacy" },
+                { label: "Refund Policy", href: "/refund-policy" },
+                { label: "Cancellation Policy", href: "/cancellation-policy" },
                 { label: "Sign up", href: "/signup" }
               ]
             }

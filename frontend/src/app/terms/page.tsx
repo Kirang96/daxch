@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { LegalPage } from "@/components/daxch/legal-page";
 
 export const metadata = { title: "Terms of Service · Daxch" };
@@ -17,8 +18,15 @@ export default function TermsPage() {
       </p>
       <h2 className="text-lg font-medium text-foreground">Subscriptions</h2>
       <p>
-        Access requires an active paid subscription billed monthly via Razorpay. You may cancel by contacting
-        support; access continues until the end of the billing period.
+        Access requires an active paid subscription billed monthly via Razorpay. You may cancel as described in our{" "}
+        <Link href="/cancellation-policy" className="text-foreground underline-offset-4 hover:underline">
+          Cancellation Policy
+        </Link>
+        . Refunds are governed by our{" "}
+        <Link href="/refund-policy" className="text-foreground underline-offset-4 hover:underline">
+          Refund Policy
+        </Link>
+        .
       </p>
       <h2 className="text-lg font-medium text-foreground">Broker integration</h2>
       <p>
