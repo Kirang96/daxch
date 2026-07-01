@@ -55,21 +55,28 @@ jobs:
         env:
           TF_STATE_BUCKET: ${{ secrets.TF_STATE_BUCKET }}
         run: |
+          TF_STATE_BUCKET="$(printf '%s' "${TF_STATE_BUCKET}" | tr -d '\r\n ' | tr -d '"' | sed 's|^s3://||' | sed 's|/.*||')"
           if [ -z "${TF_STATE_BUCKET}" ]; then
-            echo "Missing GitHub secret TF_STATE_BUCKET (e.g. daxch-terraform-state-ACCOUNT_ID)"
+            echo "Missing GitHub secret TF_STATE_BUCKET in the staging environment."
+            echo "Expected value: daxch-terraform-state-264711513534"
             exit 1
           fi
+          if ! printf '%s' "${TF_STATE_BUCKET}" | grep -Eq '^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$'; then
+            echo "TF_STATE_BUCKET is not a valid S3 bucket name."
+            echo "Use only lowercase letters, numbers, dots, and hyphens."
+            exit 1
+          fi
+          echo "Using Terraform state bucket (length ${#TF_STATE_BUCKET})"
           printf '%s\n' \
             'terraform {' \
             '  backend "s3" {' \
-            "    bucket         = \"${TF_STATE_BUCKET}\"" \
-            '    key            = "staging/terraform.tfstate"' \
-            '    region         = "ap-south-1"' \
-            '    dynamodb_table = "daxch-terraform-locks"' \
-            '    encrypt        = true' \
+            "    bucket       = \"${TF_STATE_BUCKET}\"" \
+            '    key          = "staging/terraform.tfstate"' \
+            '    region       = "ap-south-1"' \
+            '    use_lockfile = true' \
+            '    encrypt      = true' \
             '  }' \
             '}' > backend.tf
-          cat backend.tf
           terraform init -input=false
 
       - name: Terraform apply (staging)

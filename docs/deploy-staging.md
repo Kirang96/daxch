@@ -80,6 +80,7 @@ Rotate any API keys that lived in local files before pushing if the repo is publ
 | `ECR_BACKEND_REPOSITORY` | e.g. `123456789012.dkr.ecr.ap-south-1.amazonaws.com/daxch-backend` |
 | `ECR_FRONTEND_REPOSITORY` | e.g. `123456789012.dkr.ecr.ap-south-1.amazonaws.com/daxch-frontend` |
 | `DB_PASSWORD_STAGING` | RDS password (must match `db_password` in tfvars on first apply) |
+| `TF_STATE_BUCKET` | `daxch-terraform-state-264711513534` (staging **environment** secret — no quotes/spaces) |
 
 `DATABASE_URL_STAGING` is **not** required; migrations run via an ECS task inside the VPC.
 
