@@ -18,6 +18,7 @@ class SubscriptionResponse(BaseModel):
     is_trial: bool = False
     checkout_url: str | None = None
     provider_subscription_id: str | None = None
+    key_id: str | None = None
 
     model_config = {"from_attributes": True}
 

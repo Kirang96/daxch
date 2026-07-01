@@ -10,6 +10,7 @@ import { Logo } from "@/components/daxch/logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
+import { startSubscriptionCheckout } from "@/lib/razorpay-subscription";
 import { PlanInfo, Subscription } from "@/types";
 
 const PLAN_FEATURES: Record<string, string[]> = {
@@ -96,18 +97,16 @@ function OnboardingSubscriptionContent() {
     router.push("/agents/new?onboarding=1");
   };
 
+  const refresh = async () => {
+    const subscription = await api.get<Subscription | null>("/subscriptions/current");
+    setCurrent(subscription);
+  };
+
   const subscribe = async (plan: PlanId) => {
     try {
       setStatus("");
       const response = await api.post<Subscription>("/subscriptions", { plan });
-      if (response.checkout_url) {
-        setStatus("Redirecting to Razorpay checkout...");
-        window.location.href = response.checkout_url;
-        return;
-      }
-      setStatus(`Subscription request submitted for ${plan}.`);
-      const subscription = await api.get<Subscription | null>("/subscriptions/current");
-      setCurrent(subscription);
+      await startSubscriptionCheckout(response, plan, refresh, setStatus);
     } catch (error) {
       setStatus((error as Error).message);
     }

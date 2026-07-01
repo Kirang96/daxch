@@ -9,6 +9,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { AlertBanner, Badge, Disclaimer, GlassCard, StatCard } from "@/components/daxch/primitives";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
+import { startSubscriptionCheckout } from "@/lib/razorpay-subscription";
 import { Invoice, PlanInfo, Subscription } from "@/types";
 
 const PLAN_FEATURES: Record<string, string[]> = {
@@ -65,13 +66,7 @@ export default function SubscriptionPage() {
   const subscribe = async (plan: PlanId) => {
     try {
       const response = await api.post<Subscription>("/subscriptions", { plan });
-      if (response.checkout_url) {
-        setStatus("Redirecting to Razorpay checkout...");
-        window.location.href = response.checkout_url;
-        return;
-      }
-      setStatus(`Subscription request submitted for ${plan}.`);
-      await refresh();
+      await startSubscriptionCheckout(response, plan, refresh, setStatus);
     } catch (error) {
       setStatus((error as Error).message);
     }

@@ -79,6 +79,7 @@ export type Subscription = {
   is_trial?: boolean;
   checkout_url?: string | null;
   provider_subscription_id?: string | null;
+  key_id?: string | null;
 };
 
 export type PlanInfo = {

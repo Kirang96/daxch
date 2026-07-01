@@ -48,7 +48,13 @@ class PaymentService:
         headers = {"Authorization": f"Basic {auth_header}"}
         async with httpx.AsyncClient(timeout=20) as client:
             response = await client.post("https://api.razorpay.com/v1/subscriptions", json=payload, headers=headers)
-            response.raise_for_status()
+            if response.status_code >= 400:
+                detail = response.text
+                try:
+                    detail = response.json().get("error", {}).get("description", detail)
+                except Exception:
+                    pass
+                raise PaymentConfigurationError(f"Razorpay error: {detail}")
             data = response.json()
 
         period_end = data.get("current_end")
