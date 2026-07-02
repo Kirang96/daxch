@@ -12,12 +12,76 @@ export function GlassCard({
     <div
       {...props}
       className={cn(
-        "glass rounded-sm border border-border/15 p-4 transition-shadow duration-200 sm:p-6",
-        editorialShadow && "shadow-editorial",
+        "relative border border-[color:oklch(0.3_0.006_270/0.12)] bg-[color:var(--paper-3)] p-4 transition-colors sm:p-6",
+        editorialShadow && "border-[color:var(--ink)] shadow-[var(--ink-shadow-sm)]",
         className
       )}
     >
       {children}
+    </div>
+  );
+}
+
+export function InkCard({
+  className,
+  children,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      {...props}
+      className={cn(
+        "border border-[color:var(--ink)] bg-[color:var(--paper-3)] p-6 shadow-[var(--ink-shadow-sm)]",
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+export function Plate({
+  eyebrow,
+  value,
+  delta,
+  hint,
+  up,
+  warn,
+  className
+}: {
+  eyebrow: string;
+  value: ReactNode;
+  delta?: string;
+  hint?: string;
+  up?: boolean;
+  warn?: boolean;
+  className?: string;
+}) {
+  return (
+    <div className={cn("p-5", className)}>
+      <div className="mb-3 font-mono text-[10px] font-medium uppercase tracking-[0.24em] text-[color:var(--ink-2)]/60">
+        {eyebrow}
+      </div>
+      <div className="font-mono text-2xl tracking-tight text-[color:var(--ink)] md:text-[26px]">{value}</div>
+      {(delta || hint) && (
+        <div className="mt-2 font-mono text-[11px]">
+          {delta && (
+            <span
+              className={cn(
+                "font-medium",
+                warn
+                  ? "text-[color:oklch(0.42_0.13_55)]"
+                  : up
+                    ? "text-[color:var(--forest)]"
+                    : "text-[color:var(--ink-2)]"
+              )}
+            >
+              {delta}
+            </span>
+          )}
+          {hint && <span className="text-[color:var(--ink-2)]/60"> · {hint}</span>}
+        </div>
+      )}
     </div>
   );
 }
@@ -38,22 +102,28 @@ export function StatCard({
   icon?: ReactNode;
 }) {
   const trendColor =
-    trend === "up" ? "text-emerald-600" : trend === "down" ? "text-red-500" : "text-muted-foreground";
+    trend === "up"
+      ? "text-[color:var(--forest)]"
+      : trend === "down"
+        ? "text-[color:var(--destructive)]"
+        : "text-[color:var(--ink-2)]/60";
 
   return (
-    <GlassCard className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3 border border-[color:oklch(0.3_0.006_270/0.12)] bg-[color:var(--paper-3)] p-5">
       <div className="flex items-center justify-between">
-        <span className="editorial-label text-muted-foreground">{label}</span>
-        {icon && <span className="text-muted-foreground/70">{icon}</span>}
+        <span className="font-mono text-[10px] font-medium uppercase tracking-[0.2em] text-[color:var(--ink-2)]/60">
+          {label}
+        </span>
+        {icon && <span className="text-[color:var(--ink-2)]/50">{icon}</span>}
       </div>
       <div className="space-y-1">
-        <div className="font-mono text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl">{value}</div>
+        <div className="font-mono text-3xl tracking-tight text-[color:var(--ink)]">{value}</div>
         <div className="flex items-center gap-2 text-xs">
           {delta && <span className={cn("font-medium", trendColor)}>{delta}</span>}
-          {hint && <span className="text-muted-foreground">{hint}</span>}
+          {hint && <span className="text-[color:var(--ink-2)]/60">{hint}</span>}
         </div>
       </div>
-    </GlassCard>
+    </div>
   );
 }
 
@@ -67,17 +137,19 @@ export function Badge({
   className?: string;
 }) {
   const styles: Record<string, string> = {
-    neutral: "bg-muted text-foreground/70 border-border/20",
-    success: "bg-background text-primary border-primary/30",
-    warning: "bg-background text-amber-800 border-amber-300/60",
-    danger: "bg-background text-red-700 border-red-300/60",
-    primary: "bg-primary text-primary-foreground border-primary"
+    neutral: "border-[color:oklch(0.3_0.006_270/0.25)] bg-transparent text-[color:var(--ink-2)]",
+    success: "border-[color:var(--forest)] bg-[color:var(--forest-soft)] text-[color:var(--forest)]",
+    warning:
+      "border-[color:oklch(0.55_0.14_55/0.5)] bg-[color:oklch(0.62_0.14_55/0.15)] text-[color:oklch(0.42_0.13_55)]",
+    danger:
+      "border-[color:oklch(0.52_0.19_27/0.5)] bg-[color:oklch(0.52_0.19_27/0.1)] text-[color:var(--destructive)]",
+    primary: "border-[color:var(--ink)] bg-[color:var(--ink)] text-[color:var(--paper)]"
   };
 
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-sm border px-2.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wider",
+        "inline-flex items-center gap-1.5 border px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-[0.14em]",
         styles[variant],
         className
       )}
@@ -90,12 +162,12 @@ export function Badge({
 export function StatusDot({ variant = "success" }: { variant?: "success" | "warning" | "danger" | "neutral" }) {
   const c =
     variant === "success"
-      ? "bg-emerald-400"
+      ? "bg-[color:var(--forest)]"
       : variant === "warning"
-        ? "bg-amber-400"
+        ? "bg-[color:oklch(0.62_0.14_55)]"
         : variant === "danger"
-          ? "bg-red-400"
-          : "bg-muted-foreground";
+          ? "bg-[color:var(--destructive)]"
+          : "bg-[color:var(--ink-2)]/50";
 
   return (
     <span className="relative inline-flex h-2 w-2">
@@ -109,13 +181,13 @@ export function Disclaimer({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "rounded-sm border border-border/15 bg-muted px-4 py-3 text-[11px] leading-relaxed text-muted-foreground",
+        "border-l-2 border-[color:var(--ink)] bg-[color:var(--paper-2)] px-4 py-3 text-[11px] leading-relaxed text-[color:var(--ink-2)]",
         className
       )}
     >
-      <span className="font-medium text-foreground/60">Disclaimer · </span>
-      Daxch provides AI-assisted research and monitoring. It does not provide investment advice. Users remain solely
-      responsible for all investment decisions.
+      <span className="mr-2 font-mono uppercase tracking-[0.2em] text-[color:var(--ink)]">Disclaimer ·</span>
+      Daxch provides AI-assisted research and monitoring. It is not investment advice. You remain solely responsible
+      for all decisions.
     </div>
   );
 }
@@ -124,28 +196,33 @@ export function AlertBanner({
   variant = "warning",
   title,
   children,
-  className
+  className,
+  action
 }: {
   variant?: "warning" | "error" | "info";
   title?: ReactNode;
   children: ReactNode;
   className?: string;
+  action?: ReactNode;
 }) {
-  const styles = {
-    warning: "border-amber-400/50 bg-amber-50/80 text-amber-950",
-    error: "border-red-400/50 bg-red-50/80 text-red-900",
-    info: "border-border/20 bg-muted text-foreground"
-  };
-  const titleStyles = {
-    warning: "text-amber-900",
-    error: "text-red-900",
-    info: "text-foreground"
-  };
+  const toneCls =
+    variant === "error"
+      ? "border-[color:var(--destructive)] bg-[color:oklch(0.52_0.19_27/0.06)]"
+      : variant === "warning"
+        ? "border-[color:oklch(0.55_0.14_55/0.7)] bg-[color:oklch(0.62_0.14_55/0.1)]"
+        : "border-[color:var(--ink)] bg-[color:var(--paper-2)]";
 
   return (
-    <div className={cn("rounded-sm border p-4 text-sm", styles[variant], className)}>
-      {title && <div className={cn("flex items-center gap-2 font-medium", titleStyles[variant])}>{title}</div>}
-      <div className={cn(title ? "mt-1 text-xs leading-relaxed text-inherit/90" : "text-xs leading-relaxed")}>{children}</div>
+    <div className={cn("flex flex-wrap items-start gap-4 border-l-2 px-5 py-4", toneCls, className)}>
+      <div className="min-w-0 flex-1">
+        {title && (
+          <div className="mb-1 font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-[color:var(--ink)]">
+            {title}
+          </div>
+        )}
+        <div className="text-sm text-[color:var(--ink-2)]">{children}</div>
+      </div>
+      {action}
     </div>
   );
 }
@@ -161,23 +238,23 @@ export function TimeframeTabs<T extends string>({
   options: readonly T[];
   size?: "xs" | "sm";
 }) {
-  const pad = size === "xs" ? "px-2 py-0.5" : "px-2.5 py-1";
-  const text = size === "xs" ? "text-[11px]" : "text-xs";
+  const pad = size === "xs" ? "px-2 py-1" : "px-3 py-1.5";
+  const text = size === "xs" ? "text-[10px]" : "text-[10px]";
 
   return (
     <div className="-mx-1 overflow-x-auto px-1">
-      <div className={cn("inline-flex min-w-max gap-1 rounded-sm border border-border/15 bg-muted p-1", text)}>
-        {options.map((option) => (
+      <div className={cn("inline-flex min-w-max border border-[color:var(--ink)]/15", text)}>
+        {options.map((option, i) => (
           <button
             key={option}
             type="button"
             onClick={() => onChange(option)}
             className={cn(
-              "shrink-0 rounded-sm transition-colors",
+              "shrink-0 border-r border-[color:var(--ink)]/15 font-mono uppercase tracking-[0.2em] transition-colors last:border-r-0",
               pad,
               value === option
-                ? "bg-primary font-semibold text-primary-foreground"
-                : "font-medium text-muted-foreground hover:bg-background hover:text-foreground"
+                ? "bg-[color:var(--ink)] font-bold text-[color:var(--paper)]"
+                : "text-[color:var(--ink-2)]/70 hover:bg-[color:var(--paper-2)]"
             )}
           >
             {option}
@@ -198,7 +275,7 @@ export function ChartCardHeader({
   className?: string;
 }) {
   return (
-    <div className={cn("flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between", className)}>
+    <div className={cn("flex flex-col gap-3 border-b border-[color:var(--ink)]/10 pb-6 sm:flex-row sm:items-start sm:justify-between", className)}>
       <div className="min-w-0">{title}</div>
       {tabs && <div className="w-full shrink-0 sm:w-auto sm:self-auto">{tabs}</div>}
     </div>
@@ -207,7 +284,7 @@ export function ChartCardHeader({
 
 export function Sparkline({
   data,
-  color = "oklch(var(--chart-1))",
+  color = "var(--forest)",
   className,
   height = 48
 }: {
@@ -216,6 +293,8 @@ export function Sparkline({
   className?: string;
   height?: number;
 }) {
+  if (data.length < 2) return null;
+
   const w = 160;
   const h = height;
   const min = Math.min(...data);
@@ -224,29 +303,18 @@ export function Sparkline({
   const step = w / (data.length - 1);
   const pts = data.map((v, i) => `${i * step},${h - ((v - min) / range) * (h - 6) - 3}`);
   const d = `M ${pts.join(" L ")}`;
-  const area = `${d} L ${w},${h} L 0,${h} Z`;
-  const id = `sg-${toHash(`${data.join(",")}-${color}`)}`;
 
   return (
-    <div className={cn("w-full", className)} style={{ height }}>
-      <svg viewBox={`0 0 ${w} ${h}`} className="h-full w-full" preserveAspectRatio="xMidYMid meet">
-        <defs>
-          <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity="0.35" />
-            <stop offset="100%" stopColor={color} stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <path d={area} fill={`url(#${id})`} />
-        <path d={d} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </div>
+    <svg viewBox={`0 0 ${w} ${h}`} className={cn("w-full", className)} preserveAspectRatio="none">
+      <path d={d} fill="none" stroke={color} strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 
 export function AreaChart({
   data,
   height = 240,
-  color = "oklch(var(--chart-1))",
+  color = "var(--forest)",
   className,
   wrapperClassName
 }: {
@@ -266,23 +334,21 @@ export function AreaChart({
   const d = `M ${pts.join(" L ")}`;
   const area = `${d} L ${w},${h} L 0,${h} Z`;
 
-  const id = `ac-${toHash(`${data.join(",")}-${color}`)}`;
-
   return (
     <div className={cn("w-full", wrapperClassName ?? className)} style={wrapperClassName ? undefined : { height }}>
       <svg viewBox={`0 0 ${w} ${h}`} className="h-full w-full" preserveAspectRatio="xMidYMid meet">
         <defs>
-          <linearGradient id={`${id}-fill`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity="0.45" />
+          <linearGradient id="area-fill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.22" />
             <stop offset="100%" stopColor={color} stopOpacity="0" />
           </linearGradient>
-          <pattern id={`${id}-grid`} width="80" height="40" patternUnits="userSpaceOnUse">
-            <path d="M 80 0 L 0 0 0 40" fill="none" stroke="oklch(var(--border) / 0.12)" strokeWidth="1" />
+          <pattern id="grid-pat" width="80" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 80 0 L 0 0 0 40" fill="none" stroke="oklch(0.3 0.006 270 / 0.06)" strokeWidth="1" />
           </pattern>
         </defs>
-        <rect width={w} height={h} fill={`url(#${id}-grid)`} />
-        <path d={area} fill={`url(#${id}-fill)`} />
-        <path d={d} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <rect width={w} height={h} fill="url(#grid-pat)" />
+        <path d={area} fill="url(#area-fill)" />
+        <path d={d} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </div>
   );
@@ -291,9 +357,9 @@ export function AreaChart({
 export function ThinkingDots({ className }: { className?: string }) {
   return (
     <span className={cn("inline-flex items-center gap-1", className)}>
-      <span className="h-1.5 w-1.5 rounded-full bg-primary dot-think" style={{ animationDelay: "0ms" }} />
-      <span className="h-1.5 w-1.5 rounded-full bg-primary dot-think" style={{ animationDelay: "150ms" }} />
-      <span className="h-1.5 w-1.5 rounded-full bg-primary dot-think" style={{ animationDelay: "300ms" }} />
+      <span className="dot-think h-1.5 w-1.5 rounded-full bg-[color:var(--forest)]" style={{ animationDelay: "0ms" }} />
+      <span className="dot-think h-1.5 w-1.5 rounded-full bg-[color:var(--forest)]" style={{ animationDelay: "150ms" }} />
+      <span className="dot-think h-1.5 w-1.5 rounded-full bg-[color:var(--forest)]" style={{ animationDelay: "300ms" }} />
     </span>
   );
 }
@@ -312,24 +378,30 @@ export function SectionTitle({
   return (
     <div className={cn("space-y-3", align === "center" && "mx-auto max-w-2xl text-center")}>
       {eyebrow && (
-        <div className={cn("inline-flex", align === "center" && "w-full justify-center")}>
-          <span className="editorial-label inline-flex items-center gap-2 border border-border/15 bg-muted px-3 py-1 text-muted-foreground">
+        <div className={cn("flex items-center gap-3", align === "center" && "justify-center")}>
+          <span className="h-px w-8 bg-[color:var(--ink)]" />
+          <span className="font-mono text-[10px] font-medium uppercase tracking-[0.24em] text-[color:var(--ink-2)]">
             {eyebrow}
           </span>
         </div>
       )}
-      <h2 className="font-serif text-balance text-3xl font-semibold tracking-tight md:text-4xl">{title}</h2>
-      {description && <p className="text-balance text-base text-muted-foreground md:text-lg">{description}</p>}
+      <h2 className="font-serif text-balance text-3xl tracking-tight text-[color:var(--ink)] md:text-4xl">{title}</h2>
+      {description && (
+        <p className="text-balance text-base text-[color:var(--ink-2)] md:text-lg">{description}</p>
+      )}
     </div>
   );
 }
 
-function toHash(value: string): string {
-  let hash = 0;
-  for (let i = 0; i < value.length; i += 1) {
-    hash = (hash << 5) - hash + value.charCodeAt(i);
-    hash |= 0;
-  }
-  return Math.abs(hash).toString(36);
+export function Eyebrow({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-2 font-mono text-[10px] font-medium uppercase tracking-[0.24em] text-[color:var(--ink-2)]/70",
+        className
+      )}
+    >
+      {children}
+    </span>
+  );
 }
-

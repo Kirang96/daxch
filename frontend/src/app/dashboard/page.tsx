@@ -2,12 +2,20 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowUpRight, Bell, Bot, ListChecks, Plus, Sparkles, TrendingUp } from "lucide-react";
+import { ArrowUpRight, Plus } from "lucide-react";
 
 import { api } from "@/lib/api";
 import { AiUnitsUsageCard } from "@/components/daxch/ai-units-usage-card";
 import { AppShell } from "@/components/layout/app-shell";
-import { AreaChart, ChartCardHeader, Disclaimer, GlassCard, Sparkline, StatCard, TimeframeTabs } from "@/components/daxch/primitives";
+import {
+  AreaChart,
+  Badge,
+  ChartCardHeader,
+  Disclaimer,
+  Plate,
+  Sparkline,
+  TimeframeTabs
+} from "@/components/daxch/primitives";
 import { FirstRunChecklist } from "@/components/daxch/first-run-checklist";
 import { MarketLiveBadge } from "@/components/daxch/market-live-badge";
 import { sliceByTimeframe } from "@/lib/chart";
@@ -221,70 +229,118 @@ export default function DashboardPage() {
     return entries;
   }, [holdings, positionsByHolding, hasExchangePnl]);
 
+  const dateEyebrow = new Date().toLocaleDateString("en-IN", {
+    weekday: "short",
+    day: "2-digit",
+    month: "short"
+  });
+
   return (
     <AppShell
+      eyebrow={`Vol. I · ${dateEyebrow}`}
       title={profileName ? `${greeting}, ${profileName}.` : `${greeting}.`}
       subtitle={portfolioSubtitle}
       actions={
-        <div className="flex flex-wrap items-center gap-2">
-          <MarketLiveBadge />
-          <Link href="/agents/new" className="inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-[oklch(0.15_0_0)]">
-            <Plus className="h-4 w-4" /> New Agent
-          </Link>
-        </div>
+        <Link href="/agents/new" className="btn-editorial">
+          <Plus className="h-3.5 w-3.5" /> New Agent
+        </Link>
       }
     >
       <FirstRunChecklist
         items={[
-          { id: "broker", label: "Connect Upstox for approved trades", done: brokerConnected, href: "/onboarding/broker", optional: true },
-          { id: "agent", label: "Create your first monitoring agent", done: agents.length > 0, href: "/agents/new" },
-          { id: "decision", label: "Review your first AI conclusion", done: hasAgentActivity, href: agents[0] ? `/agents/${agents[0].id}` : "/agents" },
-          { id: "notify", label: "Turn on email notifications", done: notificationsOn, href: "/settings" }
+          {
+            id: "broker",
+            label: "Connect Upstox",
+            done: brokerConnected,
+            href: "/onboarding/broker",
+            optional: true,
+            hint: "OAuth · read-only"
+          },
+          {
+            id: "agent",
+            label: "Create your first agent",
+            done: agents.length > 0,
+            href: "/agents/new",
+            hint: "5-step wizard"
+          },
+          {
+            id: "decision",
+            label: "Review your first AI conclusion",
+            done: hasAgentActivity,
+            href: agents[0] ? `/agents/${agents[0].id}` : "/agents",
+            hint: "Approve or reject"
+          },
+          {
+            id: "notify",
+            label: "Turn on email notifications",
+            done: notificationsOn,
+            href: "/settings",
+            hint: "2 min"
+          }
         ]}
       />
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <StatCard
-          label="Exchange value"
-          value={hasExchangePnl ? `₹${currentValue.toFixed(2)}` : "—"}
-          delta={hasExchangePnl ? `${pnlPct > 0 ? "+" : ""}${pnlPct.toFixed(2)}%` : undefined}
-          trend={hasExchangePnl ? (pnl >= 0 ? "up" : "down") : "flat"}
-          hint={hasExchangePnl ? "filled orders × live price" : "no fills yet"}
-          icon={<TrendingUp className="h-4 w-4" />}
-        />
-        <StatCard label="Active Agents" value={String(agents.length)} delta={agents.length ? "monitoring" : "none yet"} trend={agents.length ? "up" : "flat"} icon={<Bot className="h-4 w-4" />} />
-        <StatCard label="Monitored stocks" value={String(holdings.length)} hint="with agents" icon={<ListChecks className="h-4 w-4" />} />
-        <StatCard label="Today's Alerts" value={String(notifications.length)} delta={notifications.length ? "new events" : "quiet"} trend="flat" icon={<Bell className="h-4 w-4" />} />
-        <StatCard
-          label="Current Plan"
-          value={currentPlan.toUpperCase()}
-          hint={
-            aiQuota
-              ? `${formatAiUnits(aiQuota.total_remaining)} units left`
-              : currentPlan === "none"
-                ? "subscribe"
-                : "subscription"
+
+      <div className="grid grid-cols-2 divide-x divide-y divide-[color:var(--ink)]/12 border border-[color:var(--ink)]/12 bg-[color:var(--paper-3)] sm:grid-cols-3 lg:grid-cols-5 lg:divide-y-0">
+        <Plate
+          eyebrow="Exchange Value"
+          value={hasExchangePnl ? `₹${currentValue.toLocaleString("en-IN", { maximumFractionDigits: 0 })}` : "—"}
+          delta={
+            hasExchangePnl
+              ? `${pnl >= 0 ? "+" : ""}₹${Math.abs(pnl).toFixed(0)} · ${pnlPct > 0 ? "+" : ""}${pnlPct.toFixed(2)}%`
+              : undefined
           }
-          delta={aiQuota ? `${formatPercentUsed(aiQuota.percent_used)}% used` : currentPlan === "none" ? "subscribe" : "subscription"}
-          trend="flat"
-          icon={<Sparkles className="h-4 w-4" />}
+          hint={hasExchangePnl ? undefined : "no fills yet"}
+          up={pnl >= 0}
+        />
+        <Plate
+          eyebrow="Active Agents"
+          value={String(agents.length)}
+          hint={agents.length ? "monitoring" : "none yet"}
+        />
+        <Plate eyebrow="Monitored" value={`${holdings.length} stocks`} hint="with agents" />
+        <Plate
+          eyebrow="Today's Alerts"
+          value={String(notifications.length)}
+          delta={notifications.length ? "new events" : "quiet"}
+        />
+        <Plate
+          eyebrow="AI Units"
+          value={aiQuota ? `${formatAiUnits(aiQuota.total_remaining)} left` : currentPlan.toUpperCase()}
+          delta={aiQuota ? `${formatPercentUsed(aiQuota.percent_used)}% used` : undefined}
+          warn={!!aiQuota && aiQuota.percent_used >= 80}
+          hint={currentPlan !== "none" ? currentPlan : "subscribe"}
         />
       </div>
 
-      <AiUnitsUsageCard variant="dashboard" quota={aiQuota} />
-
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
-        <GlassCard className="lg:col-span-2">
+        <div className="border border-[color:var(--ink)]/12 bg-[color:var(--paper-3)] p-8 lg:col-span-2">
           <ChartCardHeader
             title={
               <div>
-                <div className="text-xs uppercase tracking-wider text-muted-foreground">Portfolio Performance</div>
-                <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                  <div className="text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl">₹{currentValue.toFixed(2)}</div>
-                  <span className={pnl >= 0 ? "text-sm font-medium text-emerald-400" : "text-sm font-medium text-red-400"}>
-                    {pnl >= 0 ? "+" : ""}₹{pnl.toFixed(2)} · {pnlPct > 0 ? "+" : ""}
-                    {pnlPct.toFixed(2)}%
-                  </span>
+                <div className="mb-2 flex items-center gap-2 font-mono text-[10px] font-medium uppercase tracking-[0.24em] text-[color:var(--ink-2)]/60">
+                  <span className="inline-block h-px w-6 bg-[color:var(--ink)]" />
+                  Exchange P/L · Filled orders only
                 </div>
+                <div className="flex flex-wrap items-baseline gap-4">
+                  <div className="font-mono text-4xl tracking-tight text-[color:var(--ink)]">
+                    {hasExchangePnl ? `₹${currentValue.toLocaleString("en-IN", { maximumFractionDigits: 0 })}` : "—"}
+                  </div>
+                  {hasExchangePnl && (
+                    <span
+                      className={cn(
+                        "font-mono text-sm font-medium",
+                        pnl >= 0 ? "text-[color:var(--forest)]" : "text-[color:var(--destructive)]"
+                      )}
+                    >
+                      {pnl >= 0 ? "+" : ""}₹{pnl.toFixed(0)} · {pnlPct > 0 ? "+" : ""}
+                      {pnlPct.toFixed(2)}%
+                    </span>
+                  )}
+                </div>
+                <p className="mt-3 max-w-md text-xs italic leading-relaxed text-[color:var(--ink-2)]/70">
+                  Only positions filled through Daxch-approved Upstox orders count here. Manual Demat holdings are
+                  excluded by design.
+                </p>
               </div>
             }
             tabs={<TimeframeTabs value={timeframe} onChange={setTimeframe} options={TIMEFRAME_OPTIONS} />}
@@ -293,138 +349,201 @@ export default function DashboardPage() {
             {displayChartData.length >= 2 ? (
               <AreaChart
                 data={displayChartData}
-                color="oklch(var(--primary))"
-                height={260}
-                wrapperClassName="h-44 sm:h-56 md:h-[260px]"
+                color="var(--forest)"
+                height={240}
+                wrapperClassName="h-44 sm:h-56 md:h-[240px]"
               />
             ) : (
-              <p className="py-16 text-center text-sm text-muted-foreground">
+              <p className="py-16 text-center text-sm text-[color:var(--ink-2)]/70">
                 {holdings.length === 0 ? "Add holdings to see portfolio performance." : "Chart data unavailable."}
               </p>
             )}
           </div>
-        </GlassCard>
+        </div>
 
-        <GlassCard>
-          <div className="text-xs uppercase tracking-wider text-muted-foreground">Market Summary</div>
-          <div className="mt-5 space-y-4">
-            {marketSummary.length > 0 ? (
-              marketSummary.map((m) => (
-                <div key={m.name} className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 sm:gap-4">
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-medium">{m.name}</div>
-                    <div className="truncate text-xs text-muted-foreground">{m.value}</div>
-                  </div>
-                  {m.data?.length >= 2 ? (
-                    <div className="h-8 w-16 shrink-0 sm:w-20">
-                      <Sparkline data={m.data} color={m.up ? "oklch(var(--success))" : "oklch(var(--destructive))"} height={32} />
-                    </div>
-                  ) : (
-                    <span className="shrink-0 text-xs text-muted-foreground">—</span>
-                  )}
-                  <span className={cn("shrink-0 text-xs font-medium", m.up ? "text-emerald-400" : "text-red-400")}>{m.delta}</span>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground">Market data unavailable.</p>
-            )}
-          </div>
-        </GlassCard>
+        <div className="border border-[color:var(--ink)]/12 bg-[color:var(--paper-3)] p-6">
+          <AiUnitsUsageCard variant="dashboard" quota={aiQuota} className="!mt-0 border-0 bg-transparent p-0 shadow-none" />
+        </div>
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
-        <GlassCard className="lg:col-span-2">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h3 className="text-lg font-medium tracking-tight">Latest Notifications</h3>
-            <Link href="/notifications" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+        <div className="border border-[color:var(--ink)]/12 bg-[color:var(--paper-3)] p-6 lg:col-span-2">
+          <div className="mb-5 flex items-baseline justify-between">
+            <h3 className="font-serif text-lg text-[color:var(--ink)]">Market Summary</h3>
+            <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-[color:var(--ink-2)]/60">
+              NSE · Live
+            </span>
+          </div>
+          <div className="divide-y divide-[color:var(--ink)]/10">
+            {marketSummary.length > 0 ? (
+              marketSummary.map((m) => (
+                <div key={m.name} className="grid grid-cols-[1.2fr_1fr_1fr_auto] items-center gap-6 py-4">
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-[color:var(--ink)]">{m.name}</div>
+                    <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--ink-2)]/60">
+                      Index · India
+                    </div>
+                  </div>
+                  <div className="font-mono text-lg tracking-tight">{m.value}</div>
+                  {m.data?.length >= 2 ? (
+                    <Sparkline
+                      data={m.data}
+                      color={m.up ? "var(--forest)" : "var(--destructive)"}
+                      height={32}
+                    />
+                  ) : (
+                    <span className="text-xs text-[color:var(--ink-2)]/50">—</span>
+                  )}
+                  <span
+                    className={cn(
+                      "font-mono text-sm font-semibold",
+                      m.up ? "text-[color:var(--forest)]" : "text-[color:var(--destructive)]"
+                    )}
+                  >
+                    {m.delta}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <p className="py-4 text-sm text-[color:var(--ink-2)]/70">Market data unavailable.</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-6 border border-[color:var(--ink)]/12 bg-[color:var(--paper-3)]">
+        <div className="flex items-baseline justify-between border-b border-[color:var(--ink)] p-6">
+          <div>
+            <h3 className="font-serif text-2xl text-[color:var(--ink)]">Tracked Stocks</h3>
+            <p className="mt-1 text-xs italic text-[color:var(--ink-2)]/70">
+              Planned entry & quantity — not synced from Demat. Exchange P/L reflects Daxch-filled orders only.
+            </p>
+          </div>
+          <Link
+            href="/portfolio"
+            className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-[color:var(--forest)] hover:text-[color:var(--ink)]"
+          >
+            Open portfolio <ArrowUpRight className="h-3 w-3" />
+          </Link>
+        </div>
+
+        <div className="hidden grid-cols-[1.4fr_1fr_1fr_1fr_auto] gap-6 border-b border-[color:var(--ink)]/12 px-6 py-3 font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--ink-2)]/60 md:grid">
+          <span>Holding</span>
+          <span>Planned</span>
+          <span>Live</span>
+          <span>Exchange P/L</span>
+          <span className="text-right">→</span>
+        </div>
+
+        {holdings.map((holding) => {
+          const quote = quotes[`${holding.ticker}:${holding.exchange}`];
+          const ltp = quote?.ltp ?? null;
+          const pos = positionsByHolding[holding.id];
+          const holdingPnlPct = pos?.has_exchange_position ? pos.unrealized_pnl_pct : null;
+          const up = (holdingPnlPct ?? 0) >= 0;
+          const agent = agents.find((a) => a.holding_id === holding.id);
+          return (
+            <Link
+              key={holding.id}
+              href={agent ? `/agents/${agent.id}` : "/portfolio"}
+              className="grid grid-cols-1 items-center gap-3 border-b border-[color:var(--ink)]/10 px-6 py-4 text-sm last:border-b-0 hover:bg-[color:var(--paper-2)]/60 md:grid-cols-[1.4fr_1fr_1fr_1fr_auto] md:gap-6"
+            >
+              <div className="min-w-0">
+                <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[color:var(--ink-2)]/60">
+                  {holding.sector || "—"}
+                </div>
+                <div className="mt-0.5 flex items-baseline gap-2">
+                  <span className="font-mono text-sm font-bold text-[color:var(--ink)]">{holding.ticker}</span>
+                  <span className="font-mono text-[10px] uppercase text-[color:var(--ink-2)]/50">{holding.exchange}</span>
+                </div>
+              </div>
+              <div className="font-mono">
+                <div>
+                  {holding.quantity} × ₹{holding.entry_price.toFixed(0)}
+                </div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-[color:var(--ink-2)]/60">
+                  {pos?.has_exchange_position ? `${pos.net_quantity} filled` : "Awaiting fill"}
+                </div>
+              </div>
+              <div className="font-mono">
+                {ltp != null ? `₹${ltp.toLocaleString("en-IN", { maximumFractionDigits: 2 })}` : "—"}
+              </div>
+              <div
+                className={cn(
+                  "font-mono text-sm font-semibold",
+                  holdingPnlPct != null
+                    ? up
+                      ? "text-[color:var(--forest)]"
+                      : "text-[color:var(--destructive)]"
+                    : "text-[color:var(--ink-2)]/50"
+                )}
+              >
+                {holdingPnlPct != null ? `${up ? "+" : ""}${holdingPnlPct.toFixed(2)}%` : "—"}
+              </div>
+              <ArrowUpRight className="hidden h-4 w-4 text-[color:var(--ink-2)]/40 md:block" />
+            </Link>
+          );
+        })}
+        {holdings.length === 0 && (
+          <p className="px-6 py-8 text-sm text-[color:var(--ink-2)]/70">No tracked stocks yet.</p>
+        )}
+      </div>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-5">
+        <div className="border border-[color:var(--ink-2)]/12 bg-[color:var(--paper-3)] p-6 lg:col-span-2">
+          <div className="mb-6 flex items-baseline justify-between">
+            <h3 className="font-serif text-lg text-[color:var(--ink)]">Sector Exposure</h3>
+            <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-[color:var(--ink-2)]/60">
+              % of exchange value
+            </span>
+          </div>
+          <div className="space-y-4">
+            {sectorExposure.length > 0 ? (
+              sectorExposure.map(({ sector, pct }) => (
+                <div key={sector}>
+                  <div className="mb-1 flex items-baseline justify-between">
+                    <span className="text-sm">{sector}</span>
+                    <span className="font-mono text-xs font-semibold">{pct}%</span>
+                  </div>
+                  <div className="h-1 w-full bg-[color:var(--paper-2)]">
+                    <div className="h-full bg-[color:var(--ink)]" style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-[color:var(--ink-2)]/70">Add tracked stocks to see sector breakdown.</p>
+            )}
+          </div>
+        </div>
+
+        <div className="border border-[color:var(--ink)]/12 bg-[color:var(--paper-3)] p-6 lg:col-span-3">
+          <div className="mb-4 flex items-baseline justify-between">
+            <h3 className="font-serif text-lg text-[color:var(--ink)]">Latest Notifications</h3>
+            <Link
+              href="/notifications"
+              className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-[color:var(--forest)] hover:text-[color:var(--ink)]"
+            >
               View all <ArrowUpRight className="h-3 w-3" />
             </Link>
           </div>
-          <div className="mt-5 space-y-2">
+          <div className="divide-y divide-[color:var(--ink)]/10">
             {notifications.slice(0, 5).map((n) => (
-              <div key={n.id} className="flex items-center gap-3 rounded-xl border border-border/15 bg-muted/60 p-3 hover:border-border/25">
-                <span className="shrink-0 rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-                  {n.event_type}
-                </span>
+              <div
+                key={n.id}
+                className="flex items-center gap-4 py-3 hover:bg-[color:var(--paper-2)]/50"
+              >
+                <Badge variant="neutral">{n.event_type}</Badge>
                 <div className="min-w-0 flex-1 truncate text-sm">{n.title}</div>
-                <span className="shrink-0 text-xs text-muted-foreground">{new Date(n.created_at).toLocaleTimeString()}</span>
+                <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--ink-2)]/60">
+                  {new Date(n.created_at).toLocaleTimeString()}
+                </span>
               </div>
             ))}
             {!notifications.length && (
-              <div className="rounded-xl border border-border/15 bg-muted/60 p-3 text-sm text-muted-foreground">
-                No new system updates
-              </div>
+              <p className="py-4 text-sm text-[color:var(--ink-2)]/70">No new system updates</p>
             )}
           </div>
-        </GlassCard>
-      </div>
-
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <GlassCard>
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium tracking-tight">Tracked stocks</h3>
-            <Link href="/portfolio" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-              Open Portfolio <ArrowUpRight className="h-3 w-3" />
-            </Link>
-          </div>
-          <div className="mt-5 space-y-2">
-            {holdings.map((holding) => {
-              const quote = quotes[`${holding.ticker}:${holding.exchange}`];
-              const ltp = quote?.ltp ?? null;
-              const pos = positionsByHolding[holding.id];
-              const holdingPnlPct = pos?.has_exchange_position ? pos.unrealized_pnl_pct : null;
-              const up = (holdingPnlPct ?? 0) >= 0;
-              return (
-                <div key={holding.id} className="rounded-xl border border-border/15 bg-muted/60 p-3 text-sm">
-                  <div className="flex items-center justify-between">
-                    <p className="font-medium">
-                      {holding.ticker} <span className="text-xs text-muted-foreground">({holding.exchange})</span>
-                    </p>
-                    <span className={holdingPnlPct != null ? (up ? "text-xs font-medium text-emerald-400" : "text-xs font-medium text-red-400") : "text-xs text-muted-foreground"}>
-                      {holdingPnlPct != null ? `${up ? "+" : ""}${holdingPnlPct.toFixed(2)}%` : "—"}
-                    </span>
-                  </div>
-                  <div className="mt-1 flex items-center justify-between">
-                    <p className="text-muted-foreground">
-                      {holding.sector ? <span className="rounded bg-muted px-1.5 py-0.5 text-[11px]">{holding.sector}</span> : null}
-                      <span className="ml-1.5">
-                        {pos?.has_exchange_position ? `${pos.net_quantity} on exchange` : `Plan: ${holding.quantity} @ ₹${holding.entry_price.toFixed(0)}`}
-                      </span>
-                    </p>
-                    <span className="text-xs text-muted-foreground">
-                      {ltp != null ? `₹${ltp.toLocaleString("en-IN", { maximumFractionDigits: 2 })}` : "Quote unavailable"}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-            {holdings.length === 0 && <p className="text-sm text-muted-foreground">No tracked stocks yet.</p>}
-          </div>
-        </GlassCard>
-
-        <GlassCard>
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium tracking-tight">Sector Exposure</h3>
-            <Link href="/portfolio" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-              Portfolio <ArrowUpRight className="h-3 w-3" />
-            </Link>
-          </div>
-          <div className="mt-5 space-y-3 text-sm">
-            {sectorExposure.length > 0 ? sectorExposure.map(({ sector, pct }) => (
-              <div key={sector}>
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>{sector}</span>
-                  <span>{pct}%</span>
-                </div>
-                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
-                  <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
-                </div>
-              </div>
-            )) : (
-              <p className="text-sm text-muted-foreground">Add tracked stocks to see sector breakdown.</p>
-            )}
-          </div>
-        </GlassCard>
+        </div>
       </div>
 
       <div className="mt-8">

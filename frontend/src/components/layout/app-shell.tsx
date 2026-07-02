@@ -4,15 +4,17 @@ import Link from "next/link";
 import { ReactNode, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  AlertTriangle,
   Bell,
   Bot,
   CreditCard,
   FlaskConical,
   LayoutDashboard,
+  Link2,
+  LogOut,
   Menu,
   Plus,
   Search,
-  Plug,
   Settings,
   Star,
   Wallet,
@@ -24,48 +26,44 @@ import { api } from "@/lib/api";
 import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/daxch/logo";
-import { AlertBanner } from "@/components/daxch/primitives";
+import { MarketLiveBadge } from "@/components/daxch/market-live-badge";
 import { NotificationEvent, Subscription, UserSettings, AiUnitsQuota } from "@/types";
 
 type AppShellProps = {
-  title: string;
+  title?: string;
   subtitle?: string;
   actions?: ReactNode;
+  eyebrow?: string;
   children: ReactNode;
 };
 
-type NavLink = {
-  href: string;
-  label: string;
-  icon: typeof Bell;
-  exact?: boolean;
-  badge?: number | string;
-  warningBadge?: boolean;
-};
-
-const links: NavLink[] = [
+const NAV_MAIN = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { href: "/agents", label: "Agents", icon: Bot },
   { href: "/portfolio", label: "Portfolio", icon: Wallet },
   { href: "/watchlist", label: "Watchlist", icon: Star },
-  { href: "/research", label: "Research", icon: FlaskConical },
-  { href: "/broker", label: "Broker", icon: Plug },
-  { href: "/subscription", label: "Subscription", icon: CreditCard },
+  { href: "/research", label: "Research", icon: FlaskConical }
+];
+
+const NAV_SECONDARY = [
+  { href: "/notifications", label: "Notifications", icon: Bell, badgeKey: "notifications" as const },
+  { href: "/onboarding/broker", label: "Broker", icon: Link2 },
+  { href: "/subscription", label: "Subscription", icon: CreditCard, warnKey: "ai" as const },
   { href: "/settings", label: "Settings", icon: Settings }
 ];
 
-export function AppShell({ title, subtitle, actions, children }: AppShellProps) {
+export function AppShell({ title, subtitle, actions, eyebrow, children }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { logout, isAuthenticated } = useAuth();
   const [open, setOpen] = useState(false);
   const [profileName, setProfileName] = useState("Account");
-  const [planLabel, setPlanLabel] = useState("No subscription");
   const [planTier, setPlanTier] = useState<"starter" | "pro" | "ultra" | "none">("none");
   const [subscriptionActive, setSubscriptionActive] = useState(false);
   const [brokerConnected, setBrokerConnected] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [aiUsageWarning, setAiUsageWarning] = useState(false);
+  const [aiUsagePct, setAiUsagePct] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
@@ -75,9 +73,8 @@ export function AppShell({ title, subtitle, actions, children }: AppShellProps) 
   }, [isAuthenticated]);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      return;
-    }
+    if (!isAuthenticated) return;
+
     let cancelled = false;
     const loadShellContext = async () => {
       try {
@@ -88,33 +85,26 @@ export function AppShell({ title, subtitle, actions, children }: AppShellProps) 
           api.get<{ connected: boolean }>("/broker/connection-status"),
           api.get<AiUnitsQuota>("/ai-units/current").catch(() => null)
         ]);
-        if (cancelled) {
-          return;
-        }
+        if (cancelled) return;
+
         setProfileName(settings.profile_name || "Account");
         const paid = subscription?.status === "active";
         setSubscriptionActive(paid);
         if (paid && subscription?.plan) {
           const tier = subscription.plan.toLowerCase() as "starter" | "pro" | "ultra";
           setPlanTier(tier === "starter" || tier === "pro" || tier === "ultra" ? tier : "none");
-          setPlanLabel(`${subscription.plan.toUpperCase()} plan`);
-        } else if (subscription?.status) {
-          setPlanTier("none");
-          setPlanLabel(`${subscription.plan?.toUpperCase() ?? "—"} · ${subscription.status}`);
         } else {
           setPlanTier("none");
-          setPlanLabel("No subscription");
         }
         setBrokerConnected(broker.connected);
         setUnreadCount(unread.length);
-        setAiUsageWarning(
-          !!aiQuota?.has_active_subscription && aiQuota.percent_used >= 80 && aiQuota.total_remaining > 0
-        );
+        const warn =
+          !!aiQuota?.has_active_subscription && aiQuota.percent_used >= 80 && aiQuota.total_remaining > 0;
+        setAiUsageWarning(warn);
+        setAiUsagePct(aiQuota ? Math.round(aiQuota.percent_used) : 0);
       } catch (err) {
         logger.error("Failed to load app shell context", { page: "app-shell", message: (err as Error).message });
-        if (!cancelled) {
-          setUnreadCount(0);
-        }
+        if (!cancelled) setUnreadCount(0);
       }
     };
     loadShellContext();
@@ -123,16 +113,16 @@ export function AppShell({ title, subtitle, actions, children }: AppShellProps) 
     };
   }, [isAuthenticated]);
 
-  const isActive = (href: string, exact?: boolean) => (exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`));
-  const initials = profileName
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() || "")
-    .join("") || "AC";
-  const navLinks: NavLink[] = links.map((link) =>
-    link.href === "/subscription" && aiUsageWarning ? { ...link, warningBadge: true } : link
-  );
+  const isActive = (href: string, exact?: boolean) =>
+    exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+
+  const initials =
+    profileName
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() || "")
+      .join("") || "AC";
 
   const handleSearch = (event: React.FormEvent) => {
     event.preventDefault();
@@ -141,23 +131,16 @@ export function AppShell({ title, subtitle, actions, children }: AppShellProps) 
     router.push(`/research?ticker=${encodeURIComponent(query.toUpperCase())}`);
   };
 
-  const planBadgeClass =
-    planTier === "ultra"
-      ? "border-primary bg-primary text-primary-foreground"
-      : planTier === "pro"
-        ? "border-primary/40 bg-background text-primary"
-        : planTier === "starter"
-          ? "border-primary/30 bg-muted text-primary"
-          : "border-border/20 bg-muted text-muted-foreground";
+  const planLabel =
+    planTier === "ultra" ? "Ultra" : planTier === "pro" ? "Pro" : planTier === "starter" ? "Starter" : null;
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Mobile top bar */}
-      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border/20 bg-muted px-4 py-3 md:hidden">
+    <div className="min-h-screen bg-[color:var(--paper)] text-[color:var(--ink)] antialiased">
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-[color:var(--ink)]/15 bg-[color:var(--paper)] px-4 py-3 md:hidden">
         <Logo />
         <button
           onClick={() => setOpen((s) => !s)}
-          className="grid h-9 w-9 place-items-center rounded-sm border border-border/20 bg-background text-foreground/60 hover:text-foreground"
+          className="grid h-9 w-9 place-items-center border border-[color:var(--ink)]/20 bg-[color:var(--paper-3)]"
           aria-label="Toggle navigation"
         >
           {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
@@ -165,128 +148,133 @@ export function AppShell({ title, subtitle, actions, children }: AppShellProps) 
       </header>
 
       <div className="flex">
-        {/* Sidebar */}
         <aside
           className={cn(
-            "fixed inset-y-0 left-0 z-40 w-[240px] flex-col border-r border-border/20 bg-muted px-3 py-5 md:sticky md:top-0 md:flex md:h-screen",
-            open ? "flex" : "hidden"
+            "fixed inset-y-0 left-0 z-40 w-[264px] flex-col border-r border-[color:var(--ink)]/12 bg-[color:var(--paper-3)] px-5 py-6 md:sticky md:top-0 md:flex md:h-screen",
+            open ? "flex" : "hidden md:flex"
           )}
         >
-          <div className="hidden md:block">
-            <Logo />
-          </div>
-          <div className="flex items-center justify-between md:hidden">
-            <Logo />
-            <button onClick={() => setOpen(false)} className="grid h-8 w-8 place-items-center rounded-sm border border-border/20">
+          <div className="flex items-center justify-between md:block">
+            <Link href="/dashboard">
+              <Logo />
+            </Link>
+            <button
+              onClick={() => setOpen(false)}
+              className="grid h-8 w-8 place-items-center border border-[color:var(--ink)]/20 md:hidden"
+            >
               <X className="h-4 w-4" />
             </button>
           </div>
 
-          {/* New Agent CTA */}
           <Link
             href="/agents/new"
             onClick={() => setOpen(false)}
-            className="mb-3 mt-5 inline-flex items-center justify-center gap-2 rounded-sm bg-primary px-3 py-2.5 text-xs font-semibold uppercase tracking-wider text-primary-foreground transition-colors hover:bg-[oklch(0.15_0_0)]"
+            className="btn-editorial mt-8 w-full"
           >
-            <Plus className="h-4 w-4" /> New Agent
+            <Plus className="h-3.5 w-3.5" /> New Agent
           </Link>
 
-          {/* Nav links */}
-          <nav className="flex flex-col gap-0.5">
-            {navLinks.map((link) => {
-              const active = isActive(link.href, link.exact);
-              const Icon = link.icon;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setOpen(false)}
-                  className={cn(
-                    "group flex items-center gap-3 border-l-2 px-3 py-2 text-xs font-medium uppercase tracking-wider transition-colors",
-                    active
-                      ? "border-primary bg-background text-primary"
-                      : "border-transparent text-foreground/60 hover:border-border/30 hover:bg-background hover:text-foreground"
-                  )}
-                >
-                  <Icon
-                    className={cn(
-                      "h-[18px] w-[18px] shrink-0",
-                      active ? "text-primary" : "text-foreground/40 group-hover:text-foreground/70"
-                    )}
-                  />
-                  <span className="flex-1">{link.label}</span>
-                  {link.badge != null && (
-                    <span className="rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
-                      {link.badge}
-                    </span>
-                  )}
-                  {link.warningBadge && (
-                    <span className="rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-semibold text-white" title="AI Units running low">
-                      AI
-                    </span>
-                  )}
-                  {active && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />}
-                </Link>
-              );
-            })}
+          <div className="mb-2 mt-8 px-1 font-mono text-[9px] font-medium uppercase tracking-[0.24em] text-[color:var(--ink-2)]/50">
+            Monitor
+          </div>
+          <nav className="space-y-0.5">
+            {NAV_MAIN.map((item) => (
+              <NavRow
+                key={item.href}
+                href={item.href}
+                icon={item.icon}
+                label={item.label}
+                active={isActive(item.href, item.exact)}
+                onClick={() => setOpen(false)}
+              />
+            ))}
           </nav>
 
-          {/* User card */}
-          <div className="mt-auto">
-            <div className="rounded-sm border border-border/15 bg-background p-3.5">
-              <div className="flex items-center gap-3">
-                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-sm bg-primary font-mono text-xs font-bold text-primary-foreground">
-                  {initials}
-                </div>
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold text-foreground">{profileName}</div>
-                  {subscriptionActive && planTier !== "none" ? (
-                    <Link
-                      href="/subscription"
-                      className={cn(
-                        "mt-1 inline-flex max-w-full items-center rounded-sm border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide transition-opacity hover:opacity-80",
-                        planBadgeClass
-                      )}
-                    >
-                      {planTier} plan
-                    </Link>
-                  ) : (
-                    <div className="truncate text-xs text-muted-foreground">{planLabel}</div>
+          <div className="mb-2 mt-6 px-1 font-mono text-[9px] font-medium uppercase tracking-[0.24em] text-[color:var(--ink-2)]/50">
+            Account
+          </div>
+          <nav className="flex-1 space-y-0.5">
+            {NAV_SECONDARY.map((item) => (
+              <NavRow
+                key={item.href}
+                href={item.href}
+                icon={item.icon}
+                label={item.label}
+                active={isActive(item.href)}
+                badge={item.badgeKey === "notifications" && unreadCount > 0 ? unreadCount : undefined}
+                warn={item.warnKey === "ai" && aiUsageWarning}
+                onClick={() => setOpen(false)}
+              />
+            ))}
+          </nav>
+
+          <div className="mt-6 space-y-3 border-t border-[color:var(--ink)]/12 pt-4">
+            <Link
+              href="/onboarding/broker"
+              className="flex items-center justify-between px-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--ink-2)]/70 hover:text-[color:var(--ink)]"
+            >
+              <span>Broker</span>
+              <span className="flex items-center gap-1.5">
+                <span
+                  className={cn(
+                    "h-1.5 w-1.5 rounded-full",
+                    brokerConnected ? "pulse-ring bg-[color:var(--forest)]" : "bg-[color:var(--destructive)]"
                   )}
-                  <div className="mt-1 truncate font-mono text-[10px] text-muted-foreground">
-                    {brokerConnected ? "Upstox connected" : "Broker not connected"}
-                  </div>
-                </div>
+                />
+                {brokerConnected ? "Upstox" : "Not connected"}
+              </span>
+            </Link>
+
+            <div className="flex items-center gap-3 border border-[color:var(--ink)]/15 bg-[color:var(--paper)] p-3">
+              <div className="grid h-9 w-9 shrink-0 place-items-center border border-[color:var(--ink)] bg-[color:var(--paper-3)] font-mono text-[11px] font-bold text-[color:var(--ink)]">
+                {initials}
               </div>
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-serif text-[13px] font-medium text-[color:var(--ink)]">{profileName}</div>
+                <Link
+                  href="/subscription"
+                  className="font-mono text-[10px] uppercase tracking-[0.18em] text-[color:var(--forest)] hover:underline"
+                >
+                  {planLabel ? `${planLabel} plan` : "No plan"}
+                </Link>
+              </div>
+              <button
+                type="button"
+                onClick={logout}
+                aria-label="Log out"
+                className="grid h-7 w-7 place-items-center text-[color:var(--ink-2)]/70 hover:text-[color:var(--destructive)]"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+              </button>
             </div>
-            <button onClick={logout} className="mt-2 px-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
-              Log out
-            </button>
           </div>
         </aside>
 
-        {open && <div className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm md:hidden" onClick={() => setOpen(false)} />}
+        {open && (
+          <div className="fixed inset-0 z-30 bg-[color:var(--ink)]/20 md:hidden" onClick={() => setOpen(false)} />
+        )}
 
         <main className="min-h-screen min-w-0 flex-1">
-          {/* Top bar */}
-          <div className="sticky top-0 z-20 hidden items-center gap-4 border-b border-border/20 bg-muted px-8 py-3.5 md:flex">
-            <form className="relative w-full max-w-sm" onSubmit={handleSearch}>
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <div className="sticky top-0 z-20 hidden items-center gap-4 border-b border-[color:var(--ink)]/12 bg-[color:var(--paper)]/95 px-8 py-4 backdrop-blur md:flex">
+            <form className="relative w-full max-w-md" onSubmit={handleSearch}>
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[color:var(--ink-2)]/50" />
               <input
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Search stocks, agents, research..."
-                className="w-full rounded-sm border border-border/15 bg-background py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                placeholder="Search stocks, agents, research…"
+                className="w-full border border-[color:var(--ink)]/20 bg-[color:var(--paper-3)] py-2 pl-9 pr-3 font-mono text-sm placeholder:text-[color:var(--ink-2)]/50 focus:border-[color:var(--ink)] focus:outline-none"
               />
             </form>
+
             <div className="ml-auto flex items-center gap-2">
+              <MarketLiveBadge className="hidden lg:inline-flex" />
               <Link
                 href="/notifications"
-                className="relative grid h-9 w-9 place-items-center rounded-sm border border-border/15 bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                className="relative grid h-9 w-9 place-items-center border border-[color:var(--ink)]/20 bg-[color:var(--paper-3)] text-[color:var(--ink-2)] hover:bg-[color:var(--paper-2)]"
               >
                 <Bell className="h-4 w-4" />
                 {unreadCount > 0 && (
-                  <span className="absolute -right-1 -top-1 rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                  <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-[color:var(--destructive)] px-1 font-mono text-[9px] font-bold text-[color:var(--paper)]">
                     {unreadCount > 99 ? "99+" : unreadCount}
                   </span>
                 )}
@@ -294,27 +282,100 @@ export function AppShell({ title, subtitle, actions, children }: AppShellProps) 
             </div>
           </div>
 
-          {/* Page content */}
-          <div className="px-5 py-6 md:px-8 md:py-8">
-            {!subscriptionActive ? (
-              <AlertBanner variant="warning" className="mb-6" title="Subscription required">
-                Choose a plan to create agents and use monitoring features.{" "}
-                <Link href="/subscription" className="font-medium text-primary underline">
-                  View plans
-                </Link>
-              </AlertBanner>
-            ) : null}
-            <div className="mb-8 flex flex-col gap-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end sm:gap-4">
-              <div className="min-w-0">
-                <h1 className="truncate font-serif text-xl font-bold tracking-tight sm:text-2xl md:text-3xl">{title}</h1>
-                {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
+          {(!subscriptionActive || aiUsageWarning) && (
+            <div className="border-b border-[color:var(--ink)]/10 bg-[color:var(--paper-2)] px-5 py-2.5 md:px-8">
+              <div className="flex flex-wrap items-center gap-3 text-xs text-[color:var(--ink-2)]">
+                <AlertTriangle className="h-3.5 w-3.5 text-[color:oklch(0.55_0.14_55)]" />
+                {!subscriptionActive ? (
+                  <span>
+                    <strong className="text-[color:var(--ink)]">No active plan.</strong> New agent creation is paused
+                    until you subscribe.{" "}
+                    <Link href="/subscription" className="ml-1 underline underline-offset-4">
+                      Choose a plan →
+                    </Link>
+                  </span>
+                ) : (
+                  <span>
+                    <strong className="text-[color:var(--ink)]">AI Units at {aiUsagePct}%.</strong> Monitoring may
+                    slow.{" "}
+                    <Link href="/subscription" className="ml-1 underline underline-offset-4">
+                      Top up →
+                    </Link>
+                  </span>
+                )}
               </div>
-              {actions && <div className="flex flex-wrap gap-2 sm:shrink-0 sm:justify-end">{actions}</div>}
             </div>
+          )}
+
+          <div className="px-5 py-8 md:px-10 md:py-10">
+            {(title || actions || eyebrow) && (
+              <div className="mb-10 border-b border-[color:var(--ink)] pb-6">
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4">
+                  <div className="min-w-0">
+                    {eyebrow && (
+                      <div className="mb-3 flex items-center gap-2 font-mono text-[10px] font-medium uppercase tracking-[0.24em] text-[color:var(--ink-2)]/60">
+                        <span className="h-px w-6 bg-[color:var(--ink)]" />
+                        {eyebrow}
+                      </div>
+                    )}
+                    {title && (
+                      <h1 className="truncate font-serif text-3xl tracking-tight text-[color:var(--ink)] md:text-[42px]">
+                        {title}
+                      </h1>
+                    )}
+                    {subtitle && (
+                      <p className="mt-2 text-sm text-[color:var(--ink-2)]/80 md:text-base">{subtitle}</p>
+                    )}
+                  </div>
+                  {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
+                </div>
+              </div>
+            )}
             <div className="fade-up">{children}</div>
           </div>
         </main>
       </div>
     </div>
+  );
+}
+
+function NavRow({
+  href,
+  icon: Icon,
+  label,
+  active,
+  badge,
+  warn,
+  onClick
+}: {
+  href: string;
+  icon: typeof Bell;
+  label: string;
+  active?: boolean;
+  badge?: number;
+  warn?: boolean;
+  onClick?: () => void;
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className={cn(
+        "group relative flex items-center gap-3 px-3 py-2 text-sm transition-colors",
+        active
+          ? "bg-[color:var(--paper-2)] text-[color:var(--ink)]"
+          : "text-[color:var(--ink-2)]/85 hover:bg-[color:var(--paper-2)]/60 hover:text-[color:var(--ink)]"
+      )}
+    >
+      {active && <span className="absolute inset-y-1 left-0 w-[2px] bg-[color:var(--ink)]" />}
+      <Icon className="h-4 w-4" />
+      <span className="flex-1">{label}</span>
+      {warn && <span className="h-1.5 w-1.5 rounded-full bg-[color:oklch(0.62_0.14_55)]" />}
+      {badge != null && badge > 0 && (
+        <span className="grid h-4 min-w-4 place-items-center rounded-full bg-[color:var(--ink)] px-1 font-mono text-[9px] font-bold text-[color:var(--paper)]">
+          {badge > 99 ? "99+" : badge}
+        </span>
+      )}
+    </Link>
   );
 }

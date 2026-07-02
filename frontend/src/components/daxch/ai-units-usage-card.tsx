@@ -272,17 +272,56 @@ export function AiUnitsUsageCard({
   }
 
   if (variant === "dashboard") {
+    const pct = quota ? formatPercentUsed(quota.percent_used) : 0;
+    const barColor =
+      pct >= 95 ? "bg-[color:var(--destructive)]" : pct >= 80 ? "bg-[color:oklch(0.62_0.14_55)]" : "bg-[color:var(--forest)]";
+
     return (
-      <GlassCard className={cn("mt-6 max-w-md", className)}>
-        <div className="flex items-center justify-between gap-3">
-          <div className="text-sm font-semibold tracking-tight">AI Units</div>
-          <Link href="/subscription#top-up" className="text-xs font-medium text-primary hover:underline">
-            Top up
-          </Link>
+      <div className={cn(className)}>
+        <div className="mb-2 flex items-center gap-2">
+          <span className="font-mono text-[10px] font-medium uppercase tracking-[0.24em] text-[color:var(--ink-2)]/70">
+            AI Units
+          </span>
         </div>
-        <div className="mt-4">{usageBlock}</div>
-        {message && <p className="mt-3 text-sm text-muted-foreground">{message}</p>}
-      </GlassCard>
+        {quota ? (
+          <>
+            <div className="mt-4 flex items-baseline gap-2">
+              <span className="font-mono text-4xl tracking-tight text-[color:var(--ink)]">
+                {formatAiUnits(quota.total_remaining)}
+              </span>
+              <span className="font-mono text-sm text-[color:var(--ink-2)]/60">
+                / {formatAiUnits(quota.total_limit)}
+              </span>
+            </div>
+            <div className="mt-3 h-2 w-full border border-[color:var(--ink)]/20 bg-[color:var(--paper-2)]">
+              <div className={`h-full ${barColor}`} style={{ width: `${pct}%` }} />
+            </div>
+            <p className="mt-3 text-xs italic leading-relaxed text-[color:var(--ink-2)]/80">
+              {pct >= 80
+                ? "Usage is high — top up to keep monitoring uninterrupted."
+                : `${pct}% used this billing cycle.`}
+            </p>
+            <Link
+              href="/subscription#top-up"
+              className="mt-5 flex items-center justify-between border-t border-[color:var(--ink)]/15 pt-4 font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-[color:var(--forest)] hover:text-[color:var(--ink)]"
+            >
+              <span>Top up AI Units</span>
+              <span>→</span>
+            </Link>
+          </>
+        ) : (
+          <>
+            <p className="mt-2 text-sm text-[color:var(--ink-2)]/80">Subscribe to get a monthly AI Units allowance.</p>
+            <Link
+              href="/subscription"
+              className="mt-4 inline-block font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-[color:var(--forest)] hover:text-[color:var(--ink)]"
+            >
+              View plans →
+            </Link>
+          </>
+        )}
+        {message && <p className="mt-3 text-sm text-[color:var(--ink-2)]/70">{message}</p>}
+      </div>
     );
   }
 
