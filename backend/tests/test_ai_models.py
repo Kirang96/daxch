@@ -30,12 +30,14 @@ def test_assert_model_allowed() -> None:
     with pytest.raises(AiModelAccessError):
         assert_model_allowed("starter", "gpt-4o")
     with pytest.raises(AiModelAccessError):
-        assert_model_allowed("pro", "gpt-5")
+        assert_model_allowed("pro", "gpt-5.5")
     assert_model_allowed("pro", "gpt-4.1")
 
 
-def test_ultra_same_as_pro_for_models() -> None:
+def test_ultra_includes_gpt5_models() -> None:
     assert can_change_model("ultra")
-    assert len(list_models_for_plan("ultra")) == 4
-    assert resolve_model("ultra", "gpt-4.1") == "gpt-4.1"
-    assert_model_allowed("ultra", "gpt-4.1")
+    assert len(list_models_for_plan("ultra")) == 7
+    assert resolve_model("ultra", "gpt-5.5") == "gpt-5.5"
+    assert_model_allowed("ultra", "gpt-5.4-mini")
+    with pytest.raises(AiModelAccessError):
+        assert_model_allowed("pro", "gpt-5.4")

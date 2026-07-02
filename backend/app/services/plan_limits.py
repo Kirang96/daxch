@@ -7,8 +7,20 @@ PLAN_CONFIG: dict[str, dict] = {
 }
 
 
-def normalize_plan(plan: str) -> str:
-    return plan.lower().strip()
+PLAN_ORDER = ("starter", "pro", "ultra")
+
+
+def plan_tier_rank(plan: str) -> int:
+    normalized = normalize_plan(plan)
+    try:
+        return PLAN_ORDER.index(normalized)
+    except ValueError:
+        return 0
+
+
+def assert_not_downgrade(current_plan: str, target_plan: str) -> None:
+    if plan_tier_rank(target_plan) < plan_tier_rank(current_plan):
+        raise ValueError(f"Cannot subscribe to {target_plan} while on active {current_plan} plan.")
 
 
 def get_plan_config(plan: str) -> dict:

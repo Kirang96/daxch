@@ -17,9 +17,11 @@ import {
 } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
-import { AreaChart, Badge, Disclaimer, GlassCard, ThinkingDots, AlertBanner } from "@/components/daxch/primitives";
+import { StockPriceChart } from "@/components/charts/stock-price-chart";
+import { Badge, Disclaimer, GlassCard, ThinkingDots, AlertBanner } from "@/components/daxch/primitives";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
+import { formatAiUnits } from "@/lib/ai-units";
 import {
   lifecycleStepIndex,
   LIFECYCLE_STEPS,
@@ -55,6 +57,11 @@ export default function AgentDetailPage() {
   const id = (params?.id || "agent").toUpperCase();
   const [data, setData] = useState<AgentDetail | null>(null);
   const [candlesData, setCandlesData] = useState<number[]>([]);
+  const [candleMeta, setCandleMeta] = useState<{ timestamps: string[]; high: number | null; low: number | null }>({
+    timestamps: [],
+    high: null,
+    low: null,
+  });
   const [liveQuote, setLiveQuote] = useState<{ ltp: number; change_percent: number | null } | null>(null);
   const [error, setError] = useState("");
   const [actionStatus, setActionStatus] = useState("");
@@ -62,6 +69,17 @@ export default function AgentDetailPage() {
   const [liveOrderStatus, setLiveOrderStatus] = useState<Record<string, BrokerOrderStatus>>({});
   const [exchangePosition, setExchangePosition] = useState<ExchangePosition | null>(null);
   const [orderRefreshError, setOrderRefreshError] = useState<Record<string, string>>({});
+  const [helpDismissed, setHelpDismissed] = useState(false);
+  const [monthlyEstimate, setMonthlyEstimate] = useState<number | null>(null);
+  const [squareOffOpen, setSquareOffOpen] = useState(false);
+  const [squareOffQty, setSquareOffQty] = useState("");
+  const [squareOffSubmitting, setSquareOffSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setHelpDismissed(localStorage.getItem("daxch_agent_help_dismissed") === "1");
+    }
+  }, []);
 
   const syncOrderFromBroker = useCallback(async (orderId: string) => {
     const live = await api.get<BrokerOrderStatus>(`/broker/orders/${orderId}/status`);
@@ -112,13 +130,21 @@ export default function AgentDetailPage() {
       if (response?.holding?.ticker) {
         const exchange = response.holding.exchange || "NSE";
         try {
-          const candles = await api.get<{ prices: number[] }>(
-            `/stocks/candles/${response.holding.ticker.toUpperCase()}?exchange=${exchange}`
-          );
+          const candles = await api.get<{
+            prices: number[];
+            timestamps?: string[];
+            high?: number | null;
+            low?: number | null;
+          }>(`/stocks/candles/${response.holding.ticker.toUpperCase()}?exchange=${exchange}`);
           if (candles.prices.length === 0) {
             logger.warn("No candle data for agent", { page: "agent-detail", ticker: response.holding.ticker });
           }
           setCandlesData(candles.prices);
+          setCandleMeta({
+            timestamps: candles.timestamps ?? [],
+            high: candles.high ?? null,
+            low: candles.low ?? null,
+          });
         } catch (err) {
           logger.warn("Failed to load candles for agent", {
             page: "agent-detail",
@@ -140,6 +166,17 @@ export default function AgentDetailPage() {
             message: (err as Error).message
           });
           setLiveQuote(null);
+        }
+      }
+
+      if (response?.agent?.polling_frequency) {
+        try {
+          const est = await api.get<{ estimated_monthly_units: number }>(
+            `/ai-units/estimate/agent?frequency=${response.agent.polling_frequency}`
+          );
+          setMonthlyEstimate(est.estimated_monthly_units);
+        } catch {
+          setMonthlyEstimate(null);
         }
       }
     } catch (err) {
@@ -178,6 +215,9 @@ export default function AgentDetailPage() {
     () => data?.decisions?.find((d) => d.decision_type === "initial_entry"),
     [data]
   );
+  const entryOrderFailed =
+    entryDecision?.order?.status === "failed" || entryDecision?.order?.status === "rejected";
+  const isActivelyMonitoring = data?.agent.status === "active" && !awaitingEntryFill;
 
   useEffect(() => {
     if (!awaitingEntryFill || !entryDecision?.order?.id) return;
@@ -262,6 +302,40 @@ export default function AgentDetailPage() {
     }
   };
 
+  const dismissHelp = () => {
+    localStorage.setItem("daxch_agent_help_dismissed", "1");
+    setHelpDismissed(true);
+  };
+
+  const squareOff = async () => {
+    if (!params?.id) return;
+    const qty = Number(squareOffQty);
+    if (!qty || qty < 1) {
+      setActionStatus("Enter a valid quantity to sell.");
+      return;
+    }
+    setSquareOffSubmitting(true);
+    try {
+      await api.post(`/agents/${params.id}/square-off`, { quantity: qty });
+      setActionStatus(`Square-off order placed for ${qty} shares.`);
+      setSquareOffOpen(false);
+      await load();
+      if (data?.holding?.id) await loadExchangePosition(data.holding.id);
+    } catch (err) {
+      setActionStatus((err as Error).message);
+    } finally {
+      setSquareOffSubmitting(false);
+    }
+  };
+
+  const timelineStatusLabel = isActivelyMonitoring
+    ? "Monitoring"
+    : awaitingEntryFill
+      ? "Awaiting entry fill"
+      : data?.agent.status === "paused"
+        ? "Paused"
+        : "Inactive";
+
   return (
     <AppShell
       title={`${data?.holding?.ticker || "Agent"} · Monitoring`}
@@ -278,7 +352,15 @@ export default function AgentDetailPage() {
               <Play className="h-4 w-4" /> Resume
             </Button>
           )}
-          {awaitingEntryFill && (
+          {exchangePosition && exchangePosition.net_quantity > 0 && (
+            <Button variant="secondary" onClick={() => {
+              setSquareOffQty(String(exchangePosition.net_quantity));
+              setSquareOffOpen(true);
+            }}>
+              <TrendingDown className="h-4 w-4" /> Square off
+            </Button>
+          )}
+          {awaitingEntryFill && !entryOrderFailed && (
             <Button variant="secondary" onClick={cancelEntryOrder}>
               <X className="h-4 w-4" /> Cancel entry order
             </Button>
@@ -292,17 +374,61 @@ export default function AgentDetailPage() {
       {error && <AlertBanner variant="error" className="mb-4">{error}</AlertBanner>}
       {actionStatus && <p className="mb-4 rounded-xl border border-border/20 bg-background p-3 text-sm text-muted-foreground">{actionStatus}</p>}
 
-      {awaitingEntryFill && (
+      {entryOrderFailed && (
+        <AlertBanner variant="error" className="mb-6" title="Entry order failed">
+          The broker rejected or could not complete your entry order. Cancel and retry when the market is open, or adjust your limit price.
+        </AlertBanner>
+      )}
+
+      {awaitingEntryFill && !entryOrderFailed && (
         <AlertBanner variant="warning" className="mb-6" title="Awaiting entry fill">
           Your LIMIT entry order is open on the exchange. Monitoring starts automatically after it fills.
         </AlertBanner>
       )}
 
-      <AlertBanner variant="info" className="mb-6" title="How this page works">
-        <strong>Your plan</strong> (entry price and quantity) feeds the AI — it is not synced from your Demat.
-        <strong className="ml-1">Exchange trades</strong> below are orders sent to Upstox after you approve a suggestion.
-        P/L appears only after an order fills on the exchange.
-      </AlertBanner>
+      <div className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-border/15 bg-muted/40 px-4 py-3 text-sm">
+        <span
+          className={`inline-flex h-2 w-2 rounded-full ${isActivelyMonitoring ? "bg-emerald-600" : "bg-muted-foreground/40"}`}
+        />
+        {isActivelyMonitoring ? (
+          <span>
+            <strong className="text-foreground">Active monitoring</strong>
+            {monthlyEstimate != null && monthlyEstimate > 0 && (
+              <span className="text-muted-foreground"> · ~{formatAiUnits(monthlyEstimate)} AI Units/month</span>
+            )}
+            {data?.agent.next_poll_at && (
+              <span className="text-muted-foreground"> · Next check {new Date(data.agent.next_poll_at).toLocaleString()}</span>
+            )}
+          </span>
+        ) : (
+          <span className="text-muted-foreground">Not consuming monitoring credits — agent is {timelineStatusLabel.toLowerCase()}.</span>
+        )}
+      </div>
+
+      {!helpDismissed && (
+        <AlertBanner variant="info" className="mb-6" title="How this page works">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <strong>Your plan</strong> (entry price and quantity) feeds the AI — it is not synced from your Demat.
+              <strong className="ml-1">Exchange trades</strong> below are orders sent to Upstox after you approve a suggestion.
+              P/L appears only after an order fills on the exchange.{" "}
+              <Link href="/guide#agents" className="font-medium text-primary underline">
+                Learn more
+              </Link>
+            </div>
+            <button type="button" onClick={dismissHelp} className="shrink-0 text-muted-foreground hover:text-foreground" aria-label="Dismiss">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </AlertBanner>
+      )}
+      {helpDismissed && (
+        <p className="mb-4 text-xs text-muted-foreground">
+          <button type="button" onClick={() => { localStorage.removeItem("daxch_agent_help_dismissed"); setHelpDismissed(false); }} className="underline">
+            Show page help
+          </button>
+        </p>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-3">
         <GlassCard className="lg:col-span-2">
@@ -333,11 +459,13 @@ export default function AgentDetailPage() {
           </div>
           <div className="mt-6">
             {candlesData.length >= 2 ? (
-              <AreaChart
-                data={candlesData}
-                color="oklch(var(--primary))"
-                height={220}
-                wrapperClassName="h-44 sm:h-56 md:h-[220px]"
+              <StockPriceChart
+                prices={candlesData}
+                timestamps={candleMeta.timestamps}
+                high={candleMeta.high}
+                low={candleMeta.low}
+                ltp={currentPrice}
+                entryPrice={data?.holding?.entry_price ?? null}
               />
             ) : (
               <p className="py-16 text-center text-sm text-muted-foreground">Chart data unavailable.</p>
@@ -434,7 +562,8 @@ export default function AgentDetailPage() {
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-medium tracking-tight">Activity Timeline</h3>
             <span className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-              <ThinkingDots /> Monitoring
+              {isActivelyMonitoring && <ThinkingDots />}
+              {timelineStatusLabel}
             </span>
           </div>
           {data?.recent_audit?.length ? (
@@ -585,6 +714,34 @@ export default function AgentDetailPage() {
           </ul>
         </GlassCard>
       </div>
+
+      {squareOffOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
+          <GlassCard className="w-full max-w-md p-6">
+            <h3 className="text-lg font-medium">Square off position</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Place a MARKET sell for up to {exchangePosition?.net_quantity ?? 0} shares on the exchange.
+            </p>
+            <label className="mt-4 block text-sm">
+              Quantity to sell
+              <input
+                type="number"
+                min={1}
+                max={exchangePosition?.net_quantity ?? 1}
+                value={squareOffQty}
+                onChange={(e) => setSquareOffQty(e.target.value)}
+                className="mt-1.5 h-10 w-full rounded-lg border border-border/20 px-3"
+              />
+            </label>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setSquareOffOpen(false)}>Cancel</Button>
+              <Button onClick={() => void squareOff()} disabled={squareOffSubmitting}>
+                {squareOffSubmitting ? "Placing..." : "Confirm sell"}
+              </Button>
+            </div>
+          </GlassCard>
+        </div>
+      )}
 
       <div className="mt-8">
         <Disclaimer />

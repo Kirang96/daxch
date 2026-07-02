@@ -54,3 +54,39 @@ class EmailService:
             logger.exception("Failed to send magic link via SES")
             raise EmailDeliveryError("Failed to send sign-in email") from exc
 
+    async def send_password_reset(self, email: str, reset_url: str) -> None:
+        if not self.settings.ses_from_email:
+            if self.settings.is_production:
+                raise EmailDeliveryError("SES_FROM_EMAIL is required in production")
+            logger.warning("Skipping SES password reset in non-production because SES_FROM_EMAIL is not configured")
+            return
+
+        subject = "Reset your Daxch password"
+        html_body = (
+            "<h2>Password reset</h2>"
+            "<p>Click the link below to set a new password. The link expires in 30 minutes.</p>"
+            f"<p><a href=\"{reset_url}\">{reset_url}</a></p>"
+            "<p>If you did not request this, ignore this email.</p>"
+        )
+        text_body = (
+            "Password reset\n\n"
+            f"Use this link to set a new password:\n{reset_url}\n\n"
+            "If you did not request this, ignore this email."
+        )
+
+        try:
+            self.ses.send_email(
+                Source=self.settings.ses_from_email,
+                Destination={"ToAddresses": [email]},
+                Message={
+                    "Subject": {"Data": subject},
+                    "Body": {
+                        "Text": {"Data": text_body},
+                        "Html": {"Data": html_body},
+                    },
+                },
+            )
+        except (BotoCoreError, ClientError) as exc:
+            logger.exception("Failed to send password reset via SES")
+            raise EmailDeliveryError("Failed to send password reset email") from exc
+

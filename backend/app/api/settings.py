@@ -68,7 +68,12 @@ def _to_response(settings: UserSettings, user: User) -> SettingsResponse:
         preferred_ai_model=resolve_model(plan, settings.preferred_ai_model),
         ai_model_can_change=can_change_model(plan),
         ai_model_options=[
-            AiModelOption(id=model.id, label=model.label, description=model.description)
+            AiModelOption(
+                id=model.id,
+                label=model.label,
+                description=model.description,
+                ultra_only=model.ultra_only,
+            )
             for model in list_models_for_plan(plan)
         ],
         created_at=settings.created_at,

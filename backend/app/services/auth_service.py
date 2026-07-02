@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 from jose import jwt
+from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -8,10 +9,25 @@ from backend.app.core.config import get_settings
 from backend.app.models.entities import User
 from backend.app.utils.security import create_access_token
 
+_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+_MIN_PASSWORD_LEN = 8
+
 
 class AuthService:
     def __init__(self) -> None:
         self.settings = get_settings()
+
+    def hash_password(self, password: str) -> str:
+        return _pwd_context.hash(password)
+
+    def verify_password(self, password: str, password_hash: str | None) -> bool:
+        if not password_hash:
+            return False
+        return _pwd_context.verify(password, password_hash)
+
+    def _validate_password(self, password: str) -> None:
+        if len(password) < _MIN_PASSWORD_LEN:
+            raise ValueError(f"Password must be at least {_MIN_PASSWORD_LEN} characters.")
 
     def register_or_login_user(self, db: Session, email: str, name: str | None = None) -> str:
         email = email.lower().strip()
@@ -23,6 +39,59 @@ class AuthService:
             db.flush()
             db.commit()
             db.refresh(user)
+        return create_access_token(str(user.id))
+
+    def register_with_password(self, db: Session, email: str, password: str, name: str | None = None) -> str:
+        self._validate_password(password)
+        email = email.lower().strip()
+        stmt = select(User).where(User.email == email)
+        user = db.execute(stmt).scalar_one_or_none()
+        if user and user.password_hash:
+            raise ValueError("An account with this email already exists. Sign in instead.")
+        if not user:
+            user = User(email=email, name=name)
+            db.add(user)
+            db.flush()
+        user.password_hash = self.hash_password(password)
+        if name:
+            user.name = name
+        db.commit()
+        db.refresh(user)
+        return create_access_token(str(user.id))
+
+    def login_with_password(self, db: Session, email: str, password: str) -> str:
+        email = email.lower().strip()
+        user = db.execute(select(User).where(User.email == email)).scalar_one_or_none()
+        if not user:
+            raise ValueError("Invalid email or password.")
+        if not user.password_hash:
+            raise ValueError("No password set for this account. Use Forgot password to create one.")
+        if not self.verify_password(password, user.password_hash):
+            raise ValueError("Invalid email or password.")
+        return create_access_token(str(user.id))
+
+    def set_password(self, db: Session, user: User, password: str) -> None:
+        self._validate_password(password)
+        user.password_hash = self.hash_password(password)
+        db.commit()
+
+    def create_password_reset_token(self, email: str) -> str:
+        expire_at = datetime.now(tz=timezone.utc) + timedelta(minutes=30)
+        payload = {"sub": email.lower().strip(), "purpose": "password_reset", "exp": expire_at}
+        return jwt.encode(payload, self.settings.secret_key, algorithm="HS256")
+
+    def verify_password_reset_token(self, token: str) -> str:
+        payload = jwt.decode(token, self.settings.secret_key, algorithms=["HS256"])
+        if payload.get("purpose") != "password_reset":
+            raise ValueError("Invalid reset token")
+        return str(payload["sub"]).lower().strip()
+
+    def reset_password_with_token(self, db: Session, token: str, password: str) -> str:
+        email = self.verify_password_reset_token(token)
+        user = db.execute(select(User).where(User.email == email)).scalar_one_or_none()
+        if not user:
+            raise ValueError("Account not found.")
+        self.set_password(db, user, password)
         return create_access_token(str(user.id))
 
     def create_magic_link_token(self, email: str, name: str | None = None) -> str:
@@ -40,7 +109,6 @@ class AuthService:
         return self.register_or_login_user(db, email, name)
 
     async def authenticate_google(self, db: Session, code: str) -> str:
-        # Check if code is a mock code or if Google settings are not configured
         is_mock = code.startswith("mock_code_") or not (
             self.settings.google_client_id
             and self.settings.google_client_secret
@@ -59,7 +127,6 @@ class AuthService:
             name = email.split("@")[0].replace(".", " ").title()
             return self.register_or_login_user(db, email, name)
 
-        # Real Google OAuth2 flow
         import httpx
         async with httpx.AsyncClient(timeout=10) as client:
             token_url = "https://oauth2.googleapis.com/token"
@@ -83,5 +150,3 @@ class AuthService:
         email = userinfo["email"]
         name = userinfo.get("name")
         return self.register_or_login_user(db, email, name)
-
-

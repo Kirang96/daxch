@@ -89,6 +89,7 @@ class StrategyAnalysisResult(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
     suggested_entry: float | None = None
     signal: str | None = None
+    suggested_entry_rationale: str | None = None
     suggested_polling_frequency: int | None = None
     frequency_rationale: str | None = None
     frequency_factors: list[str] = Field(default_factory=list)
@@ -104,6 +105,7 @@ class StrategyAnalysisResult(BaseModel):
         metadata: dict[str, Any] | None = None,
         suggested_entry: float | None = None,
         signal: str | None = None,
+        suggested_entry_rationale: str | None = None,
         suggested_polling_frequency: int | None = None,
         frequency_rationale: str | None = None,
         frequency_factors: list[str] | None = None,
@@ -120,6 +122,7 @@ class StrategyAnalysisResult(BaseModel):
             metadata=metadata or {},
             suggested_entry=suggested_entry,
             signal=signal,
+            suggested_entry_rationale=suggested_entry_rationale,
             suggested_polling_frequency=suggested_polling_frequency,
             frequency_rationale=frequency_rationale,
             frequency_factors=frequency_factors or [],

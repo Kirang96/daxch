@@ -11,6 +11,10 @@ class AgentCreateRequest(BaseModel):
     confirmation_timeout_minutes: int = 5
 
 
+class SquareOffRequest(BaseModel):
+    quantity: int
+
+
 class AgentResponse(BaseModel):
     id: UUID
     holding_id: UUID

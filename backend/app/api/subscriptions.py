@@ -14,7 +14,7 @@ from backend.app.schemas.subscription import InvoiceResponse, SubscriptionCreate
 from backend.app.services.subscription_access import get_latest_subscription
 from backend.app.services.notification_events import create_notification_event
 from backend.app.services.payment import PaymentConfigurationError, PaymentService
-from backend.app.services.plan_limits import PLAN_CONFIG
+from backend.app.services.plan_limits import PLAN_CONFIG, assert_not_downgrade, normalize_plan
 
 router = APIRouter(prefix="/subscriptions", tags=["subscriptions"])
 payment_service = PaymentService()
@@ -89,6 +89,13 @@ async def create_subscription(
     plan = payload.plan.lower().strip()
     if plan not in PLAN_MAP:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported plan")
+
+    current_sub = get_latest_subscription(db, current_user.id)
+    if current_sub and current_sub.status == "active":
+        try:
+            assert_not_downgrade(current_sub.plan.value, plan)
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
     try:
         provider_data = await payment_service.create_subscription(plan=plan, user_email=current_user.email)
@@ -183,6 +190,13 @@ def dev_activate_subscription(
     plan = payload.plan.lower().strip()
     if plan not in PLAN_MAP:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported plan")
+
+    existing = get_latest_subscription(db, current_user.id)
+    if existing and existing.status == "active":
+        try:
+            assert_not_downgrade(existing.plan.value, plan)
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
     now = datetime.now(tz=timezone.utc)
     period_end = now + timedelta(days=365)

@@ -1,0 +1,43 @@
+export const GUIDE_FAQ = [
+  {
+    q: "Does Daxch trade automatically?",
+    a: "No. AI suggests buy, sell, or hold — you approve every trade before it is sent to Upstox. The only exception is the LIMIT entry order you explicitly set when creating an agent.",
+  },
+  {
+    q: "What happens if my entry order doesn't fill?",
+    a: "The agent stays paused until your limit order fills on the exchange. You can cancel the order from the agent page. Outside market hours, orders may be placed as AMO (After Market Order).",
+  },
+  {
+    q: "Can I exit without waiting for AI?",
+    a: "Yes. Use Square off on the agent page to sell part or all of your exchange position at market.",
+  },
+  {
+    q: "What's the difference between Research and an agent?",
+    a: "Research is ad-hoc analysis without creating a monitoring agent. An agent runs scheduled checks and can place trades after your approval.",
+  },
+  {
+    q: "When am I charged AI Units?",
+    a: "Each analysis run and each scheduled monitoring check consumes AI Units based on your plan allowance and chosen model.",
+  },
+  {
+    q: "Is this investment advice?",
+    a: "No. Daxch provides AI-generated analysis for informational purposes only. You are responsible for your investment decisions.",
+  },
+] as const;
+
+export const GUIDE_JOURNEY = [
+  { step: "1", title: "Connect broker", desc: "Link Upstox so orders and positions sync.", href: "/broker" },
+  { step: "2", title: "Create an agent", desc: "Pick a stock, set your goal and limit price.", href: "/agents/new" },
+  { step: "3", title: "Entry fills", desc: "Your LIMIT order goes to the exchange; monitoring starts after fill.", href: "/agents" },
+  { step: "4", title: "AI monitors", desc: "Scheduled research produces buy, sell, or hold suggestions.", href: "/agents" },
+  { step: "5", title: "You decide", desc: "Approve or reject; Daxch sends orders to Upstox.", href: "/agents" },
+] as const;
+
+export const GUIDE_FEATURES = [
+  { title: "Dashboard", desc: "Overview, setup checklist, and AI usage.", href: "/dashboard" },
+  { title: "Agents", desc: "Create and manage monitoring agents.", href: "/agents" },
+  { title: "Research", desc: "Run analysis without creating an agent.", href: "/research" },
+  { title: "Portfolio", desc: "Exchange positions and P/L.", href: "/portfolio" },
+  { title: "Watchlist", desc: "Track symbols before committing.", href: "/watchlist" },
+  { title: "Subscription", desc: "Plans, AI Units, and billing.", href: "/subscription" },
+] as const;

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Bell, Bot, PlugZap, Shield, Trash2, User } from "lucide-react";
+import { Bell, Bot, Shield, Trash2, User } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { Badge, Disclaimer, GlassCard, AlertBanner } from "@/components/daxch/primitives";
@@ -13,21 +13,17 @@ import { cn } from "@/lib/utils";
 import { UserSettings } from "@/types";
 
 export default function SettingsPage() {
-  const tabs = ["Profile", "AI", "Notifications", "Broker", "Security", "Delete account"] as const;
+  const tabs = ["Profile", "AI", "Notifications", "Security", "Delete account"] as const;
   type Tab = (typeof tabs)[number];
   const [tab, setTab] = useState<Tab>("Profile");
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [status, setStatus] = useState("");
-  const [brokerStatus, setBrokerStatus] = useState<{ connected: boolean; broker?: string } | null>(null);
+  const [magicLinkEnabled, setMagicLinkEnabled] = useState(false);
 
   const refresh = async () => {
     try {
-      const [settingsData, brokerData] = await Promise.all([
-        api.get<UserSettings>("/settings"),
-        api.get<{ connected: boolean; broker?: string }>("/broker/connection-status")
-      ]);
+      const settingsData = await api.get<UserSettings>("/settings");
       setSettings(settingsData);
-      setBrokerStatus(brokerData);
       setStatus("");
     } catch (err) {
       setStatus((err as Error).message);
@@ -36,6 +32,9 @@ export default function SettingsPage() {
 
   useEffect(() => {
     refresh();
+    api.getPublic<{ magic_link_enabled: boolean }>("/auth/config")
+      .then((c) => setMagicLinkEnabled(c.magic_link_enabled))
+      .catch(() => {});
   }, []);
 
   const updateProfile = async () => {
@@ -99,7 +98,7 @@ export default function SettingsPage() {
   ];
 
   return (
-    <AppShell title="Settings" subtitle="Control profile, security, broker connectivity, and account preferences.">
+    <AppShell title="Settings" subtitle="Control profile, security, and account preferences.">
       {status && <p className="mb-4 rounded-xl border border-border/20 bg-background p-3 text-sm text-muted-foreground">{status}</p>}
       <div className="mb-6 flex gap-1 overflow-x-auto rounded-lg border border-border/20 bg-background p-1 text-xs">
         {tabs.map((t) => (
@@ -183,9 +182,10 @@ export default function SettingsPage() {
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="text-sm font-medium">{option.label}</div>
-                    {selected && (
-                      <Badge variant="success">Active</Badge>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {option.ultra_only && <Badge variant="primary">Ultra</Badge>}
+                      {selected && <Badge variant="success">Active</Badge>}
+                    </div>
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">{option.description}</div>
                 </button>
@@ -229,38 +229,6 @@ export default function SettingsPage() {
         </GlassCard>
       )}
 
-      {tab === "Broker" && (
-        <GlassCard>
-          <div className="mb-4 flex items-center gap-2 text-sm font-medium">
-            <PlugZap className="h-4 w-4 text-primary" /> Broker connection
-          </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            {[
-              ["Upstox", brokerStatus?.connected ? "Connected" : "Not connected", brokerStatus?.connected ? "success" : "warning"],
-              ["Zerodha", "Coming soon", "neutral"],
-              ["Angel One", "Coming soon", "neutral"],
-              ["Groww", "Coming soon", "neutral"]
-            ].map(([name, status, kind]) => (
-              <div key={name as string} className="rounded-xl border border-border/15 bg-muted/60 p-4">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm font-medium">{name}</div>
-                  <Badge variant={kind === "success" ? "success" : kind === "warning" ? "warning" : "neutral"}>
-                    {status}
-                  </Badge>
-                </div>
-                {name === "Upstox" && (
-                  <div className="mt-3 flex gap-2">
-                    <Link href="/broker" className="rounded-lg border border-border/20 bg-background px-3 py-1.5 text-xs hover:bg-muted">
-                      Manage
-                    </Link>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </GlassCard>
-      )}
-
       {tab === "Security" && (
         <GlassCard>
           <div className="mb-4 flex items-center gap-2 text-sm font-medium">
@@ -268,8 +236,12 @@ export default function SettingsPage() {
           </div>
           <div className="space-y-3">
             <div className="rounded-xl border border-border/15 bg-muted/60 p-4">
-              <div className="text-sm font-medium">Passwordless sign-in</div>
-              <div className="mt-1 text-xs text-muted-foreground">Magic-link authentication enabled for this account.</div>
+              <div className="text-sm font-medium">Sign-in method</div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                {magicLinkEnabled
+                  ? "Magic-link authentication is enabled in this environment."
+                  : "Email and password sign-in. Use Forgot password on the login page to reset."}
+              </div>
             </div>
             <div className="rounded-xl border border-border/15 bg-muted/60 p-4">
               <div className="text-sm font-medium">Session control</div>

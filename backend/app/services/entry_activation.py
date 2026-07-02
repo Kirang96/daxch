@@ -3,9 +3,7 @@ from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
-from sqlalchemy.orm import Session
-
-from sqlalchemy.orm import Session
+from backend.app.services.market_hours import should_use_amo
 
 from backend.app.models.entities import (
     AgentDecision,
@@ -206,6 +204,11 @@ async def activate_with_entry_order(
     except OrderPlacementError as exc:
         placement_error = str(exc)
         order.status = OrderStatus.failed
+        config = dict(agent.agent_config or {})
+        config["awaiting_entry_fill"] = False
+        config["entry_order_error"] = placement_error
+        agent.agent_config = config
+        agent.status = AgentStatus.paused
         log_event(
             db,
             agent.id,

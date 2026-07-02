@@ -67,7 +67,7 @@ async def get_stock_candles(
     broker = get_broker("upstox")
     _, token = await get_valid_broker_token(db=db, user=current_user, broker=broker)
     try:
-        prices = await broker.get_candles(
+        bars = await broker.get_ohlcv_candles(
             ticker=ticker.upper(),
             exchange=exchange.upper(),
             interval=interval,
@@ -75,7 +75,16 @@ async def get_stock_candles(
         )
     except BrokerConfigurationError as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
-    return {"prices": prices}
+    if not bars:
+        return {"prices": [], "timestamps": [], "high": None, "low": None, "interval": interval}
+    prices = [bar.close for bar in bars]
+    return {
+        "prices": prices,
+        "timestamps": [bar.timestamp for bar in bars],
+        "high": max(bar.high for bar in bars),
+        "low": min(bar.low for bar in bars),
+        "interval": interval,
+    }
 
 
 @router.get("/market-summary")

@@ -54,7 +54,7 @@ export function AnalysisResultPanel({ result, className }: AnalysisResultPanelPr
           {result.risk_flags.map((flag) => (
             <span
               key={flag}
-              className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-200"
+              className="inline-flex items-center gap-1 rounded-full border border-amber-700/25 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-900"
             >
               <AlertTriangle className="h-3 w-3" />
               {flag.replace(/_/g, " ")}

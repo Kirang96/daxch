@@ -5,7 +5,7 @@ from backend.app.services.analysis.data.news import NewsDataFetcher
 from backend.app.services.analysis.data.news_context import merge_news_and_search
 from backend.app.services.analysis.data.web_search import TavilySearchFetcher
 from backend.app.services.analysis.indicators.bundle import compute_technical_bundle
-from backend.app.services.analysis.monitoring_recommendations import suggest_entry, suggest_polling_frequency
+from backend.app.services.analysis.monitoring_recommendations import suggest_entry, suggest_entry_rationale, suggest_polling_frequency
 from backend.app.services.analysis.llm_client import LLMJsonClient
 from backend.app.services.analysis.registry import StrategyRegistry
 from backend.app.services.analysis.schemas import StrategyAnalysisResult, StrategyId
@@ -136,6 +136,13 @@ class AnalysisPipeline:
             technical_data,
             llm_output.risk_flags,
         )
+        entry_rationale = suggest_entry_rationale(
+            suggested_entry=suggested_entry,
+            current_price=price,
+            planned_entry_price=planned_entry_price,
+            signal=signal,
+            technical_data=technical_data,
+        )
         suggested_freq, freq_rationale, freq_factors = suggest_polling_frequency(
             intention,
             technical_data,
@@ -151,6 +158,7 @@ class AnalysisPipeline:
             metadata=metadata,
             suggested_entry=suggested_entry,
             signal=signal,
+            suggested_entry_rationale=entry_rationale,
             suggested_polling_frequency=suggested_freq,
             frequency_rationale=freq_rationale,
             frequency_factors=freq_factors,

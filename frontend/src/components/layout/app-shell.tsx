@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   AlertTriangle,
   Bell,
+  BookOpen,
   Bot,
   CreditCard,
   FlaskConical,
@@ -42,7 +43,8 @@ const NAV_MAIN = [
   { href: "/agents", label: "Agents", icon: Bot },
   { href: "/portfolio", label: "Portfolio", icon: Wallet },
   { href: "/watchlist", label: "Watchlist", icon: Star },
-  { href: "/research", label: "Research", icon: FlaskConical }
+  { href: "/research", label: "Research", icon: FlaskConical },
+  { href: "/guide", label: "How it works", icon: BookOpen }
 ];
 
 const NAV_SECONDARY = [
@@ -328,8 +330,8 @@ export function AppShell({ title, subtitle, actions, eyebrow, children }: AppShe
           <div className="px-5 py-8 md:px-10 md:py-10">
             {(title || actions || eyebrow) && (
               <div className="mb-10 border-b border-[color:var(--ink)] pb-6">
-                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4">
-                  <div className="min-w-0">
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
+                  <div className="min-w-0 pb-0.5">
                     {eyebrow && (
                       <div className="mb-3 flex items-center gap-2 font-mono text-[10px] font-medium uppercase tracking-[0.24em] text-[color:var(--ink-2)]/60">
                         <span className="h-px w-6 bg-[color:var(--ink)]" />
@@ -337,7 +339,7 @@ export function AppShell({ title, subtitle, actions, eyebrow, children }: AppShe
                       </div>
                     )}
                     {title && (
-                      <h1 className="truncate font-serif text-3xl tracking-tight text-[color:var(--ink)] md:text-[42px]">
+                      <h1 className="text-balance font-serif text-3xl leading-[1.15] tracking-tight text-[color:var(--ink)] md:text-[42px] md:leading-[1.12]">
                         {title}
                       </h1>
                     )}

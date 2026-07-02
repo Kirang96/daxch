@@ -39,7 +39,7 @@ export async function resolvePostAuthPath(): Promise<string> {
     } catch {
       return "/onboarding/subscription";
     }
-    return "/agents/new?onboarding=1";
+    return "/dashboard";
   } catch {
     return "/onboarding/welcome";
   }

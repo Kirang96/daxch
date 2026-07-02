@@ -12,6 +12,9 @@ MODEL_INPUT_RATE_USD_PER_M: dict[str, float] = {
     "gpt-4o": 2.50,
     "gpt-4.1-mini": 0.40,
     "gpt-4.1": 2.00,
+    "gpt-5.4-mini": 0.60,
+    "gpt-5.4": 2.50,
+    "gpt-5.5": 3.00,
 }
 
 MODEL_OUTPUT_RATE_USD_PER_M: dict[str, float] = {
@@ -19,6 +22,9 @@ MODEL_OUTPUT_RATE_USD_PER_M: dict[str, float] = {
     "gpt-4o": 10.00,
     "gpt-4.1-mini": 1.60,
     "gpt-4.1": 8.00,
+    "gpt-5.4-mini": 2.40,
+    "gpt-5.4": 10.00,
+    "gpt-5.5": 12.00,
 }
 
 # Token estimates for monitoring UI (gpt-4o-mini baseline profile).
@@ -27,6 +33,9 @@ MONITORING_ESTIMATE_TOKENS: dict[str, tuple[int, int]] = {
     "gpt-4o": (500, 150),
     "gpt-4.1-mini": (500, 150),
     "gpt-4.1": (500, 150),
+    "gpt-5.4-mini": (500, 150),
+    "gpt-5.4": (500, 150),
+    "gpt-5.5": (500, 150),
 }
 
 

@@ -92,3 +92,46 @@ def suggest_entry(
         return round(current_price, 2), "wait"
 
     return round(current_price, 2), "wait"
+
+
+def suggest_entry_rationale(
+    *,
+    suggested_entry: float,
+    current_price: float,
+    planned_entry_price: float | None,
+    signal: str,
+    technical_data: dict[str, Any],
+) -> str:
+    if suggested_entry <= 0:
+        return "No entry price suggested — conditions do not support a limit order at this time."
+
+    sr = technical_data.get("support_resistance") or {}
+    support = sr.get("support")
+    resistance = sr.get("resistance")
+    parts: list[str] = []
+
+    if signal == "high_risk":
+        parts.append("Elevated risk flags suggest using the current market price rather than chasing.")
+    elif signal == "buy_near_support":
+        if support and float(support) < current_price:
+            parts.append(f"Nearby support near ₹{float(support):.2f} offers a better risk/reward than buying at market.")
+        else:
+            parts.append("A slight discount below the current price improves entry quality without chasing momentum.")
+    elif signal == "wait":
+        if resistance and float(resistance) > current_price:
+            parts.append(f"Resistance near ₹{float(resistance):.2f} suggests waiting for a clearer setup.")
+        else:
+            parts.append("Technical conditions favor patience at or near the current price.")
+
+    if planned_entry_price and planned_entry_price > 0:
+        diff_pct = ((suggested_entry - planned_entry_price) / planned_entry_price) * 100
+        if abs(diff_pct) >= 0.5:
+            direction = "below" if diff_pct < 0 else "above"
+            parts.append(
+                f"This is {abs(diff_pct):.1f}% {direction} your planned limit of ₹{planned_entry_price:.2f}."
+            )
+
+    if current_price > 0 and suggested_entry != current_price:
+        parts.append(f"Current market price is ₹{current_price:.2f}; suggested limit is ₹{suggested_entry:.2f}.")
+
+    return " ".join(parts) if parts else f"Suggested limit ₹{suggested_entry:.2f} based on current technical levels."

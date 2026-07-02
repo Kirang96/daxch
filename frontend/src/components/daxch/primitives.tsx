@@ -142,7 +142,7 @@ export function Badge({
     warning:
       "border-[color:oklch(0.55_0.14_55/0.5)] bg-[color:oklch(0.62_0.14_55/0.15)] text-[color:oklch(0.42_0.13_55)]",
     danger:
-      "border-[color:oklch(0.52_0.19_27/0.5)] bg-[color:oklch(0.52_0.19_27/0.1)] text-[color:var(--destructive)]",
+      "border-[color:oklch(0.52_0.19_27/0.5)] bg-[color:oklch(0.52_0.19_27/0.1)] text-[color:oklch(0.45_0.19_27)]",
     primary: "border-[color:var(--ink)] bg-[color:var(--ink)] text-[color:var(--paper)]"
   };
 

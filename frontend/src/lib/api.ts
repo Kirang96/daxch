@@ -103,6 +103,7 @@ async function apiFetch<T>(path: string, init?: RequestInit, skipAuth?: boolean)
 }
 
 export const api = {
+  getPublic: <T>(path: string) => apiFetch<T>(path, undefined, true),
   postPublic: <T>(path: string, body: unknown) =>
     apiFetch<T>(
       path,

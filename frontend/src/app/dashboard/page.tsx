@@ -237,7 +237,7 @@ export default function DashboardPage() {
 
   return (
     <AppShell
-      eyebrow={`Vol. I · ${dateEyebrow}`}
+      eyebrow={dateEyebrow}
       title={profileName ? `${greeting}, ${profileName}.` : `${greeting}.`}
       subtitle={portfolioSubtitle}
       actions={
@@ -269,6 +269,14 @@ export default function DashboardPage() {
             done: hasAgentActivity,
             href: agents[0] ? `/agents/${agents[0].id}` : "/agents",
             hint: "Approve or reject"
+          },
+          {
+            id: "guide",
+            label: "Learn how Daxch works",
+            done: false,
+            href: "/guide",
+            hint: "5 min read",
+            optional: true
           },
           {
             id: "notify",

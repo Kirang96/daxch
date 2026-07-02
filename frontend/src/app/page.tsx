@@ -165,7 +165,7 @@ export default function HomePage() {
           <div className="lg:col-span-6">
             <div className="editorial-label mb-8 flex items-center gap-3 text-muted-foreground">
               <span className="h-px w-8 bg-primary" />
-              Vol. I · Issue 001 · Est. 2026
+              Issue 001 · Est. 2026
             </div>
             <h1 className="mb-8 font-serif text-5xl leading-[1.05] text-[oklch(0.15_0_0)] md:text-6xl lg:text-7xl">
               Your portfolio deserves a <span className="italic">dedicated research desk</span>.

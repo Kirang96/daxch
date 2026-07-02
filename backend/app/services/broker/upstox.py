@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 import httpx
 
 from backend.app.core.config import get_settings
+from backend.app.services.market_hours import should_use_amo
 from backend.app.services.broker.base import (
     BaseBroker,
     CandleBar,
@@ -278,7 +279,7 @@ class UpstoxBroker(BaseBroker):
             "transaction_type": order.transaction_type.upper(),
             "disclosed_quantity": 0,
             "trigger_price": 0,
-            "is_amo": False,
+            "is_amo": should_use_amo(),
         }
         data = await self._request("POST", "/order/place", access_token=token, body=payload)
         order_id = data.get("data", {}).get("order_id") or data.get("data", {}).get("id")

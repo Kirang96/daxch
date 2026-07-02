@@ -28,6 +28,7 @@ from backend.app.schemas.agent import (
     AgentResponse,
     DecisionResponse,
     OrderSnapshot,
+    SquareOffRequest,
 )
 from backend.app.services.audit import log_event
 from backend.app.services.broker.factory import get_broker
@@ -36,6 +37,7 @@ from backend.app.services.broker.upstox import BrokerConfigurationError
 from backend.app.services.entry_fill import agent_awaiting_entry_fill
 from backend.app.services.notification_events import create_notification_event
 from backend.app.services.plan_limits import get_agent_limit, get_max_polling_frequency
+from backend.app.services.positions.exchange import aggregate_exchange_positions
 from backend.app.services.subscription_access import require_platform_access
 
 router = APIRouter(prefix="/agents", tags=["agents"])
@@ -358,6 +360,98 @@ def resume_agent(
         agent.next_poll_at = _next_poll_time(agent.polling_frequency, now=datetime.now(tz=timezone.utc))
     db.commit()
     return {"updated": True}
+
+
+@router.post("/{agent_id}/square-off")
+async def square_off_agent(
+    agent_id: str,
+    payload: SquareOffRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    require_platform_access(db, current_user)
+    stmt = (
+        select(MonitorAgent)
+        .join(StockHolding, MonitorAgent.holding_id == StockHolding.id)
+        .where(MonitorAgent.id == UUID(agent_id), StockHolding.user_id == current_user.id)
+    )
+    agent = db.execute(stmt).scalar_one_or_none()
+    if not agent:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
+
+    holding = db.get(StockHolding, agent.holding_id)
+    if not holding:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Holding not found")
+
+    positions = aggregate_exchange_positions(db, current_user.id)
+    position = next((p for p in positions if p.holding_id == holding.id and p.has_exchange_position), None)
+    if not position or position.net_quantity <= 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No exchange position to sell.")
+    if payload.quantity < 1 or payload.quantity > position.net_quantity:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Quantity must be between 1 and {position.net_quantity}.",
+        )
+
+    decision = AgentDecision(
+        agent_id=agent.id,
+        decision_type=DecisionType.sell,
+        reasoning=f"User-initiated square-off of {payload.quantity} shares.",
+        analysis_data={"user_initiated": True, "square_off": True},
+        confirmation_status=ConfirmationStatus.approved,
+        confirmed_at=datetime.now(tz=timezone.utc),
+    )
+    db.add(decision)
+    db.flush()
+
+    order = Order(
+        decision_id=decision.id,
+        order_type="MARKET",
+        status=OrderStatus.pending,
+        price=None,
+        quantity=payload.quantity,
+        transaction_type="SELL",
+    )
+    db.add(order)
+    db.flush()
+
+    try:
+        await place_and_sync_order(
+            db,
+            current_user,
+            holding,
+            order,
+            order_type="MARKET",
+            transaction_type="SELL",
+            price=None,
+        )
+    except OrderPlacementError as exc:
+        order.status = OrderStatus.failed
+        db.commit()
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+
+    log_event(
+        db,
+        agent.id,
+        "user_square_off",
+        {"decision_id": str(decision.id), "order_id": str(order.id), "quantity": payload.quantity},
+    )
+
+    if payload.quantity >= position.net_quantity:
+        agent.status = AgentStatus.paused
+        log_event(db, agent.id, "agent_paused", {"reason": "full_square_off"})
+
+    create_notification_event(
+        db,
+        current_user.id,
+        NotificationType.agent,
+        f"{holding.ticker}: square-off order placed",
+        f"MARKET sell for {payload.quantity} shares sent to Upstox.",
+        {"decision_id": str(decision.id), "order_id": str(order.id), "ticker": holding.ticker},
+    )
+
+    db.commit()
+    return {"updated": True, "order_id": str(order.id), "order_status": order.status.value}
 
 
 @router.post("/stop-all")

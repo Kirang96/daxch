@@ -207,7 +207,7 @@ function NewAgentWizard() {
     const entry = Number(entryPrice);
     const qty = Number(quantity);
     if (!entry || !qty) {
-      setError("Enter entry price and quantity to continue.");
+      setError("Enter limit price and quantity to continue.");
       return;
     }
     const freq = clampPollingFrequency(Number(pollingFrequency));
@@ -254,7 +254,6 @@ function NewAgentWizard() {
         return [...filtered, result.analysis];
       });
       setActiveAnalysisId(result.analysis.strategy);
-      next();
     } catch (err) {
       if (err instanceof ApiError && err.code === "AI_UNITS_EXHAUSTED") {
         setAiUnitsExhausted(true);
@@ -334,6 +333,24 @@ function NewAgentWizard() {
       setSubmitting(false);
       setGenerating(false);
     }
+  };
+
+  const continueFromInvestment = () => {
+    const entry = Number(entryPrice);
+    const qty = Number(quantity);
+    if (!entry || !qty) {
+      setError("Enter limit price and quantity to continue.");
+      return;
+    }
+    const freq = clampPollingFrequency(Number(pollingFrequency));
+    if (!freq) {
+      setError("Enter monitoring checks per trading day (2–12).");
+      return;
+    }
+    setError("");
+    setPlannedTrade({ entry: entryPrice, quantity });
+    setUserFrequencySnapshot(String(freq));
+    next();
   };
 
   const applyAssessmentChoicesAndContinue = () => {
@@ -435,25 +452,34 @@ function NewAgentWizard() {
       )}
       {step === 3 && (
         <Step2Investment
+          quote={quote}
+          ticker={ticker}
+          exchange={exchange}
           entryPrice={entryPrice}
           quantity={quantity}
           pollingFrequency={pollingFrequency}
           maxPlanFrequency={maxPlanFrequency}
           intention={intention}
-          strategies={strategies}
-          selectedStrategy={selectedStrategy}
-          onStrategyChange={setSelectedStrategy}
           onEntryPriceChange={setEntryPrice}
           onQuantityChange={setQuantity}
           onPollingFrequencyChange={setPollingFrequency}
-          onRunAnalysis={() => void runAnalysis()}
+          onContinue={continueFromInvestment}
           onBack={prev}
-          generating={generating}
           agentMonthlyEstimate={agentMonthlyEstimate}
         />
       )}
       {step === 4 && (
         <Step3Assessment
+          ticker={ticker}
+          exchange={exchange}
+          quote={quote}
+          entryPrice={entryPrice}
+          quantity={quantity}
+          strategies={strategies}
+          selectedStrategy={selectedStrategy}
+          onStrategyChange={setSelectedStrategy}
+          onRunAnalysis={() => void runAnalysis()}
+          generating={generating}
           analysisRuns={analysisRuns}
           activeAnalysisId={activeAnalysisId}
           onActiveAnalysisChange={setActiveAnalysisId}
@@ -465,7 +491,6 @@ function NewAgentWizard() {
           onFrequencyChoiceChange={setFrequencyChoice}
           onNext={applyAssessmentChoicesAndContinue}
           onBack={prev}
-          onTryAnother={() => setStep(3)}
         />
       )}
       {step === 5 && (
@@ -642,36 +667,34 @@ function Mini({ label, value, delta, up }: { label: string; value: string; delta
 }
 
 function Step2Investment({
+  quote,
+  ticker,
+  exchange,
   entryPrice,
   quantity,
   pollingFrequency,
   maxPlanFrequency,
   intention,
-  strategies,
-  selectedStrategy,
-  onStrategyChange,
   onEntryPriceChange,
   onQuantityChange,
   onPollingFrequencyChange,
-  onRunAnalysis,
+  onContinue,
   onBack,
-  generating,
   agentMonthlyEstimate
 }: {
+  quote: { ticker: string; name?: string | null; ltp: number; change_percent: number | null } | null;
+  ticker: string;
+  exchange: string;
   entryPrice: string;
   quantity: string;
   pollingFrequency: string;
   maxPlanFrequency: number;
   intention: string;
-  strategies: StrategyMeta[];
-  selectedStrategy: AnalysisStrategyId;
-  onStrategyChange: (id: AnalysisStrategyId) => void;
   onEntryPriceChange: (value: string) => void;
   onQuantityChange: (value: string) => void;
   onPollingFrequencyChange: (value: string) => void;
-  onRunAnalysis: () => void;
+  onContinue: () => void;
   onBack: () => void;
-  generating: boolean;
   agentMonthlyEstimate?: number | null;
 }) {
   const entry = Number(entryPrice);
@@ -687,11 +710,35 @@ function Step2Investment({
         <div className="text-xs uppercase tracking-wider text-muted-foreground">Step 3 · Investment details</div>
         <h2 className="mt-2 text-2xl font-semibold tracking-tight">Planned investment</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Tell the AI what you&apos;re planning to buy. This does not place an order. Your goal ({intention.replace(/_/g, " ")}) is included in analysis.
+          Set your limit price and size. Your goal ({intention.replace(/_/g, " ")}) is included in the next step&apos;s AI analysis.
         </p>
 
+        <div className="mt-6 rounded-2xl border border-border/15 bg-muted/60 p-5">
+          <div className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">
+            {(quote?.ticker || ticker.toUpperCase() || "—")} · {exchange}
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <Mini
+              label="Current price"
+              value={quote ? `₹${quote.ltp.toFixed(2)}` : "—"}
+              delta={
+                quote?.change_percent != null
+                  ? `${quote.change_percent > 0 ? "+" : ""}${quote.change_percent.toFixed(2)}%`
+                  : undefined
+              }
+              up={quote?.change_percent != null ? quote.change_percent >= 0 : undefined}
+            />
+          </div>
+        </div>
+
         <div className="mt-6 grid gap-4 md:grid-cols-2">
-          <Field label="Entry price" prefix="₹" value={entryPrice} onChange={onEntryPriceChange} />
+          <Field
+            label="Limit price"
+            prefix="₹"
+            hint="Pre-filled from quote"
+            value={entryPrice}
+            onChange={onEntryPriceChange}
+          />
           <Field label="Quantity" value={quantity} onChange={onQuantityChange} />
         </div>
 
@@ -728,41 +775,18 @@ function Step2Investment({
             {total != null ? `₹${total.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "—"}
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            {total != null ? `₹${entry.toFixed(2)} × ${qty} shares` : "Enter entry price and quantity to see total."}
+            {total != null ? `₹${entry.toFixed(2)} × ${qty} shares` : "Enter limit price and quantity to see total."}
           </p>
-        </div>
-
-        <div className="mt-4 rounded-xl border border-border/15 bg-muted/60 p-4 text-xs text-muted-foreground">
-          Run analysis below to get an enter / don&apos;t enter recommendation at your planned price and size.
-        </div>
-
-        <div className="mt-6">
-          <div className="mb-2 text-sm font-medium text-foreground">Analysis strategy</div>
-          <StrategySelector
-            strategies={strategies}
-            selected={selectedStrategy}
-            onSelect={onStrategyChange}
-          />
         </div>
 
         <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
           <button onClick={onBack} className="inline-flex items-center gap-2 rounded-xl border border-border/20 bg-background px-4 py-2.5 text-sm font-medium hover:bg-muted">
             <ArrowLeft className="h-4 w-4" /> Back
           </button>
-          <button onClick={onRunAnalysis} disabled={generating || !canContinue} className="inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-[oklch(0.15_0_0)] disabled:cursor-not-allowed disabled:opacity-50">
-            {generating ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" /> Analyzing...
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-4 w-4" /> Run Analysis
-              </>
-            )}
+          <button onClick={onContinue} disabled={!canContinue} className="inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-[oklch(0.15_0_0)] disabled:cursor-not-allowed disabled:opacity-50">
+            Continue to AI assessment <ArrowRight className="h-4 w-4" />
           </button>
         </div>
-
-        {generating && <ResearchProgressSteps active={generating} />}
       </GlassCard>
     </div>
   );
@@ -896,6 +920,16 @@ function Field({
 }
 
 function Step3Assessment({
+  ticker,
+  exchange,
+  quote,
+  entryPrice,
+  quantity,
+  strategies,
+  selectedStrategy,
+  onStrategyChange,
+  onRunAnalysis,
+  generating,
   analysisRuns,
   activeAnalysisId,
   onActiveAnalysisChange,
@@ -907,8 +941,17 @@ function Step3Assessment({
   onFrequencyChoiceChange,
   onNext,
   onBack,
-  onTryAnother,
 }: {
+  ticker: string;
+  exchange: string;
+  quote: { ltp: number; change_percent: number | null } | null;
+  entryPrice: string;
+  quantity: string;
+  strategies: StrategyMeta[];
+  selectedStrategy: AnalysisStrategyId;
+  onStrategyChange: (id: AnalysisStrategyId) => void;
+  onRunAnalysis: () => void;
+  generating: boolean;
   analysisRuns: StrategyAnalysisResult[];
   activeAnalysisId: AnalysisStrategyId | null;
   onActiveAnalysisChange: (id: AnalysisStrategyId) => void;
@@ -920,7 +963,6 @@ function Step3Assessment({
   onFrequencyChoiceChange: (choice: Choice) => void;
   onNext: () => void;
   onBack: () => void;
-  onTryAnother: () => void;
 }) {
   const userEntry = plannedTrade?.entry ?? "";
   const userQty = plannedTrade?.quantity ?? "";
@@ -973,8 +1015,47 @@ function Step3Assessment({
           {userTotal != null && (
             <span className="text-sm text-muted-foreground">Total {formatInr(userTotal)}</span>
           )}
+          {quote && (
+            <span className="text-sm text-muted-foreground">
+              Market · ₹{quote.ltp.toFixed(2)}
+              {quote.change_percent != null ? ` (${quote.change_percent > 0 ? "+" : ""}${quote.change_percent.toFixed(2)}%)` : ""}
+            </span>
+          )}
         </div>
       </GlassCard>
+
+      <GlassCard className="mb-6">
+        <div className="mb-2 text-sm font-medium text-foreground">Analysis strategy</div>
+        <StrategySelector strategies={strategies} selected={selectedStrategy} onSelect={onStrategyChange} />
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            onClick={onRunAnalysis}
+            disabled={generating}
+            className="inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-[oklch(0.15_0_0)] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {generating ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" /> Analyzing...
+              </>
+            ) : analysisRuns.length > 0 ? (
+              <>
+                <Sparkles className="h-4 w-4" /> Re-analyze
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4" /> Run analysis
+              </>
+            )}
+          </button>
+        </div>
+        {generating && <ResearchProgressSteps active={generating} />}
+      </GlassCard>
+
+      {analysisRuns.length === 0 && !generating && (
+        <AlertBanner variant="info" className="mb-4">
+          Select a strategy and run analysis to get enter / don&apos;t enter guidance for {ticker.toUpperCase()} on {exchange}.
+        </AlertBanner>
+      )}
 
       {isDontEnter && (
         <AlertBanner variant="error" className="mb-4" title="Strategy recommends not entering">
@@ -1022,6 +1103,7 @@ function Step3Assessment({
         <EntryChoiceCard
           title="AI suggested entry"
           subtitle={activeResult ? formatSignal(activeResult.signal ?? undefined) : "No suggestion"}
+          rationale={activeResult?.suggested_entry_rationale ?? undefined}
           selected={entryChoice === "ai"}
           onSelect={() => onEntryChoiceChange("ai")}
           entry={aiEntry}
@@ -1073,8 +1155,9 @@ function Step3Assessment({
         </button>
         <div className="flex flex-wrap justify-end gap-2">
           <button
-            onClick={onTryAnother}
-            className="inline-flex items-center gap-2 rounded-xl border border-border/20 bg-background px-4 py-2.5 text-sm font-medium hover:bg-muted"
+            onClick={onRunAnalysis}
+            disabled={generating}
+            className="inline-flex items-center gap-2 rounded-xl border border-border/20 bg-background px-4 py-2.5 text-sm font-medium hover:bg-muted disabled:opacity-50"
           >
             Try another strategy
           </button>
@@ -1111,6 +1194,7 @@ const formatSignal = (sig?: string) => {
 function EntryChoiceCard({
   title,
   subtitle,
+  rationale,
   selected,
   onSelect,
   entry,
@@ -1120,6 +1204,7 @@ function EntryChoiceCard({
 }: {
   title: string;
   subtitle: string;
+  rationale?: string;
   selected: boolean;
   onSelect: () => void;
   entry: string;
@@ -1155,6 +1240,7 @@ function EntryChoiceCard({
         {selected && <Badge variant="success">Selected</Badge>}
       </div>
       <div className="mt-4 text-2xl font-semibold">{entry ? formatInr(Number(entry)) : "—"}</div>
+      {rationale && <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{rationale}</p>}
       <div className="mt-4 text-xs font-medium text-primary">{actionLabel}</div>
     </button>
   );

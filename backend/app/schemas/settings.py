@@ -8,6 +8,7 @@ class AiModelOption(BaseModel):
     id: str
     label: str
     description: str
+    ultra_only: bool = False
 
 
 class SettingsResponse(BaseModel):

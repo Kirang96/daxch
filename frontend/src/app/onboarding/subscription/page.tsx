@@ -11,7 +11,7 @@ import { Logo } from "@/components/daxch/logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
-import { buildPlanCardFromApi, type PlanId, PLAN_ORDER } from "@/lib/plan-features";
+import { buildPlanCardFromApi, getPlanCtaState, isPlanId, type PlanId, PLAN_ORDER } from "@/lib/plan-features";
 import { startSubscriptionCheckout, finalizeSubscriptionReturn, refreshPendingSubscription } from "@/lib/razorpay-subscription";
 import { PlanInfo, Subscription } from "@/types";
 
@@ -154,7 +154,9 @@ function OnboardingSubscriptionContent() {
             </GlassCard>
           ) : (
             plans.map((plan) => {
-              const isCurrent = isActive && current?.plan?.toLowerCase() === plan.id;
+              const planId = plan.id as PlanId;
+              const currentPlan = isPlanId(current?.plan?.toLowerCase() ?? "") ? (current!.plan.toLowerCase() as PlanId) : null;
+              const ctaState = getPlanCtaState(currentPlan, planId, isActive);
               return (
                 <GlassCard
                   key={plan.id}
@@ -162,7 +164,7 @@ function OnboardingSubscriptionContent() {
                 >
                   <div className="flex items-center justify-between">
                     <h3 className="font-serif text-xl font-medium">{plan.name}</h3>
-                    {isCurrent ? <Badge variant="success">Current</Badge> : plan.highlighted ? <Badge variant="primary">Popular</Badge> : null}
+                    {ctaState === "current" ? <Badge variant="success">Current</Badge> : plan.highlighted ? <Badge variant="primary">Popular</Badge> : null}
                   </div>
                   <div className="mt-3 flex items-baseline gap-1">
                     <span className="font-mono text-3xl font-semibold tracking-tight">{plan.price}</span>
@@ -170,16 +172,26 @@ function OnboardingSubscriptionContent() {
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground">{plan.desc}</p>
                   <PlanFeaturesList features={plan.features} className="mt-6 flex-1" itemClassName="leading-relaxed" />
-                  <Button
-                    className="mt-8 w-full"
-                    variant={plan.highlighted ? "primary" : "secondary"}
-                    disabled={isCurrent}
-                    onClick={() => !isCurrent && subscribe(plan.id as PlanId)}
-                  >
-                    {isCurrent ? "Current plan" : `Subscribe to ${plan.name}`}
-                  </Button>
-                  {devActivateAvailable && !isCurrent && (
-                    <Button className="mt-2 w-full" variant="secondary" onClick={() => devActivate(plan.id as PlanId)}>
+                  {ctaState === "included" ? (
+                    <p className="mt-8 rounded-xl border border-border/15 bg-muted/60 px-4 py-3 text-center text-sm text-muted-foreground">
+                      Included in your plan
+                    </p>
+                  ) : (
+                    <Button
+                      className="mt-8 w-full"
+                      variant={plan.highlighted ? "primary" : "secondary"}
+                      disabled={ctaState === "current"}
+                      onClick={() => ctaState !== "current" && subscribe(planId)}
+                    >
+                      {ctaState === "current"
+                        ? "Current plan"
+                        : ctaState === "upgrade"
+                          ? `Upgrade to ${plan.name}`
+                          : `Subscribe to ${plan.name}`}
+                    </Button>
+                  )}
+                  {devActivateAvailable && ctaState !== "current" && ctaState !== "included" && (
+                    <Button className="mt-2 w-full" variant="secondary" onClick={() => devActivate(planId)}>
                       Activate {plan.name} (dev only)
                     </Button>
                   )}

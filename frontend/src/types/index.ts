@@ -167,6 +167,7 @@ export type AiModelOption = {
   id: string;
   label: string;
   description: string;
+  ultra_only?: boolean;
 };
 
 export type UserSettings = {
@@ -239,6 +240,7 @@ export type StrategyAnalysisResult = {
   metadata?: Record<string, unknown>;
   suggested_entry?: number | null;
   signal?: string | null;
+  suggested_entry_rationale?: string | null;
   suggested_polling_frequency?: number | null;
   frequency_rationale?: string | null;
   frequency_factors?: string[];

@@ -41,7 +41,7 @@ const PLAN_FEATURES: Record<PlanId, readonly string[]> = {
     "Unlimited monitoring agents",
     "Up to 12 checks per trading day (~every 30 min)",
     "All 3 strategies, including AI Trade Setup",
-    "Choose AI model (GPT-4o Mini through GPT-4.1)",
+    "GPT-4 family plus GPT-5.4 Mini, GPT-5.4, and GPT-5.5",
     "Ideal for many agents or high-frequency monitoring",
     ...SHARED_PLATFORM
   ]
@@ -110,7 +110,7 @@ export const PLAN_COMPARISON_ROWS: readonly PlanComparisonRow[] = [
     label: "AI model choice",
     starter: "GPT-4o Mini",
     pro: "GPT-4o Mini → GPT-4.1",
-    ultra: "GPT-4o Mini → GPT-4.1"
+    ultra: "GPT-4 + GPT-5.4 family"
   },
   {
     label: "Research & watchlist",
@@ -134,6 +134,27 @@ export const PLAN_COMPARISON_ROWS: readonly PlanComparisonRow[] = [
 
 export function isPlanId(value: string): value is PlanId {
   return value === "starter" || value === "pro" || value === "ultra";
+}
+
+export function getPlanTierRank(planId: PlanId): number {
+  return PLAN_ORDER.indexOf(planId);
+}
+
+export function comparePlanTiers(a: PlanId, b: PlanId): number {
+  return getPlanTierRank(a) - getPlanTierRank(b);
+}
+
+export type PlanCtaState = "current" | "upgrade" | "subscribe" | "included";
+
+export function getPlanCtaState(
+  currentPlan: PlanId | null,
+  targetPlan: PlanId,
+  isActive: boolean
+): PlanCtaState {
+  if (isActive && currentPlan === targetPlan) return "current";
+  if (isActive && currentPlan && comparePlanTiers(targetPlan, currentPlan) < 0) return "included";
+  if (isActive && currentPlan && comparePlanTiers(targetPlan, currentPlan) > 0) return "upgrade";
+  return "subscribe";
 }
 
 export function getPlanFeatures(planId: string): string[] {

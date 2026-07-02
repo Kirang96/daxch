@@ -1,40 +1,67 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { ArrowRight, Mail, User } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { ArrowRight, Lock, Mail, User } from "lucide-react";
 
 import { Disclaimer } from "@/components/daxch/primitives";
 import { Logo } from "@/components/daxch/logo";
-import { api } from "@/lib/api";
+import { api, setToken } from "@/lib/api";
+import { resolvePostAuthPath } from "@/lib/onboarding";
 
 const inputClass =
   "h-11 w-full rounded-sm border border-border/20 bg-background pl-10 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30";
 
 export default function SignupPage() {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [agree, setAgree] = useState(false);
   const [status, setStatus] = useState("");
+  const [magicLinkEnabled, setMagicLinkEnabled] = useState(false);
   const [debugToken, setDebugToken] = useState("");
 
-  const requestMagicLink = async () => {
+  useEffect(() => {
+    api.getPublic<{ magic_link_enabled: boolean }>("/auth/config").then((c) => setMagicLinkEnabled(c.magic_link_enabled)).catch(() => {});
+  }, []);
+
+  const register = async () => {
     if (!agree) {
       setStatus("Please accept Terms of Service and Privacy Policy.");
       return;
     }
-    if (!email.trim()) {
-      setStatus("Email is required.");
-      return;
+    if (!magicLinkEnabled) {
+      if (password.length < 8) {
+        setStatus("Password must be at least 8 characters.");
+        return;
+      }
+      if (password !== confirmPassword) {
+        setStatus("Passwords do not match.");
+        return;
+      }
     }
-    setStatus("Sending sign-in link...");
+    setStatus(magicLinkEnabled ? "Sending sign-in link..." : "Creating account...");
     try {
-      const response = await api.postPublic<{ message: string; debug_token?: string }>("/auth/magic-link/request", {
-        email,
-        name: name || undefined
-      });
-      setDebugToken(response.debug_token || "");
-      setStatus("Magic link sent. Check your inbox to continue onboarding.");
+      if (magicLinkEnabled) {
+        const response = await api.postPublic<{ message: string; debug_token?: string }>("/auth/magic-link/request", {
+          email,
+          name: name || undefined,
+        });
+        setDebugToken(response.debug_token || "");
+        setStatus("Magic link sent. Check your inbox to continue onboarding.");
+      } else {
+        const response = await api.postPublic<{ access_token: string }>("/auth/register", {
+          email,
+          password,
+          name: name || undefined,
+        });
+        setToken(response.access_token);
+        const nextPath = await resolvePostAuthPath();
+        router.replace(nextPath);
+      }
     } catch (error) {
       setStatus(`Signup failed: ${(error as Error).message}`);
     }
@@ -80,53 +107,40 @@ export default function SignupPage() {
 
           <form
             className="space-y-4"
-            onSubmit={(event) => {
-              event.preventDefault();
-              requestMagicLink();
+            onSubmit={(e) => {
+              e.preventDefault();
+              void register();
             }}
           >
             <Field icon={<User className="h-4 w-4" />} label="Full name" placeholder="Your name" value={name} onChange={setName} />
-            <Field
-              icon={<Mail className="h-4 w-4" />}
-              label="Email"
-              type="email"
-              placeholder="you@company.com"
-              value={email}
-              onChange={setEmail}
-            />
+            <Field icon={<Mail className="h-4 w-4" />} label="Email" type="email" placeholder="you@company.com" value={email} onChange={setEmail} />
+            {!magicLinkEnabled && (
+              <>
+                <Field icon={<Lock className="h-4 w-4" />} label="Password" type="password" placeholder="Min. 8 characters" value={password} onChange={setPassword} />
+                <Field icon={<Lock className="h-4 w-4" />} label="Confirm password" type="password" placeholder="Repeat password" value={confirmPassword} onChange={setConfirmPassword} />
+              </>
+            )}
             <label className="flex items-start gap-2.5 pt-2 text-xs text-muted-foreground">
               <input
                 checked={agree}
-                onChange={(event) => setAgree(event.target.checked)}
+                onChange={(e) => setAgree(e.target.checked)}
                 type="checkbox"
                 className="mt-0.5 h-4 w-4 rounded-sm border-border/30 bg-background text-primary focus:ring-primary/40"
               />
               <span>
-                I agree to the{" "}
-                <Link href="/terms" className="underline-offset-4 hover:underline">
-                  Terms of Service
-                </Link>{" "}
-                and{" "}
-                <Link href="/privacy" className="underline-offset-4 hover:underline">
-                  Privacy Policy
-                </Link>
-                .
+                I agree to the <Link href="/terms" className="underline-offset-4 hover:underline">Terms</Link> and{" "}
+                <Link href="/privacy" className="underline-offset-4 hover:underline">Privacy Policy</Link>.
               </span>
             </label>
-            <button
-              type="submit"
-              className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-semibold uppercase tracking-wider text-primary-foreground transition-colors hover:bg-[oklch(0.15_0_0)]"
-            >
-              Continue <ArrowRight className="h-4 w-4" />
+            <button type="submit" className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-semibold uppercase tracking-wider text-primary-foreground hover:bg-[oklch(0.15_0_0)]">
+              {magicLinkEnabled ? "Send magic link" : "Create account"} <ArrowRight className="h-4 w-4" />
             </button>
           </form>
           {status && <p className="mt-4 text-xs text-muted-foreground">{status}</p>}
-          {debugToken && process.env.NODE_ENV !== "production" && (
+          {debugToken && magicLinkEnabled && (
             <div className="mt-3 rounded-sm border border-amber-400/50 bg-amber-50 p-3 text-xs text-amber-900">
-              <p>Development mode token:</p>
-              <p className="mt-2 break-all">{debugToken}</p>
-              <Link href={`/auth/verify?token=${encodeURIComponent(debugToken)}`} className="mt-2 inline-block text-primary underline">
-                Continue with this token
+              <Link href={`/auth/verify?token=${encodeURIComponent(debugToken)}`} className="text-primary underline">
+                Continue with dev token
               </Link>
             </div>
           )}
@@ -143,27 +157,21 @@ function Field({
   type = "text",
   placeholder,
   value,
-  onChange
+  onChange,
 }: {
   icon: React.ReactNode;
   label: string;
   type?: string;
   placeholder?: string;
   value: string;
-  onChange: (value: string) => void;
+  onChange: (v: string) => void;
 }) {
   return (
     <label className="block">
       <span className="editorial-label mb-1.5 block text-muted-foreground">{label}</span>
       <div className="relative">
         <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{icon}</span>
-        <input
-          type={type}
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          placeholder={placeholder}
-          className="h-11 w-full rounded-sm border border-border/20 bg-background pl-10 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-        />
+        <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className={inputClass} required />
       </div>
     </label>
   );
