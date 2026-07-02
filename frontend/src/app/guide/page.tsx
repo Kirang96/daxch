@@ -5,7 +5,7 @@ import { ArrowRight, BookOpen } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { Disclaimer, GlassCard } from "@/components/daxch/primitives";
-import { GUIDE_FAQ, GUIDE_FEATURES, GUIDE_JOURNEY } from "@/lib/guide-content";
+import { GUIDE_FAQ, GUIDE_FEATURES, GUIDE_JOURNEY, GUIDE_SECTIONS } from "@/lib/guide-content";
 
 export default function GuidePage() {
   return (
@@ -17,6 +17,16 @@ export default function GuidePage() {
       <GlassCard className="mb-8 border-amber-700/20 bg-amber-50/50 p-5 text-sm text-amber-950">
         Daxch is not a SEBI-registered investment advisor. All output is informational — validate against your own risk profile.
       </GlassCard>
+
+      <section className="mb-10 space-y-4">
+        <h2 className="font-serif text-2xl tracking-tight">How it works</h2>
+        {GUIDE_SECTIONS.map((section) => (
+          <GlassCard key={section.id} id={section.id} className="p-5">
+            <h3 className="font-medium">{section.title}</h3>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{section.body}</p>
+          </GlassCard>
+        ))}
+      </section>
 
       <section className="mb-10">
         <h2 className="font-serif text-2xl tracking-tight">Your journey</h2>

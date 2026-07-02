@@ -10,6 +10,7 @@ export type StockHolding = {
   agent_id?: string | null;
   agent_status?: string | null;
   awaiting_entry_fill?: boolean;
+  entry_order_error?: string | null;
   entry_order?: OrderSnapshot | null;
 };
 
@@ -20,6 +21,7 @@ export type MonitorAgent = {
   status: string;
   next_poll_at: string | null;
   awaiting_entry_fill?: boolean;
+  entry_order_error?: string | null;
 };
 
 export type OrderSnapshot = {
@@ -180,6 +182,7 @@ export type UserSettings = {
   api_connections: Record<string, unknown>;
   preferred_ai_model: string;
   ai_model_can_change: boolean;
+  effective_plan_tier?: string;
   ai_model_options: AiModelOption[];
   created_at: string;
   updated_at: string;

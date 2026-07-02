@@ -22,6 +22,7 @@ class AgentResponse(BaseModel):
     status: str
     next_poll_at: datetime | None
     awaiting_entry_fill: bool = False
+    entry_order_error: str | None = None
 
     model_config = {"from_attributes": True}
 

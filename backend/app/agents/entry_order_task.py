@@ -101,6 +101,11 @@ async def _poll_pending_entry_orders() -> int:
                 activate_agent_after_entry_fill(db, agent, holding, order)
             elif broker_status in ("rejected", "failed"):
                 order.status = OrderStatus.failed
+                config = dict(agent.agent_config or {})
+                config["awaiting_entry_fill"] = False
+                config["entry_order_error"] = live.message or f"Order {broker_status} by exchange"
+                agent.agent_config = config
+                agent.status = AgentStatus.paused
                 log_event(
                     db,
                     agent.id,

@@ -1059,7 +1059,7 @@ function Step3Assessment({
 
       {isDontEnter && (
         <AlertBanner variant="error" className="mb-4" title="Strategy recommends not entering">
-          This analysis suggests waiting. Try another strategy or adjust your entry before continuing.
+          This analysis suggests waiting. Pick a different strategy above and re-analyze, or adjust your limit price.
         </AlertBanner>
       )}
 
@@ -1154,13 +1154,6 @@ function Step3Assessment({
           <ArrowLeft className="h-4 w-4" /> Back
         </button>
         <div className="flex flex-wrap justify-end gap-2">
-          <button
-            onClick={onRunAnalysis}
-            disabled={generating}
-            className="inline-flex items-center gap-2 rounded-xl border border-border/20 bg-background px-4 py-2.5 text-sm font-medium hover:bg-muted disabled:opacity-50"
-          >
-            Try another strategy
-          </button>
           <button
             onClick={onNext}
             disabled={!plannedTrade || !activeResult || (entryChoice === "ai" && !aiEntry) || isDontEnter}

@@ -19,6 +19,7 @@ from backend.app.services.ai.models import (
     list_models_for_plan,
     resolve_model,
 )
+from backend.app.services.plan_access import get_effective_plan_tier
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
@@ -55,8 +56,8 @@ def _ensure_settings(db: Session, user: User) -> UserSettings:
     return settings
 
 
-def _to_response(settings: UserSettings, user: User) -> SettingsResponse:
-    plan = user.plan_tier.value
+def _to_response(settings: UserSettings, user: User, db: Session) -> SettingsResponse:
+    plan = get_effective_plan_tier(user, db)
     return SettingsResponse(
         id=settings.id,
         profile_name=settings.profile_name,
@@ -67,6 +68,7 @@ def _to_response(settings: UserSettings, user: User) -> SettingsResponse:
         api_connections=settings.api_connections,
         preferred_ai_model=resolve_model(plan, settings.preferred_ai_model),
         ai_model_can_change=can_change_model(plan),
+        effective_plan_tier=plan,
         ai_model_options=[
             AiModelOption(
                 id=model.id,
@@ -87,7 +89,7 @@ def get_settings(
     current_user: User = Depends(get_current_user),
 ) -> SettingsResponse:
     settings = _ensure_settings(db, current_user)
-    return _to_response(settings, current_user)
+    return _to_response(settings, current_user, db)
 
 
 @router.patch("/profile", response_model=SettingsResponse)
@@ -106,7 +108,7 @@ def update_profile_settings(
         settings.preferred_currency = payload.preferred_currency
     db.commit()
     db.refresh(settings)
-    return _to_response(settings, current_user)
+    return _to_response(settings, current_user, db)
 
 
 @router.patch("/preferences", response_model=SettingsResponse)
@@ -124,7 +126,7 @@ def update_preference_settings(
         settings.api_connections = payload.api_connections
     db.commit()
     db.refresh(settings)
-    return _to_response(settings, current_user)
+    return _to_response(settings, current_user, db)
 
 
 @router.patch("/ai-model", response_model=SettingsResponse)
@@ -133,8 +135,9 @@ def update_ai_model_settings(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> SettingsResponse:
+    plan = get_effective_plan_tier(current_user, db)
     try:
-        assert_model_allowed(current_user.plan_tier.value, payload.model)
+        assert_model_allowed(plan, payload.model)
     except AiModelAccessError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
 
@@ -142,4 +145,4 @@ def update_ai_model_settings(
     settings.preferred_ai_model = payload.model
     db.commit()
     db.refresh(settings)
-    return _to_response(settings, current_user)
+    return _to_response(settings, current_user, db)

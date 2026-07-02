@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AgentLiveCard } from "@/components/landing/agent-live-card";
 import { PricingComparisonTable } from "@/components/landing/pricing-comparison-table";
 import { getLandingPlans } from "@/lib/plan-features";
 
@@ -195,51 +196,7 @@ export default function HomePage() {
 
           {/* Agent Proof Card */}
           <div className="lg:col-span-4">
-            <div className="border border-border/15 bg-muted p-6 shadow-editorial">
-              <div className="mb-6 flex items-start justify-between border-b border-border/15 pb-4">
-                <div>
-                  <div className="editorial-label mb-1 flex items-center gap-1.5 text-primary">
-                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
-                    Agent Active
-                  </div>
-                  <h3 className="font-mono text-xl font-medium">HDFCBANK.NSE</h3>
-                </div>
-                <div className="text-right">
-                  <div className="font-mono text-lg">₹1,642.40</div>
-                  <div className="font-mono text-xs text-emerald-800">+1.24%</div>
-                </div>
-              </div>
-              <svg viewBox="0 0 200 40" className="mb-5 h-10 w-full" preserveAspectRatio="none">
-                <path
-                  d="M0 30 L15 28 L30 32 L45 24 L60 26 L75 20 L90 22 L105 16 L120 18 L135 12 L150 14 L165 8 L180 10 L200 4"
-                  fill="none"
-                  stroke="oklch(var(--primary))"
-                  strokeWidth="1.5"
-                />
-              </svg>
-              <div className="space-y-4">
-                <div className="flex gap-3">
-                  <div className="w-0.5 shrink-0 self-stretch bg-primary" />
-                  <div className="text-sm">
-                    <p className="editorial-label mb-1 text-muted-foreground">Technical Signal</p>
-                    <p className="leading-snug">Price consolidated above 200-DMA with rising volume profile.</p>
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <div className="w-0.5 shrink-0 self-stretch bg-primary/40" />
-                  <div className="text-sm">
-                    <p className="editorial-label mb-1 text-muted-foreground">Earnings Intelligence</p>
-                    <p className="leading-snug italic">
-                      &ldquo;Management signaled NIM expansion in Q3 transcript analysis.&rdquo;
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-6 flex items-center justify-between border-t border-border/15 pt-4">
-                <span className="editorial-label text-muted-foreground">Updated 2m ago</span>
-                <span className="editorial-label text-muted-foreground">Upstox Integrated</span>
-              </div>
-            </div>
+            <AgentLiveCard />
           </div>
         </div>
 

@@ -34,6 +34,7 @@ from backend.app.services.audit import log_event
 from backend.app.services.broker.factory import get_broker
 from backend.app.services.broker.order_execution import OrderPlacementError, place_and_sync_order
 from backend.app.services.broker.upstox import BrokerConfigurationError
+from backend.app.services.entry_activation import delete_agent, retry_entry_order
 from backend.app.services.entry_fill import agent_awaiting_entry_fill
 from backend.app.services.notification_events import create_notification_event
 from backend.app.services.plan_limits import get_agent_limit, get_max_polling_frequency
@@ -46,6 +47,8 @@ router = APIRouter(prefix="/agents", tags=["agents"])
 def _agent_response(agent: MonitorAgent) -> AgentResponse:
     resp = AgentResponse.model_validate(agent)
     resp.awaiting_entry_fill = agent_awaiting_entry_fill(agent)
+    config = agent.agent_config or {}
+    resp.entry_order_error = config.get("entry_order_error")
     return resp
 
 
@@ -469,3 +472,40 @@ def stop_all_agents(
         agent.status = AgentStatus.stopped
     db.commit()
     return {"updated": True, "count": len(agents)}
+
+
+@router.post("/{agent_id}/retry-entry")
+async def retry_agent_entry(
+    agent_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    stmt = (
+        select(MonitorAgent)
+        .join(StockHolding, MonitorAgent.holding_id == StockHolding.id)
+        .where(MonitorAgent.id == UUID(agent_id), StockHolding.user_id == current_user.id)
+    )
+    agent = db.execute(stmt).scalar_one_or_none()
+    if not agent:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
+    return await retry_entry_order(db, current_user, agent)
+
+
+@router.delete("/{agent_id}")
+def remove_agent(
+    agent_id: str,
+    delete_holding: bool = False,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    stmt = (
+        select(MonitorAgent)
+        .join(StockHolding, MonitorAgent.holding_id == StockHolding.id)
+        .where(MonitorAgent.id == UUID(agent_id), StockHolding.user_id == current_user.id)
+    )
+    agent = db.execute(stmt).scalar_one_or_none()
+    if not agent:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
+    delete_agent(db, agent, delete_holding=delete_holding)
+    db.commit()
+    return {"deleted": True, "agent_id": agent_id}

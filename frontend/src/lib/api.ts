@@ -69,7 +69,39 @@ export class ApiError extends Error {
   }
 }
 
-async function apiFetch<T>(path: string, init?: RequestInit, skipAuth?: boolean): Promise<T> {
+async function tryRefreshToken(): Promise<boolean> {
+  const token = getToken();
+  if (!token) return false;
+  try {
+    const response = await fetch(`${API_BASE}/auth/refresh`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      },
+      body: "{}"
+    });
+    if (!response.ok) return false;
+    const data = (await response.json()) as { access_token?: string };
+    if (data.access_token) {
+      setToken(data.access_token);
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+function forceLogout(path: string, status: number) {
+  logger.error("Session ended", { endpoint: path, status });
+  clearToken();
+  if (typeof window !== "undefined") {
+    window.location.href = "/login";
+  }
+}
+
+async function apiFetch<T>(path: string, init?: RequestInit, skipAuth?: boolean, retried = false): Promise<T> {
   const token = getToken();
   let response: Response;
   try {
@@ -88,12 +120,16 @@ async function apiFetch<T>(path: string, init?: RequestInit, skipAuth?: boolean)
     const body = await response.text();
     const { message, code } = parseErrorBody(body, response.status);
     if (response.status === 401 && !skipAuth) {
-      logger.error("Unauthorized API request; clearing session", { endpoint: path, status: response.status });
-      clearToken();
-      if (typeof window !== "undefined") {
-        window.location.href = "/login";
+      const authEndpoint = path.startsWith("/auth/me") || path.startsWith("/auth/refresh");
+      if (!retried && !authEndpoint) {
+        const refreshed = await tryRefreshToken();
+        if (refreshed) {
+          return apiFetch<T>(path, init, skipAuth, true);
+        }
       }
+      forceLogout(path, response.status);
     }
+    logger.warn("API request failed", { endpoint: path, status: response.status, message });
     throw new ApiError(message, response.status, code);
   }
   if (response.status === 204) {

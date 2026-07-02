@@ -1,8 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from backend.app.core.config import get_settings
 from backend.app.db.session import get_db
+from backend.app.middleware.auth import get_current_user
+from backend.app.models.entities import User
 from backend.app.schemas.auth import (
     AuthConfigResponse,
     GoogleCallbackRequest,
@@ -13,11 +16,18 @@ from backend.app.schemas.auth import (
     PasswordResetRequest,
     RegisterRequest,
     TokenResponse,
+    UserMeResponse,
 )
 from backend.app.services.auth_service import AuthService
 from backend.app.services.email_service import EmailDeliveryError, EmailService
+from backend.app.utils.security import decode_token
+
+from backend.app.core.logging import get_logger
+
+logger = get_logger("daxch.auth")
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+bearer_scheme = HTTPBearer(auto_error=False)
 auth_service = AuthService()
 email_service = EmailService()
 settings = get_settings()
@@ -41,7 +51,9 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> TokenRe
 def login(payload: LoginRequest, db: Session = Depends(get_db)) -> TokenResponse:
     try:
         access_token = auth_service.login_with_password(db, payload.email, payload.password)
+        logger.info("user login", extra={"event": "login", "email": str(payload.email)})
     except ValueError as exc:
+        logger.warning("login failed", extra={"event": "login_failed", "email": str(payload.email)})
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(exc)) from exc
     return TokenResponse(access_token=access_token)
 
@@ -122,4 +134,37 @@ async def google_callback(payload: GoogleCallbackRequest, db: Session = Depends(
         access_token = await auth_service.authenticate_google(db, payload.code)
     except Exception as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    return TokenResponse(access_token=access_token)
+
+
+@router.get("/me", response_model=UserMeResponse)
+def auth_me(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    current_user: User = Depends(get_current_user),
+) -> UserMeResponse:
+    expires_at = 0
+    if credentials:
+        try:
+            payload = decode_token(credentials.credentials)
+            exp = payload.get("exp")
+            if isinstance(exp, (int, float)):
+                expires_at = int(exp)
+        except Exception:  # noqa: BLE001
+            expires_at = 0
+    return UserMeResponse(
+        id=str(current_user.id),
+        email=current_user.email,
+        name=current_user.name,
+        plan_tier=current_user.plan_tier.value,
+        is_admin=current_user.is_admin,
+        expires_at=expires_at,
+    )
+
+
+@router.post("/refresh", response_model=TokenResponse)
+def refresh_token(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> TokenResponse:
+    access_token = auth_service.refresh_access_token(db, current_user)
     return TokenResponse(access_token=access_token)

@@ -42,3 +42,12 @@ class GoogleCallbackRequest(BaseModel):
 class AuthConfigResponse(BaseModel):
     magic_link_enabled: bool
     password_login_enabled: bool = True
+
+
+class UserMeResponse(BaseModel):
+    id: str
+    email: str
+    name: str | None
+    plan_tier: str
+    is_admin: bool
+    expires_at: int

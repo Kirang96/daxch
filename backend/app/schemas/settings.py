@@ -21,6 +21,7 @@ class SettingsResponse(BaseModel):
     api_connections: dict
     preferred_ai_model: str
     ai_model_can_change: bool
+    effective_plan_tier: str
     ai_model_options: list[AiModelOption]
     created_at: datetime
     updated_at: datetime

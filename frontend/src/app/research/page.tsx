@@ -8,10 +8,11 @@ import { BarChart3, Bot, Search, ShieldAlert, Loader2 } from "lucide-react";
 import { AnalysisResultPanel } from "@/components/analysis/analysis-result-panel";
 import { StrategySelector } from "@/components/analysis/strategy-selector";
 import { AppShell } from "@/components/layout/app-shell";
-import { AreaChart, Badge, ChartCardHeader, Disclaimer, GlassCard, AlertBanner, TimeframeTabs } from "@/components/daxch/primitives";
+import { StockPriceChart } from "@/components/charts/stock-price-chart";
+import { Badge, ChartCardHeader, Disclaimer, GlassCard, AlertBanner, TimeframeTabs } from "@/components/daxch/primitives";
 import { api } from "@/lib/api";
 import { decisionTone, formatConfidence, formatDecision } from "@/lib/analysis-strategies";
-import { sliceByTimeframe } from "@/lib/chart";
+import { sliceSeriesByTimeframe } from "@/lib/chart";
 import { logger } from "@/lib/logger";
 import { formatQuoteSearchError } from "@/lib/stock-quote";
 import {
@@ -72,13 +73,18 @@ function ResearchContent() {
   const [snapshot, setSnapshot] = useState<ResearchSnapshot | null>(null);
   const [liveQuote, setLiveQuote] = useState<QuoteData | null>(null);
   const [chartData, setChartData] = useState<number[]>([]);
+  const [chartTimestamps, setChartTimestamps] = useState<string[]>([]);
+  const [candleMeta, setCandleMeta] = useState<{ high: number | null; low: number | null }>({ high: null, low: null });
   const [timeframe, setTimeframe] = useState<ChartTimeframe>("1M");
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [quoteError, setQuoteError] = useState("");
 
-  const displayChartData = useMemo(() => sliceByTimeframe(chartData, timeframe), [chartData, timeframe]);
+  const displaySeries = useMemo(
+    () => sliceSeriesByTimeframe(chartData, chartTimestamps, timeframe),
+    [chartData, chartTimestamps, timeframe]
+  );
   const activeResult = analysisRuns.find((r) => r.strategy === activeRunId) ?? analysisRuns[analysisRuns.length - 1];
 
   useEffect(() => {
@@ -98,6 +104,10 @@ function ResearchContent() {
       setQuoteError("Enter a stock ticker to search.");
       setLiveQuote(null);
       setChartData([]);
+    setChartTimestamps([]);
+    setCandleMeta({ high: null, low: null });
+      setChartTimestamps([]);
+      setCandleMeta({ high: null, low: null });
       return;
     }
     setQuoteLoading(true);
@@ -109,16 +119,27 @@ function ResearchContent() {
       const data = await api.get<QuoteData>(`/stocks/quote/${symbol}?exchange=${exchange}`);
       setLiveQuote(data);
       setTicker(symbol);
-      const candles = await api.get<{ prices: number[] }>(`/stocks/candles/${symbol}?exchange=${exchange}`);
+      const candles = await api.get<{
+        prices: number[];
+        timestamps?: string[];
+        high?: number | null;
+        low?: number | null;
+      }>(`/stocks/candles/${symbol}?exchange=${exchange}`);
       if (candles.prices.length === 0) {
         logger.warn("No candle data for ticker", { page: "research", ticker: symbol });
       }
       setChartData(candles.prices);
+      setChartTimestamps(candles.timestamps ?? []);
+      setCandleMeta({ high: candles.high ?? null, low: candles.low ?? null });
     } catch (err) {
       logger.error("Failed to load quote/candles", { page: "research", ticker: symbol, message: (err as Error).message });
       setQuoteError(formatQuoteSearchError((err as Error).message, symbol, exchange));
       setLiveQuote(null);
       setChartData([]);
+    setChartTimestamps([]);
+    setCandleMeta({ high: null, low: null });
+      setChartTimestamps([]);
+      setCandleMeta({ high: null, low: null });
     } finally {
       setQuoteLoading(false);
     }
@@ -136,6 +157,8 @@ function ResearchContent() {
     setTicker(value.toUpperCase());
     setLiveQuote(null);
     setChartData([]);
+    setChartTimestamps([]);
+    setCandleMeta({ high: null, low: null });
     setSnapshot(null);
     setAnalysisRuns([]);
     setActiveRunId(null);
@@ -146,6 +169,8 @@ function ResearchContent() {
     setExchange(value);
     setLiveQuote(null);
     setChartData([]);
+    setChartTimestamps([]);
+    setCandleMeta({ high: null, low: null });
     setSnapshot(null);
     setAnalysisRuns([]);
     setActiveRunId(null);
@@ -342,12 +367,15 @@ function ResearchContent() {
             tabs={<TimeframeTabs value={timeframe} onChange={setTimeframe} options={TIMEFRAME_OPTIONS} size="xs" />}
           />
           <div className="mt-5">
-            {displayChartData.length >= 2 ? (
-              <AreaChart
-                data={displayChartData}
-                color="oklch(var(--chart-2))"
+            {displaySeries.prices.length >= 2 ? (
+              <StockPriceChart
+                prices={displaySeries.prices}
+                timestamps={displaySeries.timestamps}
+                high={candleMeta.high}
+                low={candleMeta.low}
+                ltp={displayPrice}
                 height={250}
-                wrapperClassName="h-44 sm:h-56 md:h-[250px]"
+                className="md:[&_svg]:h-[250px]"
               />
             ) : (
               <p className="py-16 text-center text-sm text-muted-foreground">

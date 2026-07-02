@@ -74,6 +74,8 @@ export default function AgentDetailPage() {
   const [squareOffOpen, setSquareOffOpen] = useState(false);
   const [squareOffQty, setSquareOffQty] = useState("");
   const [squareOffSubmitting, setSquareOffSubmitting] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [retrySubmitting, setRetrySubmitting] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -216,7 +218,9 @@ export default function AgentDetailPage() {
     [data]
   );
   const entryOrderFailed =
-    entryDecision?.order?.status === "failed" || entryDecision?.order?.status === "rejected";
+    Boolean(data?.agent.entry_order_error) ||
+    entryDecision?.order?.status === "failed" ||
+    entryDecision?.order?.status === "rejected";
   const isActivelyMonitoring = data?.agent.status === "active" && !awaitingEntryFill;
 
   useEffect(() => {
@@ -302,11 +306,6 @@ export default function AgentDetailPage() {
     }
   };
 
-  const dismissHelp = () => {
-    localStorage.setItem("daxch_agent_help_dismissed", "1");
-    setHelpDismissed(true);
-  };
-
   const squareOff = async () => {
     if (!params?.id) return;
     const qty = Number(squareOffQty);
@@ -325,6 +324,36 @@ export default function AgentDetailPage() {
       setActionStatus((err as Error).message);
     } finally {
       setSquareOffSubmitting(false);
+    }
+  };
+
+  const dismissHelp = () => {
+    localStorage.setItem("daxch_agent_help_dismissed", "1");
+    setHelpDismissed(true);
+  };
+
+  const retryEntry = async () => {
+    if (!params?.id) return;
+    setRetrySubmitting(true);
+    try {
+      await api.post(`/agents/${params.id}/retry-entry`, {});
+      setActionStatus("Entry order retry submitted.");
+      await load();
+    } catch (err) {
+      setActionStatus((err as Error).message);
+    } finally {
+      setRetrySubmitting(false);
+    }
+  };
+
+  const deleteAgent = async () => {
+    if (!params?.id) return;
+    try {
+      await api.del(`/agents/${params.id}`);
+      setDeleteOpen(false);
+      window.location.href = "/agents";
+    } catch (err) {
+      setActionStatus((err as Error).message);
     }
   };
 
@@ -365,6 +394,16 @@ export default function AgentDetailPage() {
               <X className="h-4 w-4" /> Cancel entry order
             </Button>
           )}
+          {entryOrderFailed && (
+            <>
+              <Button variant="secondary" onClick={() => void retryEntry()} disabled={retrySubmitting}>
+                {retrySubmitting ? "Retrying..." : "Retry entry"}
+              </Button>
+              <Button variant="secondary" onClick={() => setDeleteOpen(true)}>
+                Delete agent
+              </Button>
+            </>
+          )}
           <Link href="/agents" className="inline-flex items-center gap-2 rounded-xl border border-border/20 bg-background px-3 py-2 text-sm hover:bg-muted">
             <ArrowLeft className="h-4 w-4" /> All agents
           </Link>
@@ -376,7 +415,8 @@ export default function AgentDetailPage() {
 
       {entryOrderFailed && (
         <AlertBanner variant="error" className="mb-6" title="Entry order failed">
-          The broker rejected or could not complete your entry order. Cancel and retry when the market is open, or adjust your limit price.
+          {data?.agent.entry_order_error ||
+            "The broker rejected or could not complete your entry order. Retry when the market is open, or delete this agent and start again."}
         </AlertBanner>
       )}
 
@@ -738,6 +778,21 @@ export default function AgentDetailPage() {
               <Button onClick={() => void squareOff()} disabled={squareOffSubmitting}>
                 {squareOffSubmitting ? "Placing..." : "Confirm sell"}
               </Button>
+            </div>
+          </GlassCard>
+        </div>
+      )}
+
+      {deleteOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
+          <GlassCard className="w-full max-w-md p-6">
+            <h3 className="text-lg font-medium">Delete agent?</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              This removes the agent and its decision history. Your holding record stays unless you remove it separately.
+            </p>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setDeleteOpen(false)}>Cancel</Button>
+              <Button variant="danger" onClick={() => void deleteAgent()}>Delete</Button>
             </div>
           </GlassCard>
         </div>

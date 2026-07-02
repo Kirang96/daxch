@@ -1,3 +1,36 @@
+export const GUIDE_SECTIONS = [
+  {
+    id: "agents",
+    title: "What is an agent?",
+    body: "An agent is a monitoring job for one stock you chose. You set a planned limit price and quantity — that plan feeds the AI. It is not synced from your Demat. Monitoring and AI unit usage begin only after your LIMIT entry order fills on the exchange.",
+  },
+  {
+    id: "plan-vs-demat",
+    title: "Your plan vs exchange position",
+    body: "The entry price and quantity on the agent page are your inputs to the AI thesis. Exchange trades below are real orders sent to Upstox after you approve a suggestion. P/L and positions appear only after orders fill on the exchange.",
+  },
+  {
+    id: "entry-orders",
+    title: "Entry orders",
+    body: "When you create an agent, Daxch places a LIMIT buy at your chosen price. Outside market hours, orders may be sent as AMO (After Market Order). If placement fails, use Retry entry on the agent page. While awaiting fill, the agent stays paused.",
+  },
+  {
+    id: "suggestions",
+    title: "AI suggestions and approvals",
+    body: "On schedule, the agent researches the stock and may suggest buy more, sell, or hold. Nothing is sent to your broker until you approve. Use Square off to exit part or all of a position at market without waiting for AI.",
+  },
+  {
+    id: "ai-units",
+    title: "AI Units",
+    body: "Each analysis run and each monitoring check consumes AI Units from your monthly plan. Heavier models use more units per run. Starter uses GPT-4o Mini only; Pro and Ultra can choose other models in Settings.",
+  },
+  {
+    id: "broker",
+    title: "Broker connection",
+    body: "Daxch connects to Upstox via OAuth with read and trade scopes you approve. We never store your Upstox password. You can revoke access anytime from Upstox or by disconnecting in Daxch.",
+  },
+] as const;
+
 export const GUIDE_FAQ = [
   {
     q: "Does Daxch trade automatically?",

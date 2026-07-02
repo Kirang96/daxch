@@ -327,6 +327,9 @@ async def razorpay_webhook(
         sub.status = "pending"
     elif event in {"subscription.completed", "subscription.authenticated"}:
         sub.status = "active"
+        user = db.get(User, sub.user_id)
+        if user:
+            user.plan_tier = sub.plan
 
     invoice_entity = payload.get("payload", {}).get("payment", {}).get("entity", {})
     invoice_id = invoice_entity.get("invoice_id") or payload.get("payload", {}).get("invoice", {}).get("entity", {}).get("id")

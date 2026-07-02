@@ -29,6 +29,20 @@ class AuthService:
         if len(password) < _MIN_PASSWORD_LEN:
             raise ValueError(f"Password must be at least {_MIN_PASSWORD_LEN} characters.")
 
+    def _sync_admin_flag(self, db: Session, user: User) -> None:
+        allowed = self.settings.admin_emails_list
+        if not allowed:
+            return
+        should_admin = user.email.lower() in allowed
+        if user.is_admin != should_admin:
+            user.is_admin = should_admin
+            db.commit()
+            db.refresh(user)
+
+    def _issue_token(self, db: Session, user: User) -> str:
+        self._sync_admin_flag(db, user)
+        return create_access_token(str(user.id))
+
     def register_or_login_user(self, db: Session, email: str, name: str | None = None) -> str:
         email = email.lower().strip()
         stmt = select(User).where(User.email == email)
@@ -39,7 +53,7 @@ class AuthService:
             db.flush()
             db.commit()
             db.refresh(user)
-        return create_access_token(str(user.id))
+        return self._issue_token(db, user)
 
     def register_with_password(self, db: Session, email: str, password: str, name: str | None = None) -> str:
         self._validate_password(password)
@@ -57,7 +71,7 @@ class AuthService:
             user.name = name
         db.commit()
         db.refresh(user)
-        return create_access_token(str(user.id))
+        return self._issue_token(db, user)
 
     def login_with_password(self, db: Session, email: str, password: str) -> str:
         email = email.lower().strip()
@@ -68,7 +82,10 @@ class AuthService:
             raise ValueError("No password set for this account. Use Forgot password to create one.")
         if not self.verify_password(password, user.password_hash):
             raise ValueError("Invalid email or password.")
-        return create_access_token(str(user.id))
+        return self._issue_token(db, user)
+
+    def refresh_access_token(self, db: Session, user: User) -> str:
+        return self._issue_token(db, user)
 
     def set_password(self, db: Session, user: User, password: str) -> None:
         self._validate_password(password)
@@ -92,7 +109,7 @@ class AuthService:
         if not user:
             raise ValueError("Account not found.")
         self.set_password(db, user, password)
-        return create_access_token(str(user.id))
+        return self._issue_token(db, user)
 
     def create_magic_link_token(self, email: str, name: str | None = None) -> str:
         expire_at = datetime.now(tz=timezone.utc) + timedelta(minutes=self.settings.magic_link_expire_minutes)

@@ -8,6 +8,7 @@ from backend.app.services.market_hours import should_use_amo
 from backend.app.models.entities import (
     AgentDecision,
     AgentStatus,
+    AuditLog,
     BrokerConnection,
     ConfirmationStatus,
     DecisionType,
@@ -229,5 +230,147 @@ async def activate_with_entry_order(
     return response
 
 
+async def retry_entry_order(
+    db: Session,
+    current_user: User,
+    agent: MonitorAgent,
+) -> dict:
+    if agent_awaiting_entry_fill(agent):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Entry order is still open. Cancel it before retrying.",
+        )
+
+    holding = db.get(StockHolding, agent.holding_id)
+    if not holding or holding.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Holding not found")
+
+    config = dict(agent.agent_config or {})
+    if not config.get("entry_order_error") and agent.status not in {AgentStatus.paused, AgentStatus.stopped}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Agent does not have a failed entry order to retry.",
+        )
+
+    connection = db.execute(
+        select(BrokerConnection).where(BrokerConnection.user_id == current_user.id)
+    ).scalar_one_or_none()
+    if not connection:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Connect your Upstox account before placing an entry order.",
+        )
+
+    prior = db.execute(
+        select(AgentDecision)
+        .where(AgentDecision.agent_id == agent.id, AgentDecision.decision_type == DecisionType.initial_entry)
+        .order_by(AgentDecision.decided_at.desc())
+        .limit(1)
+    ).scalar_one_or_none()
+    reasoning = (prior.reasoning if prior else None) or f"Retry LIMIT entry at ₹{holding.entry_price:.2f}"
+
+    decision = AgentDecision(
+        agent_id=agent.id,
+        decision_type=DecisionType.initial_entry,
+        reasoning=reasoning,
+        analysis_data=prior.analysis_data if prior and prior.analysis_data else {},
+        confirmation_status=ConfirmationStatus.approved,
+        confirmed_at=datetime.now(tz=timezone.utc),
+    )
+    db.add(decision)
+    db.flush()
+
+    order = Order(
+        decision_id=decision.id,
+        order_type="LIMIT",
+        status=OrderStatus.pending,
+        price=holding.entry_price,
+        quantity=holding.quantity,
+        transaction_type="BUY",
+    )
+    db.add(order)
+    db.flush()
+
+    config["awaiting_entry_fill"] = True
+    config.pop("entry_order_error", None)
+    config["entry_decision_id"] = str(decision.id)
+    config["entry_order_id"] = str(order.id)
+    agent.agent_config = config
+    agent.status = AgentStatus.paused
+    agent.next_poll_at = None
+
+    try:
+        await place_and_sync_order(
+            db,
+            current_user,
+            holding,
+            order,
+            order_type="LIMIT",
+            transaction_type="BUY",
+            price=holding.entry_price,
+        )
+        log_event(
+            db,
+            agent.id,
+            "entry_order_retry_placed",
+            {"decision_id": str(decision.id), "order_id": str(order.id)},
+        )
+        if is_order_fully_filled(order):
+            activate_agent_after_entry_fill(db, agent, holding, order)
+    except OrderPlacementError as exc:
+        order.status = OrderStatus.failed
+        config = dict(agent.agent_config or {})
+        config["awaiting_entry_fill"] = False
+        config["entry_order_error"] = str(exc)
+        agent.agent_config = config
+        agent.status = AgentStatus.paused
+        log_event(db, agent.id, "entry_order_failed", {"order_id": str(order.id), "error": str(exc)})
+        db.commit()
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+
+    create_notification_event(
+        db,
+        current_user.id,
+        NotificationType.agent,
+        f"{holding.ticker}: entry order retry placed",
+        f"LIMIT buy for {holding.quantity} shares at ₹{holding.entry_price:.2f} sent to Upstox.",
+        {"decision_id": str(decision.id), "order_id": str(order.id), "ticker": holding.ticker},
+    )
+    db.commit()
+    return {"updated": True, "order_id": str(order.id), "order_status": order.status.value}
+
+
+def delete_agent(
+    db: Session,
+    agent: MonitorAgent,
+    *,
+    delete_holding: bool = False,
+) -> None:
+    if agent_awaiting_entry_fill(agent):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cancel the open entry order before deleting this agent.",
+        )
+
+    holding_id = agent.holding_id
+    decisions = db.execute(select(AgentDecision).where(AgentDecision.agent_id == agent.id)).scalars().all()
+    for decision in decisions:
+        order = db.execute(select(Order).where(Order.decision_id == decision.id)).scalar_one_or_none()
+        if order:
+            db.delete(order)
+        db.delete(decision)
+
+    audit_rows = db.execute(select(AuditLog).where(AuditLog.agent_id == agent.id)).scalars().all()
+    for row in audit_rows:
+        db.delete(row)
+
+    db.delete(agent)
+
+    if delete_holding:
+        holding = db.get(StockHolding, holding_id)
+        if holding:
+            db.delete(holding)
+
+
 # Re-export for API consumers
-__all__ = ["activate_with_entry_order", "agent_awaiting_entry_fill"]
+__all__ = ["activate_with_entry_order", "agent_awaiting_entry_fill", "retry_entry_order", "delete_agent"]

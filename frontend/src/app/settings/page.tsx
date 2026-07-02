@@ -151,12 +151,17 @@ export default function SettingsPage() {
           </div>
           <p className="mb-4 text-sm text-muted-foreground">
             Choose the OpenAI model used for research, analysis, and monitoring agents.
+            {settings?.effective_plan_tier && settings.ai_model_can_change && (
+              <span className="ml-1 text-muted-foreground">
+                · {settings.effective_plan_tier.charAt(0).toUpperCase() + settings.effective_plan_tier.slice(1)} plan · {settings.ai_model_options.length} models
+              </span>
+            )}
           </p>
           {!settings?.ai_model_can_change && (
             <AlertBanner variant="info" className="mb-4 text-xs">
               Starter plans use GPT-4o Mini. Pro and Ultra can choose premium models (higher unit usage).{" "}
               <Link href="/subscription" className="font-medium text-primary underline-offset-2 hover:underline">
-                Upgrade to Pro
+                {settings?.effective_plan_tier === "pro" ? "Upgrade to Ultra" : "Upgrade to Pro"}
               </Link>{" "}
               to switch between models.
             </AlertBanner>

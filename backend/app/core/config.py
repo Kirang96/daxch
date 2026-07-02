@@ -52,6 +52,12 @@ class Settings(BaseSettings):
 
     cors_origins: str = Field(default="http://localhost:3000", alias="CORS_ORIGINS")
     enable_demo_mode: bool = Field(default=True, alias="ENABLE_DEMO_MODE")
+    admin_emails: str = Field(default="", alias="ADMIN_EMAILS")
+    log_level: str = Field(default="INFO", alias="LOG_LEVEL")
+
+    @property
+    def admin_emails_list(self) -> list[str]:
+        return [email.strip().lower() for email in self.admin_emails.split(",") if email.strip()]
 
     @property
     def is_production(self) -> bool:

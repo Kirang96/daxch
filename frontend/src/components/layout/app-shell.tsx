@@ -17,6 +17,7 @@ import {
   Plus,
   Search,
   Settings,
+  Shield,
   Star,
   Wallet,
   X
@@ -24,6 +25,7 @@ import {
 
 import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
+import { scheduleSessionRefresh } from "@/lib/session";
 import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/daxch/logo";
@@ -67,6 +69,32 @@ export function AppShell({ title, subtitle, actions, eyebrow, children }: AppShe
   const [aiUsageWarning, setAiUsageWarning] = useState(false);
   const [aiUsagePct, setAiUsagePct] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    return scheduleSessionRefresh();
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let idleTimer: ReturnType<typeof setTimeout> | null = null;
+    const hours = 24;
+    const resetIdle = () => {
+      if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        logout();
+        router.replace("/login");
+      }, hours * 60 * 60 * 1000);
+    };
+    const events = ["mousemove", "keydown", "click", "scroll"] as const;
+    events.forEach((e) => window.addEventListener(e, resetIdle));
+    resetIdle();
+    return () => {
+      if (idleTimer) clearTimeout(idleTimer);
+      events.forEach((e) => window.removeEventListener(e, resetIdle));
+    };
+  }, [isAuthenticated, logout, router]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -80,12 +108,13 @@ export function AppShell({ title, subtitle, actions, eyebrow, children }: AppShe
     let cancelled = false;
     const loadShellContext = async () => {
       try {
-        const [settings, subscription, unread, broker, aiQuota] = await Promise.all([
+        const [settings, subscription, unread, broker, aiQuota, me] = await Promise.all([
           api.get<UserSettings>("/settings"),
           api.get<Subscription | null>("/subscriptions/current"),
           api.get<NotificationEvent[]>("/notifications?only_unread=true&limit=200"),
           api.get<{ connected: boolean }>("/broker/connection-status"),
-          api.get<AiUnitsQuota>("/ai-units/current").catch(() => null)
+          api.get<AiUnitsQuota>("/ai-units/current").catch(() => null),
+          api.get<{ is_admin?: boolean }>("/auth/me").catch(() => null)
         ]);
         if (cancelled) return;
 
@@ -104,6 +133,7 @@ export function AppShell({ title, subtitle, actions, eyebrow, children }: AppShe
           !!aiQuota?.has_active_subscription && aiQuota.percent_used >= 80 && aiQuota.total_remaining > 0;
         setAiUsageWarning(warn);
         setAiUsagePct(aiQuota ? Math.round(aiQuota.percent_used) : 0);
+        setIsAdmin(Boolean(me?.is_admin));
       } catch (err) {
         logger.error("Failed to load app shell context", { page: "app-shell", message: (err as Error).message });
         if (!cancelled) setUnreadCount(0);
@@ -226,6 +256,15 @@ export function AppShell({ title, subtitle, actions, eyebrow, children }: AppShe
                 onClick={() => setOpen(false)}
               />
             ))}
+            {isAdmin && (
+              <NavRow
+                href="/admin"
+                icon={Shield}
+                label="Admin"
+                active={pathname.startsWith("/admin")}
+                onClick={() => setOpen(false)}
+              />
+            )}
           </nav>
 
           <div className="mt-6 space-y-3 border-t border-[color:var(--ink)]/12 pt-4">
