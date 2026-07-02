@@ -59,16 +59,77 @@ class UpstoxBroker(BaseBroker):
         headers = {"Accept": "application/json"}
         if access_token:
             headers["Authorization"] = f"Bearer {access_token}"
-        async with httpx.AsyncClient(timeout=20) as client:
-            response = await client.request(
-                method,
-                f"{self.settings.upstox_base_url.rstrip('/')}/{path.lstrip('/')}",
-                headers=headers,
-                params=params,
-                json=body,
+        try:
+            async with httpx.AsyncClient(timeout=20) as client:
+                response = await client.request(
+                    method,
+                    f"{self.settings.upstox_base_url.rstrip('/')}/{path.lstrip('/')}",
+                    headers=headers,
+                    params=params,
+                    json=body,
+                )
+                response.raise_for_status()
+                return response.json()
+        except httpx.HTTPStatusError as exc:
+            status_code = exc.response.status_code
+            detail = self._extract_error_detail(exc.response)
+            if status_code in (401, 403):
+                raise BrokerConfigurationError(
+                    "Your Upstox session expired or lacks market data access. Reconnect your broker account."
+                ) from exc
+            if status_code == 404:
+                raise BrokerConfigurationError("Upstox resource not found for this request.") from exc
+            raise BrokerConfigurationError(f"Upstox request failed ({status_code}): {detail}") from exc
+        except httpx.HTTPError as exc:
+            raise BrokerConfigurationError(f"Unable to reach Upstox: {exc}") from exc
+
+    @staticmethod
+    def _extract_error_detail(response: httpx.Response) -> str:
+        try:
+            payload = response.json()
+        except ValueError:
+            text = response.text.strip()
+            return text[:240] if text else response.reason_phrase
+        if isinstance(payload, dict):
+            for key in ("message", "error", "detail"):
+                value = payload.get(key)
+                if isinstance(value, str) and value.strip():
+                    return value.strip()
+            errors = payload.get("errors")
+            if isinstance(errors, list) and errors:
+                first = errors[0]
+                if isinstance(first, dict):
+                    return str(first.get("message") or first.get("error") or first)
+                return str(first)
+        return response.reason_phrase
+
+    def _instrument_search_params(self, ticker: str, exchange: str) -> dict[str, str | int]:
+        exchange_upper = exchange.upper()
+        params: dict[str, str | int] = {"query": ticker.upper(), "records": 30}
+        if exchange_upper in {"NSE", "BSE", "MCX"}:
+            params["exchanges"] = exchange_upper
+            params["segments"] = "EQ"
+        elif exchange_upper.endswith("_INDEX"):
+            params["exchanges"] = exchange_upper.replace("_INDEX", "")
+            params["segments"] = "INDEX"
+        else:
+            params["exchanges"] = exchange_upper
+        return params
+
+    @staticmethod
+    def _row_matches_exchange(row: dict, exchange: str) -> bool:
+        exchange_upper = exchange.upper()
+        segment = str(row.get("segment") or "").upper()
+        row_exchange = str(row.get("exchange") or "").upper()
+        if exchange_upper in {"NSE", "BSE", "MCX"}:
+            return segment == f"{exchange_upper}_EQ" or (
+                row_exchange == exchange_upper and segment.endswith("_EQ")
             )
-            response.raise_for_status()
-            return response.json()
+        if exchange_upper.endswith("_INDEX"):
+            return segment.endswith("_INDEX") and (
+                segment == exchange_upper or row_exchange == exchange_upper.replace("_INDEX", "")
+            )
+        return row_exchange == exchange_upper or segment.startswith(f"{exchange_upper}_")
 
     def _require_access_token(self, access_token: str | None) -> str:
         if access_token:
@@ -82,23 +143,29 @@ class UpstoxBroker(BaseBroker):
             return f"{exchange.upper()}_EQ|{ticker.upper()}"
 
         token = self._require_access_token(access_token)
-        search = await self._request("GET", "/instruments/search", access_token=token, params={"query": ticker.upper()})
+        search = await self._request(
+            "GET",
+            "/instruments/search",
+            access_token=token,
+            params=self._instrument_search_params(ticker, exchange),
+        )
         rows = search.get("data", []) or []
         if not rows:
             raise BrokerConfigurationError(f"Unable to find instrument key for {ticker} on {exchange}.")
 
-        exchange_upper = exchange.upper()
+        ticker_upper = ticker.upper()
         exact_match = None
         exchange_match = None
         for row in rows:
+            if not isinstance(row, dict):
+                continue
             symbol = str(row.get("trading_symbol") or row.get("tradingsymbol") or row.get("symbol") or "").upper()
             instrument_key = row.get("instrument_key") or row.get("instrument_token")
-            ex = str(row.get("exchange") or row.get("segment") or "").upper()
             if not instrument_key:
                 continue
-            if ex.startswith(exchange_upper):
+            if self._row_matches_exchange(row, exchange):
                 exchange_match = instrument_key
-            if symbol == ticker.upper() and ex.startswith(exchange_upper):
+            if symbol == ticker_upper and self._row_matches_exchange(row, exchange):
                 exact_match = instrument_key
                 break
 

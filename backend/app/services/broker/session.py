@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from uuid import UUID
 
+from cryptography.fernet import InvalidToken
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -21,11 +22,24 @@ async def get_valid_broker_token_for_user(
     if not connection:
         raise BrokerConfigurationError("Connect Upstox before using market data.")
 
-    token = decrypt_value(connection.access_token)
+    try:
+        token = decrypt_value(connection.access_token)
+    except InvalidToken as exc:
+        raise BrokerConfigurationError(
+            "Stored broker session is invalid. Reconnect your Upstox account."
+        ) from exc
+
     if connection.token_expiry > datetime.now(tz=timezone.utc):
         return connection, token
 
-    refreshed = await broker.refresh_token(decrypt_value(connection.refresh_token))
+    try:
+        refresh_token_value = decrypt_value(connection.refresh_token)
+    except InvalidToken as exc:
+        raise BrokerConfigurationError(
+            "Stored broker session is invalid. Reconnect your Upstox account."
+        ) from exc
+
+    refreshed = await broker.refresh_token(refresh_token_value)
     connection.access_token = encrypt_value(refreshed.access_token)
     connection.refresh_token = encrypt_value(refreshed.refresh_token)
     connection.token_expiry = refreshed.expires_at

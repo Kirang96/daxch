@@ -42,6 +42,11 @@ async def get_stock_quote(
         quote = await broker.get_quote(ticker=ticker.upper(), exchange=exchange, access_token=token)
     except BrokerConfigurationError as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Unable to fetch quote for {ticker.upper()}: {exc}",
+        ) from exc
     return StockQuoteResponse(
         ticker=quote.ticker,
         name=resolve_company_name(quote.ticker),
