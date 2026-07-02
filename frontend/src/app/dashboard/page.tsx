@@ -252,7 +252,7 @@ export default function DashboardPage() {
             id: "broker",
             label: "Connect Upstox",
             done: brokerConnected,
-            href: "/onboarding/broker",
+            href: "/broker",
             optional: true,
             hint: "OAuth · read-only"
           },

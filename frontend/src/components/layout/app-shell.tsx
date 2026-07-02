@@ -47,7 +47,7 @@ const NAV_MAIN = [
 
 const NAV_SECONDARY = [
   { href: "/notifications", label: "Notifications", icon: Bell, badgeKey: "notifications" as const },
-  { href: "/onboarding/broker", label: "Broker", icon: Link2 },
+  { href: "/broker", label: "Broker", icon: Link2 },
   { href: "/subscription", label: "Subscription", icon: CreditCard, warnKey: "ai" as const },
   { href: "/settings", label: "Settings", icon: Settings }
 ];
@@ -112,6 +112,24 @@ export function AppShell({ title, subtitle, actions, eyebrow, children }: AppShe
       cancelled = true;
     };
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated || pathname !== "/broker") return;
+
+    let cancelled = false;
+    const refreshBrokerStatus = async () => {
+      try {
+        const broker = await api.get<{ connected: boolean }>("/broker/connection-status");
+        if (!cancelled) setBrokerConnected(broker.connected);
+      } catch (err) {
+        logger.warn("Failed to refresh broker status", { page: "app-shell", message: (err as Error).message });
+      }
+    };
+    void refreshBrokerStatus();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, pathname]);
 
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
@@ -210,7 +228,7 @@ export function AppShell({ title, subtitle, actions, eyebrow, children }: AppShe
 
           <div className="mt-6 space-y-3 border-t border-[color:var(--ink)]/12 pt-4">
             <Link
-              href="/onboarding/broker"
+              href="/broker"
               className="flex items-center justify-between px-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[color:var(--ink-2)]/70 hover:text-[color:var(--ink)]"
             >
               <span>Broker</span>

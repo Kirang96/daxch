@@ -132,13 +132,13 @@ export default function SubscriptionPage() {
 
         <section>
           <h2 className="mb-4 text-lg font-semibold tracking-tight">Plans</h2>
-          <div className="grid gap-6 lg:grid-cols-3">
+          <div className="grid gap-6 lg:grid-cols-3 lg:gap-8">
             {plans.map((plan) => {
               const isCurrent = isActive && current?.plan?.toLowerCase() === plan.id;
               return (
                 <GlassCard
                   key={plan.id}
-                  className={`flex h-full flex-col ${plan.highlighted ? "border-primary/40 ring-1 ring-primary/25" : ""}`}
+                  className={`flex h-full flex-col p-8 md:p-10 ${plan.highlighted ? "border-primary/40 ring-1 ring-primary/25" : ""}`}
                 >
                   <div className="flex items-center justify-between">
                     <h3 className="text-xl font-medium">{plan.name}</h3>
@@ -149,8 +149,8 @@ export default function SubscriptionPage() {
                     <span className="text-sm text-muted-foreground">/ month</span>
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground">{plan.desc}</p>
-                  <PlanFeaturesList features={plan.features} className="mt-5 flex-1" />
-                  <div className="mt-6 space-y-2">
+                  <PlanFeaturesList features={plan.features} className="mt-6 flex-1" itemClassName="leading-relaxed" />
+                  <div className="mt-8 space-y-2">
                     <Button
                       className="w-full"
                       variant={plan.highlighted ? "primary" : "secondary"}

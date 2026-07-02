@@ -112,7 +112,7 @@ function OnboardingSubscriptionContent() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-background">
-      <div className="relative mx-auto max-w-3xl px-6 py-10">
+      <div className="relative mx-auto max-w-7xl px-6 py-10 md:px-10">
         <div className="flex items-center justify-between">
           <Link href="/">
             <Logo />
@@ -147,16 +147,19 @@ function OnboardingSubscriptionContent() {
 
         {status && <p className="mt-6 rounded-sm border border-border/15 bg-muted p-3 text-sm text-muted-foreground">{status}</p>}
 
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
+        <div className="mt-10 grid gap-6 sm:grid-cols-1 lg:grid-cols-3 lg:gap-8">
           {loading ? (
-            <GlassCard className="md:col-span-2">
+            <GlassCard className="p-8 lg:col-span-3">
               <p className="text-sm text-muted-foreground">Loading plans...</p>
             </GlassCard>
           ) : (
             plans.map((plan) => {
               const isCurrent = isActive && current?.plan?.toLowerCase() === plan.id;
               return (
-                <GlassCard key={plan.id} className={plan.highlighted ? "border-primary ring-1 ring-primary/25" : ""}>
+                <GlassCard
+                  key={plan.id}
+                  className={`flex h-full flex-col p-8 md:p-10 ${plan.highlighted ? "border-primary ring-1 ring-primary/25" : ""}`}
+                >
                   <div className="flex items-center justify-between">
                     <h3 className="font-serif text-xl font-medium">{plan.name}</h3>
                     {isCurrent ? <Badge variant="success">Current</Badge> : plan.highlighted ? <Badge variant="primary">Popular</Badge> : null}
@@ -166,9 +169,9 @@ function OnboardingSubscriptionContent() {
                     <span className="text-sm text-muted-foreground">/ month</span>
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground">{plan.desc}</p>
-                  <PlanFeaturesList features={plan.features} className="mt-5" />
+                  <PlanFeaturesList features={plan.features} className="mt-6 flex-1" itemClassName="leading-relaxed" />
                   <Button
-                    className="mt-6 w-full"
+                    className="mt-8 w-full"
                     variant={plan.highlighted ? "primary" : "secondary"}
                     disabled={isCurrent}
                     onClick={() => !isCurrent && subscribe(plan.id as PlanId)}

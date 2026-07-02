@@ -9,6 +9,7 @@ import { Badge, Disclaimer, GlassCard } from "@/components/daxch/primitives";
 import { Logo } from "@/components/daxch/logo";
 import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
+import { BROKER_OAUTH_STATE } from "@/lib/broker-oauth";
 import { logger } from "@/lib/logger";
 
 const brokers = [
@@ -23,6 +24,7 @@ export default function OnboardingBrokerPage() {
   const { isAuthenticated } = useAuth();
   const [connecting, setConnecting] = useState(false);
   const [status, setStatus] = useState("");
+  const [connected, setConnected] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -30,11 +32,21 @@ export default function OnboardingBrokerPage() {
     }
   }, [isAuthenticated, router]);
 
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    void api
+      .get<{ connected: boolean }>("/broker/connection-status")
+      .then((response) => setConnected(response.connected))
+      .catch(() => setConnected(false));
+  }, [isAuthenticated]);
+
   const connectUpstox = async () => {
     setConnecting(true);
     setStatus("");
     try {
-      const response = await api.get<{ url: string }>("/broker/upstox/auth-url?state=onboarding");
+      const response = await api.get<{ url: string }>(
+        `/broker/upstox/auth-url?state=${BROKER_OAUTH_STATE.ONBOARDING}`
+      );
       if (response.url) {
         window.location.href = response.url;
         return;
@@ -68,6 +80,20 @@ export default function OnboardingBrokerPage() {
             confirm. Optional — you can skip and connect later.
           </p>
         </div>
+
+        {connected && (
+          <div className="mt-8 rounded-sm border border-primary/30 bg-primary/5 p-4 text-center text-sm">
+            <p className="text-foreground">Upstox is already connected.</p>
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
+              <Link href="/broker" className="text-xs font-medium text-primary hover:underline">
+                Manage in app →
+              </Link>
+              <Link href="/onboarding/subscription" className="text-xs text-muted-foreground hover:text-foreground">
+                Continue to plans →
+              </Link>
+            </div>
+          </div>
+        )}
 
         <div className="mt-10 grid gap-4 sm:grid-cols-2">
           {brokers.map((broker) => (

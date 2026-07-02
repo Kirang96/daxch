@@ -1,9 +1,10 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { api } from "@/lib/api";
+import { resolveBrokerOAuthReturnPath } from "@/lib/broker-oauth";
 
 function BrokerCallbackContent() {
   const params = useSearchParams();
@@ -11,26 +12,31 @@ function BrokerCallbackContent() {
   const code = useMemo(() => params.get("code") || "", [params]);
   const state = useMemo(() => params.get("state") || "", [params]);
   const [status, setStatus] = useState("Finalizing broker connection...");
+  const handledRef = useRef(false);
 
   useEffect(() => {
+    if (handledRef.current) {
+      return;
+    }
+    if (!code) {
+      setStatus("Missing authorization code from broker.");
+      return;
+    }
+
+    handledRef.current = true;
+
     const connect = async () => {
-      if (!code) {
-        setStatus("Missing authorization code from broker.");
-        return;
-      }
       try {
         await api.post(`/broker/upstox/callback?code=${encodeURIComponent(code)}`, {});
-        const nextPath =
-          state === "onboarding"
-            ? "/onboarding/subscription?broker=connected"
-            : "/settings?broker=connected";
+        const nextPath = resolveBrokerOAuthReturnPath(state);
         setStatus("Broker connected! Redirecting...");
-        setTimeout(() => router.push(nextPath), 900);
+        router.replace(nextPath);
       } catch (error) {
+        handledRef.current = false;
         setStatus(`Broker connection failed: ${(error as Error).message}`);
       }
     };
-    connect();
+    void connect();
   }, [code, router, state]);
 
   return (
@@ -59,4 +65,3 @@ export default function BrokerCallbackPage() {
     </Suspense>
   );
 }
-

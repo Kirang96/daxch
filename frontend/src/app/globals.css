@@ -115,7 +115,6 @@ button {
   h3,
   .font-display {
     font-family: var(--font-serif), Georgia, serif;
-    color: oklch(0.15 0 0);
   }
 }
 

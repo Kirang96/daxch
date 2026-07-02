@@ -85,7 +85,7 @@ function PricingCard({ plan }: { plan: Plan }) {
       }
     >
       <div className="mb-2 flex items-center justify-between">
-        <h3 className={`text-xl font-bold ${featured ? "text-primary-foreground" : ""}`}>{plan.name}</h3>
+        <h3 className={`text-xl font-bold ${featured ? "text-primary-foreground" : "text-foreground"}`}>{plan.name}</h3>
         {featured && (
           <span className="editorial-label text-primary-foreground/60">Most active</span>
         )}

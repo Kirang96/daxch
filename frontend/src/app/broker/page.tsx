@@ -1,12 +1,14 @@
 ﻿"use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Check, ChevronDown, PlugZap, RefreshCw, ShieldCheck } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { AlertBanner, Badge, Disclaimer, GlassCard } from "@/components/daxch/primitives";
 import { api } from "@/lib/api";
+import { BROKER_OAUTH_STATE } from "@/lib/broker-oauth";
 import { logger } from "@/lib/logger";
 
 type BrokerStatus = {
@@ -17,6 +19,26 @@ type BrokerStatus = {
 };
 
 export default function BrokerPage() {
+  return (
+    <Suspense
+      fallback={
+        <AppShell title="Broker connection" subtitle="Connect Upstox to sync order status and execute trades you approve.">
+          <GlassCard>
+            <p className="text-sm text-muted-foreground">Loading broker status…</p>
+          </GlassCard>
+        </AppShell>
+      }
+    >
+      <BrokerPageContent />
+    </Suspense>
+  );
+}
+
+function BrokerPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const justConnected = searchParams.get("broker") === "connected";
+  const [connectedBanner, setConnectedBanner] = useState(false);
   const [status, setStatus] = useState<BrokerStatus | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [message, setMessage] = useState("");
@@ -34,14 +56,23 @@ export default function BrokerPage() {
   };
 
   useEffect(() => {
-    checkStatus();
+    void checkStatus();
   }, []);
+
+  useEffect(() => {
+    if (!justConnected) return;
+    setConnectedBanner(true);
+    void checkStatus();
+    router.replace("/broker", { scroll: false });
+  }, [justConnected, router]);
 
   const connect = async () => {
     setConnecting(true);
     setMessage("");
     try {
-      const response = await api.get<{ url: string }>("/broker/upstox/auth-url?state=broker-setup");
+      const response = await api.get<{ url: string }>(
+        `/broker/upstox/auth-url?state=${BROKER_OAUTH_STATE.APP}`
+      );
       if (response.url) {
         window.location.href = response.url;
         return;
@@ -69,6 +100,12 @@ export default function BrokerPage() {
       title="Broker connection"
       subtitle="Connect Upstox to sync order status and execute trades you approve."
     >
+      {connectedBanner && status?.connected && !status.expired && (
+        <AlertBanner variant="info" className="mb-4" title="Upstox connected">
+          Your broker is linked. You can create agents and place approved trades from the agent pages.
+        </AlertBanner>
+      )}
+
       <GlassCard>
         <div className="flex items-start gap-4">
           <div className="grid h-12 w-12 shrink-0 place-items-center rounded-sm bg-primary/15 text-primary">
