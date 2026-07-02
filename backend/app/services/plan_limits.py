@@ -10,6 +10,10 @@ PLAN_CONFIG: dict[str, dict] = {
 PLAN_ORDER = ("starter", "pro", "ultra")
 
 
+def normalize_plan(plan: str) -> str:
+    return plan.lower().strip()
+
+
 def plan_tier_rank(plan: str) -> int:
     normalized = normalize_plan(plan)
     try:

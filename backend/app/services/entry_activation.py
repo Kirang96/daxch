@@ -3,6 +3,7 @@ from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 from backend.app.services.market_hours import should_use_amo
 
 from backend.app.models.entities import (
