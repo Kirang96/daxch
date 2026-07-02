@@ -22,6 +22,7 @@ from backend.app.services.broker.base import OrderRequest
 from backend.app.services.broker.factory import get_broker
 from backend.app.services.broker.session import get_valid_broker_token
 from backend.app.services.broker.upstox import BrokerConfigurationError
+from backend.app.services.entry_activation import activate_with_entry_order
 from backend.app.services.plan_limits import get_agent_limit, get_max_polling_frequency
 from backend.app.services.positions.exchange import aggregate_exchange_positions, aggregate_portfolio_summary
 from backend.app.services.subscription_access import require_platform_access
@@ -108,7 +109,6 @@ async def get_market_summary(
                 interval="day",
                 access_token=token,
             )
-            # Take last 10 points
             sparkline_data = prices[-10:] if prices else [ltp * (1 + i * 0.001) for i in range(-5, 5)]
         except Exception:
             import random
@@ -135,6 +135,10 @@ async def create_stock_holding(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> StockResponse:
+    if payload.place_entry_order:
+        require_platform_access(db, current_user)
+        return await activate_with_entry_order(db, current_user, payload)
+
     if payload.enable_monitor_agent:
         require_platform_access(db, current_user)
     agent_limit = get_agent_limit(current_user.plan_tier.value)
@@ -230,6 +234,7 @@ async def execute_buy(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> dict:
+    """Legacy MARKET buy bypass. Prefer wizard entry flow with place_entry_order=True."""
     holding = db.get(StockHolding, UUID(holding_id))
     if not holding or holding.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Holding not found")
@@ -250,5 +255,4 @@ async def execute_buy(
         )
     except BrokerConfigurationError as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
-    return {"status": order.status, "order_id": order.order_id}
-
+    return {"status": order.status, "order_id": order.order_id, "deprecated": True}

@@ -286,6 +286,19 @@ class UpstoxBroker(BaseBroker):
             raise BrokerConfigurationError("Order placed but no order_id was returned by broker.")
         return OrderResponse(order_id=str(order_id), status="placed")
 
+    async def cancel_order(self, broker_order_id: str, access_token: str) -> None:
+        self._validate_configuration()
+        if self._demo_mode:
+            return
+
+        token = self._require_access_token(access_token)
+        await self._request(
+            "DELETE",
+            "/order/cancel",
+            access_token=token,
+            params={"order_id": broker_order_id},
+        )
+
     async def get_order_status(self, broker_order_id: str, access_token: str) -> OrderStatusResponse:
         self._validate_configuration()
         if self._demo_mode:

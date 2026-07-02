@@ -12,7 +12,6 @@ from backend.app.models.entities import (
     AgentDecision,
     AgentStatus,
     AuditLog,
-    BrokerConnection,
     ConfirmationStatus,
     DecisionType,
     MonitorAgent,
@@ -22,18 +21,30 @@ from backend.app.models.entities import (
     StockHolding,
     User,
 )
-from backend.app.schemas.agent import AgentCreateRequest, AgentDetailResponse, AgentHoldingSnapshot, AgentResponse, DecisionResponse, OrderSnapshot
+from backend.app.schemas.agent import (
+    AgentCreateRequest,
+    AgentDetailResponse,
+    AgentHoldingSnapshot,
+    AgentResponse,
+    DecisionResponse,
+    OrderSnapshot,
+)
 from backend.app.services.audit import log_event
-from backend.app.services.broker.base import OrderRequest
 from backend.app.services.broker.factory import get_broker
-from backend.app.services.broker.session import get_valid_broker_token
+from backend.app.services.broker.order_execution import OrderPlacementError, place_and_sync_order
 from backend.app.services.broker.upstox import BrokerConfigurationError
-from backend.app.services.positions.order_sync import sync_order_from_broker_status
+from backend.app.services.entry_fill import agent_awaiting_entry_fill
 from backend.app.services.notification_events import create_notification_event
 from backend.app.services.plan_limits import get_agent_limit, get_max_polling_frequency
 from backend.app.services.subscription_access import require_platform_access
 
 router = APIRouter(prefix="/agents", tags=["agents"])
+
+
+def _agent_response(agent: MonitorAgent) -> AgentResponse:
+    resp = AgentResponse.model_validate(agent)
+    resp.awaiting_entry_fill = agent_awaiting_entry_fill(agent)
+    return resp
 
 
 @router.post("", response_model=AgentResponse, status_code=status.HTTP_201_CREATED)
@@ -74,7 +85,6 @@ def create_agent(
         polling_frequency=payload.polling_frequency,
         next_poll_at=_next_poll_time(payload.polling_frequency, now=datetime.now(tz=timezone.utc)),
         agent_config={
-            # Day-1 launch policy: user-confirmed executions only.
             "auto_execute_on_timeout": False,
             "confirmation_timeout_minutes": payload.confirmation_timeout_minutes,
         },
@@ -82,7 +92,7 @@ def create_agent(
     db.add(agent)
     db.commit()
     db.refresh(agent)
-    return AgentResponse.model_validate(agent)
+    return _agent_response(agent)
 
 
 @router.get("", response_model=list[AgentResponse])
@@ -96,7 +106,7 @@ def list_agents(
         .where(StockHolding.user_id == current_user.id)
     )
     agents = db.execute(stmt).scalars().all()
-    return [AgentResponse.model_validate(a) for a in agents]
+    return [_agent_response(a) for a in agents]
 
 
 @router.get("/{agent_id}", response_model=AgentDetailResponse)
@@ -146,7 +156,7 @@ def get_agent_detail(
         return resp
 
     return AgentDetailResponse(
-        agent=AgentResponse.model_validate(agent),
+        agent=_agent_response(agent),
         holding=AgentHoldingSnapshot.model_validate(holding),
         decisions=[_build_decision(d) for d in decisions],
         recent_audit=recent_audit,
@@ -202,37 +212,19 @@ async def confirm_decision(
     holding = db.get(StockHolding, agent.holding_id) if agent else None
     order = db.execute(select(Order).where(Order.decision_id == decision.id)).scalar_one_or_none()
 
-    if approve and agent and holding and decision.decision_type != DecisionType.hold and order:
-        connection = db.execute(select(BrokerConnection).where(BrokerConnection.user_id == holding.user_id)).scalar_one_or_none()
-        if connection:
-            broker = get_broker(connection.broker_name)
-            req = OrderRequest(
-                ticker=holding.ticker,
-                exchange=holding.exchange,
-                transaction_type="BUY" if decision.decision_type == DecisionType.buy_more else "SELL",
-                quantity=order.quantity,
+    if approve and agent and holding and decision.decision_type not in (DecisionType.hold, DecisionType.initial_entry) and order:
+        tx_type = "BUY" if decision.decision_type == DecisionType.buy_more else "SELL"
+        try:
+            await place_and_sync_order(
+                db,
+                current_user,
+                holding,
+                order,
                 order_type="MARKET",
+                transaction_type=tx_type,
                 price=order.price,
             )
-            tx_type = req.transaction_type
-            if order.transaction_type is None:
-                order.transaction_type = tx_type
-            try:
-                _, token = await get_valid_broker_token(db=db, user=current_user, broker=broker)
-                # Best-effort execution; failures are audit logged for manual follow-up.
-                result = await broker.place_order(token, req)
-                order.broker_order_id = result.order_id
-                order.status = OrderStatus.placed
-                try:
-                    live = await broker.get_order_status(result.order_id, token)
-                    sync_order_from_broker_status(order, live)
-                except Exception:
-                    pass
-            except BrokerConfigurationError:
-                order.status = OrderStatus.failed
-            except Exception:  # noqa: BLE001
-                order.status = OrderStatus.failed
-        else:
+        except OrderPlacementError:
             order.status = OrderStatus.failed
 
     if agent:
@@ -256,6 +248,66 @@ async def confirm_decision(
     return {"updated": True, "confirmation_status": decision.confirmation_status.value}
 
 
+@router.post("/{agent_id}/entry-order/cancel")
+async def cancel_entry_order(
+    agent_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    stmt = (
+        select(MonitorAgent)
+        .join(StockHolding, MonitorAgent.holding_id == StockHolding.id)
+        .where(MonitorAgent.id == UUID(agent_id), StockHolding.user_id == current_user.id)
+    )
+    agent = db.execute(stmt).scalar_one_or_none()
+    if not agent:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
+    if not agent_awaiting_entry_fill(agent):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Agent is not awaiting an entry fill.")
+
+    config = agent.agent_config or {}
+    order_id = config.get("entry_order_id")
+    decision_id = config.get("entry_decision_id")
+    order = db.get(Order, UUID(order_id)) if order_id else None
+    if not order and decision_id:
+        order = db.execute(select(Order).where(Order.decision_id == UUID(decision_id))).scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Entry order not found.")
+
+    holding = db.get(StockHolding, agent.holding_id)
+    if order.broker_order_id and holding:
+        broker = get_broker("upstox")
+        try:
+            from backend.app.services.broker.session import get_valid_broker_token
+
+            _, token = await get_valid_broker_token(db=db, user=current_user, broker=broker)
+            if hasattr(broker, "cancel_order"):
+                await broker.cancel_order(order.broker_order_id, token)
+        except (BrokerConfigurationError, OrderPlacementError):
+            pass
+
+    order.status = OrderStatus.cancelled
+    order.broker_status = "cancelled"
+    config = dict(agent.agent_config or {})
+    config["awaiting_entry_fill"] = False
+    agent.agent_config = config
+    agent.status = AgentStatus.stopped
+
+    log_event(db, agent.id, "entry_order_cancelled", {"order_id": str(order.id)})
+    if holding:
+        create_notification_event(
+            db,
+            holding.user_id,
+            NotificationType.agent,
+            f"{holding.ticker}: entry order cancelled",
+            "Your limit entry order was cancelled. The agent has been stopped.",
+            {"order_id": str(order.id), "ticker": holding.ticker},
+        )
+
+    db.commit()
+    return {"updated": True, "order_status": order.status.value}
+
+
 @router.post("/{agent_id}/pause")
 def pause_agent(
     agent_id: str,
@@ -270,6 +322,11 @@ def pause_agent(
     agent = db.execute(stmt).scalar_one_or_none()
     if not agent:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
+    if agent_awaiting_entry_fill(agent):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot pause while awaiting entry fill. Cancel the entry order instead.",
+        )
     agent.status = AgentStatus.paused
     db.commit()
     return {"updated": True}
@@ -289,9 +346,16 @@ def resume_agent(
     agent = db.execute(stmt).scalar_one_or_none()
     if not agent:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
+    if agent_awaiting_entry_fill(agent):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Entry order is still open. Monitoring starts automatically after the order fills.",
+        )
     if agent.status != AgentStatus.paused:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Agent is not paused")
     agent.status = AgentStatus.active
+    if agent.next_poll_at is None:
+        agent.next_poll_at = _next_poll_time(agent.polling_frequency, now=datetime.now(tz=timezone.utc))
     db.commit()
     return {"updated": True}
 
@@ -311,4 +375,3 @@ def stop_all_agents(
         agent.status = AgentStatus.stopped
     db.commit()
     return {"updated": True, "count": len(agents)}
-

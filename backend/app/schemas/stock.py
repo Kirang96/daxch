@@ -1,6 +1,9 @@
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+
+from backend.app.schemas.agent import OrderSnapshot
 
 
 class StockCreateRequest(BaseModel):
@@ -13,6 +16,11 @@ class StockCreateRequest(BaseModel):
     ai_budget_capital: float | None = None
     enable_monitor_agent: bool = True
     polling_frequency: int = 2
+    place_entry_order: bool = False
+    analysis_strategy: str | None = None
+    analysis_snapshot: dict | None = None
+    entry_source: Literal["user", "ai"] = "user"
+    force_entry: bool = False
 
 
 class StockResponse(BaseModel):
@@ -24,6 +32,10 @@ class StockResponse(BaseModel):
     intention: str
     status: str
     sector: str | None = None
+    agent_id: UUID | None = None
+    agent_status: str | None = None
+    awaiting_entry_fill: bool = False
+    entry_order: OrderSnapshot | None = None
 
     model_config = {"from_attributes": True}
 

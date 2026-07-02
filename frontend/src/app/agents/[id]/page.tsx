@@ -165,10 +165,28 @@ export default function AgentDetailPage() {
   const tradeSignals = useMemo(
     () =>
       (data?.decisions ?? []).filter(
-        (d) => d.decision_type === "buy_more" || d.decision_type === "sell"
+        (d) =>
+          d.decision_type === "initial_entry" ||
+          d.decision_type === "buy_more" ||
+          d.decision_type === "sell"
       ),
     [data]
   );
+
+  const awaitingEntryFill = Boolean(data?.agent.awaiting_entry_fill);
+  const entryDecision = useMemo(
+    () => data?.decisions?.find((d) => d.decision_type === "initial_entry"),
+    [data]
+  );
+
+  useEffect(() => {
+    if (!awaitingEntryFill || !entryDecision?.order?.id) return;
+    const orderId = entryDecision.order.id;
+    const interval = setInterval(() => {
+      void syncOrderFromBroker(orderId).then(() => load());
+    }, 20000);
+    return () => clearInterval(interval);
+  }, [awaitingEntryFill, entryDecision?.order?.id, load, syncOrderFromBroker]);
 
   const filledOrderCount = useMemo(
     () => ordersWithDecisions.filter(({ order }) => isFilledOrderStatus(order.status)).length,
@@ -219,6 +237,18 @@ export default function AgentDetailPage() {
     }
   };
 
+  const cancelEntryOrder = async () => {
+    if (!params?.id) return;
+    try {
+      setActionStatus("");
+      await api.post(`/agents/${params.id}/entry-order/cancel`, {});
+      setActionStatus("Entry order cancelled.");
+      await load();
+    } catch (err) {
+      setActionStatus((err as Error).message);
+    }
+  };
+
   const refreshOrderStatus = async (orderId: string) => {
     setRefreshingOrderId(orderId);
     setOrderRefreshError((prev) => ({ ...prev, [orderId]: "" }));
@@ -238,14 +268,19 @@ export default function AgentDetailPage() {
       subtitle="AI monitoring for a stock you chose · Approve actions before anything is sent to your broker."
       actions={
         <div className="flex flex-wrap items-center gap-2">
-          {data?.agent.status === "active" && (
+          {data?.agent.status === "active" && !awaitingEntryFill && (
             <Button variant="secondary" onClick={pauseAgent}>
               <Pause className="h-4 w-4" /> Pause
             </Button>
           )}
-          {data?.agent.status === "paused" && (
+          {data?.agent.status === "paused" && !awaitingEntryFill && (
             <Button variant="secondary" onClick={resumeAgent}>
               <Play className="h-4 w-4" /> Resume
+            </Button>
+          )}
+          {awaitingEntryFill && (
+            <Button variant="secondary" onClick={cancelEntryOrder}>
+              <X className="h-4 w-4" /> Cancel entry order
             </Button>
           )}
           <Link href="/agents" className="inline-flex items-center gap-2 rounded-xl border border-border/20 bg-background px-3 py-2 text-sm hover:bg-muted">
@@ -256,6 +291,12 @@ export default function AgentDetailPage() {
     >
       {error && <AlertBanner variant="error" className="mb-4">{error}</AlertBanner>}
       {actionStatus && <p className="mb-4 rounded-xl border border-border/20 bg-background p-3 text-sm text-muted-foreground">{actionStatus}</p>}
+
+      {awaitingEntryFill && (
+        <AlertBanner variant="warning" className="mb-6" title="Awaiting entry fill">
+          Your LIMIT entry order is open on the exchange. Monitoring starts automatically after it fills.
+        </AlertBanner>
+      )}
 
       <AlertBanner variant="info" className="mb-6" title="How this page works">
         <strong>Your plan</strong> (entry price and quantity) feeds the AI — it is not synced from your Demat.
@@ -268,8 +309,8 @@ export default function AgentDetailPage() {
           <div className="flex flex-col gap-4 sm:grid sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2 text-xs">
-                <Badge variant={data?.agent.status === "active" ? "success" : "warning"}>
-                  ● {data?.agent.status || "unknown"}
+                <Badge variant={awaitingEntryFill ? "warning" : data?.agent.status === "active" ? "success" : "warning"}>
+                  ● {awaitingEntryFill ? "awaiting fill" : data?.agent.status || "unknown"}
                 </Badge>
                 <span className="text-muted-foreground">
                   Last analysis · {latestDecision ? new Date(latestDecision.decided_at).toLocaleString() : "n/a"}
@@ -436,7 +477,8 @@ export default function AgentDetailPage() {
               <Mini label="Risk" value={String(latestDecision?.analysis_data?.risk_summary || "n/a")} />
               <Mini label="Status" value={latestDecision?.confirmation_status || "n/a"} />
             </div>
-            {latestDecision?.confirmation_status === "pending" && (
+            {latestDecision?.confirmation_status === "pending" &&
+              latestDecision.decision_type !== "initial_entry" && (
               <div className="mt-4 flex gap-2">
                 <Button className="flex-1" onClick={() => confirmDecision(true)}>
                   <Check className="h-4 w-4" /> Approve
@@ -497,7 +539,9 @@ export default function AgentDetailPage() {
           <ul className="mt-3 space-y-2 text-sm">
             {(data?.decisions?.length ? data.decisions : []).slice(0, 5).map((decision) => {
               const stage =
-                decision.decision_type === "buy_more" || decision.decision_type === "sell"
+                decision.decision_type === "initial_entry" ||
+                decision.decision_type === "buy_more" ||
+                decision.decision_type === "sell"
                   ? resolveExchangeTradeStage(decision, decision.order ?? null).label
                   : null;
               return (

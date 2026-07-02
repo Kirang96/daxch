@@ -135,14 +135,16 @@ export default function AgentsPage() {
       const ltp = quote?.ltp ?? null;
       const entry = holding?.entry_price ?? 0;
       const pnlPct = ltp != null && entry > 0 ? (((ltp - entry) / entry) * 100).toFixed(2) : null;
-      const status =
-        agent.status !== "active"
+      const status = agent.awaiting_entry_fill
+        ? "watch"
+        : agent.status !== "active"
           ? "alert"
           : decisionType === "sell"
             ? "alert"
             : confirmation === "pending"
               ? "watch"
               : "healthy";
+      const statusLabelOverride = agent.awaiting_entry_fill ? "Awaiting fill" : null;
       return {
         agent,
         holding,
@@ -151,7 +153,8 @@ export default function AgentsPage() {
         confidence,
         ltp,
         pnlPct,
-        status
+        status,
+        statusLabelOverride
       };
     });
   }, [agents, holdingsById, decisionsByAgent, quotesByTicker]);
@@ -223,7 +226,8 @@ export default function AgentsPage() {
           const statusVar =
             card.status === "healthy" ? "success" : card.status === "watch" ? "warning" : "danger";
           const statusLabel =
-            card.status === "healthy" ? "Healthy" : card.status === "watch" ? "Watch" : "Needs review";
+            card.statusLabelOverride ??
+            (card.status === "healthy" ? "Healthy" : card.status === "watch" ? "Watch" : "Needs review");
           const up = card.pnlPct != null ? Number(card.pnlPct) >= 0 : true;
           const candleKey = `${card.holding?.ticker}:${card.holding?.exchange}`;
           const candles = candlesByTicker[candleKey] ?? [];

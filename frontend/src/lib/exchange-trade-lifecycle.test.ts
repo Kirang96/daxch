@@ -39,4 +39,17 @@ describe("resolveExchangeTradeStage", () => {
     expect(info.stage).toBe("filled");
     expect(info.label).toBe("Filled on exchange");
   });
+
+  it("maps initial_entry to open on exchange", () => {
+    const info = resolveExchangeTradeStage(
+      { decision_type: "initial_entry", confirmation_status: "approved" },
+      {
+        status: "placed",
+        broker_order_id: "brk-entry",
+        quantity: 5,
+        broker_status: "open",
+      }
+    );
+    expect(info.stage).toBe("open_on_exchange");
+  });
 });

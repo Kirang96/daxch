@@ -7,6 +7,10 @@ export type StockHolding = {
   intention: string;
   status: string;
   sector?: string | null;
+  agent_id?: string | null;
+  agent_status?: string | null;
+  awaiting_entry_fill?: boolean;
+  entry_order?: OrderSnapshot | null;
 };
 
 export type MonitorAgent = {
@@ -15,6 +19,7 @@ export type MonitorAgent = {
   polling_frequency: number;
   status: string;
   next_poll_at: string | null;
+  awaiting_entry_fill?: boolean;
 };
 
 export type OrderSnapshot = {

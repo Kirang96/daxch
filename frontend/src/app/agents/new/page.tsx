@@ -114,6 +114,7 @@ function NewAgentWizard() {
   const [frequencyChoice, setFrequencyChoice] = useState<Choice>("user");
   const [planTier, setPlanTier] = useState("starter");
   const [agentMonthlyEstimate, setAgentMonthlyEstimate] = useState<number | null>(null);
+  const [brokerConnected, setBrokerConnected] = useState<boolean | null>(null);
 
   useEffect(() => {
     const paramTicker = searchParams.get("ticker");
@@ -128,6 +129,13 @@ function NewAgentWizard() {
       .then((sub) => setPlanTier(sub?.plan?.toLowerCase() || "starter"))
       .catch(() => setPlanTier("starter"));
   }, []);
+
+  useEffect(() => {
+    api
+      .get<{ connected: boolean }>("/broker/connection-status")
+      .then((res) => setBrokerConnected(res.connected))
+      .catch(() => setBrokerConnected(false));
+  }, [brokerJustConnected]);
 
   useEffect(() => {
     const freq = clampPollingFrequency(Number(pollingFrequency));
@@ -265,6 +273,10 @@ function NewAgentWizard() {
     try {
       setSubmitting(true);
       setError("");
+      const activeResult =
+        analysisRuns.find((r) => r.strategy === activeAnalysisId) ??
+        analysisRuns[analysisRuns.length - 1];
+
       const intentionWithThesis = thesis.trim()
         ? `${intention} | thesis: ${thesis.trim()}`
         : intention;
@@ -276,7 +288,11 @@ function NewAgentWizard() {
         quantity: Number(quantity),
         intention: intentionWithThesis,
         enable_monitor_agent: true,
-        polling_frequency: Number(pollingFrequency)
+        polling_frequency: Number(pollingFrequency),
+        place_entry_order: true,
+        analysis_strategy: activeAnalysisId ?? activeResult?.strategy ?? selectedStrategy,
+        analysis_snapshot: activeResult ?? undefined,
+        entry_source: entryChoice,
       });
 
       try {
@@ -299,13 +315,18 @@ function NewAgentWizard() {
         });
       }
 
-      const agents = await api.get<MonitorAgent[]>("/agents");
-      const createdAgent = agents.find((agent) => agent.holding_id === created.id);
-      if (createdAgent) {
+      if (created.agent_id) {
         if (isOnboarding) markWelcomeComplete();
-        router.push(`/agents/${createdAgent.id}`);
+        router.push(`/agents/${created.agent_id}`);
       } else {
-        router.push("/agents");
+        const agents = await api.get<MonitorAgent[]>("/agents");
+        const createdAgent = agents.find((agent) => agent.holding_id === created.id);
+        if (createdAgent) {
+          if (isOnboarding) markWelcomeComplete();
+          router.push(`/agents/${createdAgent.id}`);
+        } else {
+          router.push("/agents");
+        }
       }
     } catch (err) {
       setError((err as Error).message);
@@ -452,6 +473,11 @@ function NewAgentWizard() {
           pollingFrequency={pollingFrequency}
           maxPlanFrequency={maxPlanFrequency}
           agentMonthlyEstimate={agentMonthlyEstimate}
+          entryPrice={entryPrice}
+          quantity={quantity}
+          ticker={ticker}
+          exchange={exchange}
+          brokerConnected={brokerConnected}
           notifyEmail={notifyEmail}
           notifyPush={notifyPush}
           notifySms={notifySms}
@@ -921,6 +947,8 @@ function Step3Assessment({
           ? "my entry, AI cadence"
           : "my choices";
 
+  const isDontEnter = activeResult?.decision_type === "dont_enter";
+
   return (
     <div className="mx-auto max-w-5xl">
       <GlassCard className="mb-6">
@@ -947,6 +975,12 @@ function Step3Assessment({
           )}
         </div>
       </GlassCard>
+
+      {isDontEnter && (
+        <AlertBanner variant="error" className="mb-4" title="Strategy recommends not entering">
+          This analysis suggests waiting. Try another strategy or adjust your entry before continuing.
+        </AlertBanner>
+      )}
 
       {analysisRuns.length > 1 && (
         <div className="mb-4">
@@ -1046,7 +1080,7 @@ function Step3Assessment({
           </button>
           <button
             onClick={onNext}
-            disabled={!plannedTrade || !activeResult || (entryChoice === "ai" && !aiEntry)}
+            disabled={!plannedTrade || !activeResult || (entryChoice === "ai" && !aiEntry) || isDontEnter}
             className="inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-[oklch(0.15_0_0)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             Continue with {continueLabel} <ArrowRight className="h-4 w-4" />
@@ -1329,6 +1363,11 @@ function Step2Goal({
 function Step5Configure({
   pollingFrequency,
   maxPlanFrequency,
+  entryPrice,
+  quantity,
+  ticker,
+  exchange,
+  brokerConnected,
   notifyEmail,
   notifyPush,
   notifySms,
@@ -1344,6 +1383,11 @@ function Step5Configure({
 }: {
   pollingFrequency: string;
   maxPlanFrequency: number;
+  entryPrice: string;
+  quantity: string;
+  ticker: string;
+  exchange: string;
+  brokerConnected: boolean | null;
   notifyEmail: boolean;
   notifyPush: boolean;
   notifySms: boolean;
@@ -1359,12 +1403,40 @@ function Step5Configure({
 }) {
   const freq = clampPollingFrequency(Number(pollingFrequency));
   const cappedAtActivation = freq > maxPlanFrequency;
+  const brokerReturn = encodeURIComponent(
+    `/agents/new?ticker=${ticker}&exchange=${exchange}&onboarding=1`
+  );
+  const canPlaceOrder = brokerConnected === true && Number(entryPrice) > 0 && Number(quantity) >= 1;
 
   return (
     <div className="mx-auto max-w-3xl">
       <GlassCard>
-        <div className="text-xs uppercase tracking-wider text-muted-foreground">Step 5 · Agent configuration</div>
-        <h2 className="mt-2 text-2xl font-semibold tracking-tight">Assign your AI monitoring agent</h2>
+        <div className="text-xs uppercase tracking-wider text-muted-foreground">Step 5 · Confirm & place order</div>
+        <h2 className="mt-2 text-2xl font-semibold tracking-tight">Place limit order & start agent</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          A LIMIT buy will be sent to Upstox at your confirmed price. Monitoring begins after the order fills.
+        </p>
+
+        {brokerConnected === false && (
+          <AlertBanner variant="warning" className="mt-4" title="Upstox not connected">
+            Connect your broker to place the entry order.{" "}
+            <Link href={`/broker?return=${brokerReturn}`} className="font-medium text-primary underline">
+              Connect Upstox
+            </Link>
+          </AlertBanner>
+        )}
+
+        <div className="mt-6 rounded-2xl border border-border/15 bg-muted/60 p-4">
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">Order summary</div>
+          <div className="mt-2 text-lg font-semibold">
+            {quantity && entryPrice
+              ? `LIMIT BUY · ${quantity} × ${ticker} @ ${formatInr(Number(entryPrice))}`
+              : "—"}
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Limit orders may remain open until price is reached. You can cancel from the agent page.
+          </p>
+        </div>
 
         <div className="mt-6 rounded-2xl border border-border/15 bg-muted/60 p-4">
           <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
@@ -1391,7 +1463,9 @@ function Step5Configure({
         <div className="mt-6 flex items-center justify-between rounded-2xl border border-border/15 bg-muted/60 p-4">
           <div>
             <div className="text-sm font-medium">Automatic action suggestions</div>
-            <div className="text-xs text-muted-foreground">Agent surfaces suggested actions. You still decide and execute.</div>
+            <div className="text-xs text-muted-foreground">
+              Your entry order is sent to Upstox now. Future buy/sell suggestions still need your approval.
+            </div>
           </div>
           <Switch on={autoSuggestions} onChange={onAutoSuggestionsChange} />
         </div>
@@ -1412,10 +1486,10 @@ function Step5Configure({
           </button>
           <button
             onClick={onActivate}
-            disabled={submitting}
-            className="inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-[oklch(0.15_0_0)] disabled:opacity-70"
+            disabled={submitting || !canPlaceOrder}
+            className="inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-[oklch(0.15_0_0)] disabled:cursor-not-allowed disabled:opacity-70"
           >
-            <Bot className="h-4 w-4" /> {submitting ? "Activating..." : "Activate Agent"}
+            <Bot className="h-4 w-4" /> {submitting ? "Placing order..." : "Place limit order & start agent"}
           </button>
         </div>
       </GlassCard>

@@ -17,6 +17,7 @@ class AgentResponse(BaseModel):
     polling_frequency: int
     status: str
     next_poll_at: datetime | None
+    awaiting_entry_fill: bool = False
 
     model_config = {"from_attributes": True}
 

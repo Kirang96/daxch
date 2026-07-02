@@ -27,6 +27,7 @@ class AgentStatus(str, enum.Enum):
 
 
 class DecisionType(str, enum.Enum):
+    initial_entry = "initial_entry"
     buy_more = "buy_more"
     sell = "sell"
     hold = "hold"

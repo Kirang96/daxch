@@ -47,6 +47,14 @@ export function resolveExchangeTradeStage(
   live?: LiveLike
 ): ExchangeTradeStageInfo {
   if (!order) {
+    if (decision.decision_type === "initial_entry") {
+      return {
+        stage: "approved_not_sent",
+        label: "Entry confirmed",
+        description: "Your limit entry was confirmed — sending to the exchange.",
+        variant: "primary",
+      };
+    }
     if (decision.confirmation_status === "pending") {
       return {
         stage: "awaiting_approval",
@@ -165,7 +173,7 @@ export function resolveExchangeTradeStage(
 }
 
 export function tradeSideLabel(decisionType: string): { label: string; variant: "success" | "danger" | "neutral" } {
-  if (decisionType === "buy_more") return { label: "BUY", variant: "success" };
+  if (decisionType === "initial_entry" || decisionType === "buy_more") return { label: "BUY", variant: "success" };
   if (decisionType === "sell") return { label: "SELL", variant: "danger" };
   return { label: "HOLD", variant: "neutral" };
 }

@@ -3,6 +3,7 @@ import asyncio
 import httpx
 import pytest
 
+from backend.app.services.broker.base import OrderRequest
 from backend.app.services.broker.upstox import BrokerConfigurationError, UpstoxBroker
 
 
@@ -77,3 +78,39 @@ def test_request_maps_upstox_http_error(monkeypatch: pytest.MonkeyPatch) -> None
 
     with pytest.raises(BrokerConfigurationError, match="Reconnect your broker account"):
         asyncio.run(broker._request("GET", "/instruments/search", access_token="bad-token"))
+
+
+def test_place_order_limit_payload(monkeypatch: pytest.MonkeyPatch) -> None:
+    broker = UpstoxBroker()
+    captured: dict = {}
+
+    async def fake_request(method: str, path: str, *, access_token: str | None = None, params=None, body=None):
+        captured["method"] = method
+        captured["path"] = path
+        captured["body"] = body
+        return {"data": {"order_id": "order-limit-1"}}
+
+    async def fake_resolve(ticker: str, exchange: str, access_token: str):
+        return "NSE_EQ|INE002A01018"
+
+    monkeypatch.setattr(broker, "_request", fake_request)
+    monkeypatch.setattr(broker, "_resolve_instrument_key", fake_resolve)
+    monkeypatch.setattr(UpstoxBroker, "_demo_mode", property(lambda self: False))
+
+    result = asyncio.run(
+        broker.place_order(
+            "token",
+            OrderRequest(
+                ticker="RELIANCE",
+                exchange="NSE",
+                transaction_type="BUY",
+                quantity=10,
+                order_type="LIMIT",
+                price=2450.5,
+            ),
+        )
+    )
+
+    assert result.order_id == "order-limit-1"
+    assert captured["body"]["order_type"] == "LIMIT"
+    assert captured["body"]["price"] == 2450.5

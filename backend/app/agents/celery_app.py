@@ -25,11 +25,15 @@ celery_app.conf.update(
             "task": "backend.app.agents.monitor_task.auto_execute_expired_confirmations",
             "schedule": 60.0,
         },
+        "poll-pending-entry-orders": {
+            "task": "backend.app.agents.entry_order_task.poll_pending_entry_orders",
+            "schedule": 60.0,
+        },
     },
 )
 
 celery_app.autodiscover_tasks(["backend.app.agents"])
 
 # Register tasks defined in scheduler/monitor_task (not tasks.py).
-from backend.app.agents import monitor_task, scheduler  # noqa: E402, F401
+from backend.app.agents import entry_order_task, monitor_task, scheduler  # noqa: E402, F401
 
