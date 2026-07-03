@@ -7,6 +7,7 @@ import { ArrowRight, Lock, Mail, User } from "lucide-react";
 
 import { Disclaimer } from "@/components/daxch/primitives";
 import { Logo } from "@/components/daxch/logo";
+import { LandingAuthRedirect } from "@/components/landing/landing-auth-redirect";
 import { api, setToken } from "@/lib/api";
 import { resolvePostAuthPath } from "@/lib/onboarding";
 
@@ -79,6 +80,7 @@ export default function SignupPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-background">
+      <LandingAuthRedirect />
       <div className="relative mx-auto flex min-h-screen max-w-md flex-col px-6 py-8">
         <div className="flex items-center justify-between">
           <Link href="/">

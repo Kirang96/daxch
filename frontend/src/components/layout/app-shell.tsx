@@ -25,6 +25,7 @@ import {
 
 import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
+import { BrokerConnectionStatus, isBrokerHealthy } from "@/lib/broker-status";
 import { scheduleSessionRefresh } from "@/lib/session";
 import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
@@ -64,7 +65,7 @@ export function AppShell({ title, subtitle, actions, eyebrow, children }: AppShe
   const [profileName, setProfileName] = useState("Account");
   const [planTier, setPlanTier] = useState<"starter" | "pro" | "ultra" | "none">("none");
   const [subscriptionActive, setSubscriptionActive] = useState(false);
-  const [brokerConnected, setBrokerConnected] = useState(false);
+  const [brokerStatus, setBrokerStatus] = useState<BrokerConnectionStatus | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [aiUsageWarning, setAiUsageWarning] = useState(false);
   const [aiUsagePct, setAiUsagePct] = useState(0);
@@ -112,7 +113,7 @@ export function AppShell({ title, subtitle, actions, eyebrow, children }: AppShe
           api.get<UserSettings>("/settings"),
           api.get<Subscription | null>("/subscriptions/current"),
           api.get<NotificationEvent[]>("/notifications?only_unread=true&limit=200"),
-          api.get<{ connected: boolean }>("/broker/connection-status"),
+          api.get<BrokerConnectionStatus>("/broker/connection-status"),
           api.get<AiUnitsQuota>("/ai-units/current").catch(() => null),
           api.get<{ is_admin?: boolean }>("/auth/me").catch(() => null)
         ]);
@@ -127,7 +128,7 @@ export function AppShell({ title, subtitle, actions, eyebrow, children }: AppShe
         } else {
           setPlanTier("none");
         }
-        setBrokerConnected(broker.connected);
+        setBrokerStatus(broker);
         setUnreadCount(unread.length);
         const warn =
           !!aiQuota?.has_active_subscription && aiQuota.percent_used >= 80 && aiQuota.total_remaining > 0;
@@ -146,22 +147,33 @@ export function AppShell({ title, subtitle, actions, eyebrow, children }: AppShe
   }, [isAuthenticated]);
 
   useEffect(() => {
-    if (!isAuthenticated || pathname !== "/broker") return;
+    if (!isAuthenticated) return;
 
     let cancelled = false;
     const refreshBrokerStatus = async () => {
       try {
-        const broker = await api.get<{ connected: boolean }>("/broker/connection-status");
-        if (!cancelled) setBrokerConnected(broker.connected);
+        const broker = await api.get<BrokerConnectionStatus>("/broker/connection-status");
+        if (!cancelled) setBrokerStatus(broker);
       } catch (err) {
         logger.warn("Failed to refresh broker status", { page: "app-shell", message: (err as Error).message });
+        if (!cancelled) setBrokerStatus({ connected: false });
       }
     };
+
     void refreshBrokerStatus();
+    const interval = window.setInterval(() => void refreshBrokerStatus(), 5 * 60 * 1000);
+    const onFocus = () => void refreshBrokerStatus();
+    window.addEventListener("focus", onFocus);
+
     return () => {
       cancelled = true;
+      window.clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
     };
   }, [isAuthenticated, pathname]);
+
+  const brokerHealthy = isBrokerHealthy(brokerStatus);
+  const brokerSessionExpired = Boolean(brokerStatus?.connected && brokerStatus?.expired);
 
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
@@ -277,10 +289,10 @@ export function AppShell({ title, subtitle, actions, eyebrow, children }: AppShe
                 <span
                   className={cn(
                     "h-1.5 w-1.5 rounded-full",
-                    brokerConnected ? "pulse-ring bg-[color:var(--forest)]" : "bg-[color:var(--destructive)]"
+                    brokerHealthy ? "pulse-ring bg-[color:var(--forest)]" : "bg-[color:var(--destructive)]"
                   )}
                 />
-                {brokerConnected ? "Upstox" : "Not connected"}
+                {brokerHealthy ? "Upstox" : brokerSessionExpired ? "Reconnect" : "Not connected"}
               </span>
             </Link>
 
@@ -340,6 +352,21 @@ export function AppShell({ title, subtitle, actions, eyebrow, children }: AppShe
               </Link>
             </div>
           </div>
+
+          {brokerSessionExpired && (
+            <div className="border-b border-[color:var(--ink)]/10 bg-[color:var(--paper-2)] px-5 py-2.5 md:px-8">
+              <div className="flex flex-wrap items-center gap-3 text-xs text-[color:var(--ink-2)]">
+                <AlertTriangle className="h-3.5 w-3.5 text-[color:oklch(0.55_0.14_55)]" />
+                <span>
+                  <strong className="text-[color:var(--ink)]">Upstox session expired.</strong> Reconnect to sync orders
+                  and place trades.{" "}
+                  <Link href="/broker" className="ml-1 underline underline-offset-4">
+                    Reconnect →
+                  </Link>
+                </span>
+              </div>
+            </div>
+          )}
 
           {(!subscriptionActive || aiUsageWarning) && (
             <div className="border-b border-[color:var(--ink)]/10 bg-[color:var(--paper-2)] px-5 py-2.5 md:px-8">

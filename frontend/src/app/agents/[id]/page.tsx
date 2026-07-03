@@ -75,6 +75,7 @@ export default function AgentDetailPage() {
   const [squareOffQty, setSquareOffQty] = useState("");
   const [squareOffSubmitting, setSquareOffSubmitting] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const [retrySubmitting, setRetrySubmitting] = useState(false);
 
   useEffect(() => {
@@ -348,14 +349,24 @@ export default function AgentDetailPage() {
 
   const deleteAgent = async () => {
     if (!params?.id) return;
+    setDeleteError("");
     try {
       await api.del(`/agents/${params.id}`);
       setDeleteOpen(false);
       window.location.href = "/agents";
     } catch (err) {
-      setActionStatus((err as Error).message);
+      setDeleteError((err as Error).message);
     }
   };
+
+  const openDeleteModal = () => {
+    setDeleteError("");
+    setDeleteOpen(true);
+  };
+
+  const canDeleteAgent =
+    entryOrderFailed ||
+    ((data?.agent.status === "paused" || data?.agent.status === "stopped") && !awaitingEntryFill);
 
   const timelineStatusLabel = isActivelyMonitoring
     ? "Monitoring"
@@ -399,10 +410,15 @@ export default function AgentDetailPage() {
               <Button variant="secondary" onClick={() => void retryEntry()} disabled={retrySubmitting}>
                 {retrySubmitting ? "Retrying..." : "Retry entry"}
               </Button>
-              <Button variant="secondary" onClick={() => setDeleteOpen(true)}>
+              <Button variant="secondary" onClick={openDeleteModal}>
                 Delete agent
               </Button>
             </>
+          )}
+          {canDeleteAgent && !entryOrderFailed && (
+            <Button variant="secondary" onClick={openDeleteModal}>
+              Delete agent
+            </Button>
           )}
           <Link href="/agents" className="inline-flex items-center gap-2 rounded-xl border border-border/20 bg-background px-3 py-2 text-sm hover:bg-muted">
             <ArrowLeft className="h-4 w-4" /> All agents
@@ -790,6 +806,11 @@ export default function AgentDetailPage() {
             <p className="mt-2 text-sm text-muted-foreground">
               This removes the agent and its decision history. Your holding record stays unless you remove it separately.
             </p>
+            {deleteError && (
+              <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+                {deleteError}
+              </p>
+            )}
             <div className="mt-4 flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setDeleteOpen(false)}>Cancel</Button>
               <Button variant="danger" onClick={() => void deleteAgent()}>Delete</Button>

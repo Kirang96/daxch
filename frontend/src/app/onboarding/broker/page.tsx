@@ -9,6 +9,7 @@ import { Badge, Disclaimer, GlassCard } from "@/components/daxch/primitives";
 import { Logo } from "@/components/daxch/logo";
 import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
+import { isBrokerHealthy } from "@/lib/broker-status";
 import { BROKER_OAUTH_STATE } from "@/lib/broker-oauth";
 import { logger } from "@/lib/logger";
 
@@ -35,8 +36,8 @@ export default function OnboardingBrokerPage() {
   useEffect(() => {
     if (!isAuthenticated) return;
     void api
-      .get<{ connected: boolean }>("/broker/connection-status")
-      .then((response) => setConnected(response.connected))
+      .get<{ connected: boolean; expired?: boolean }>("/broker/connection-status")
+      .then((response) => setConnected(isBrokerHealthy(response)))
       .catch(() => setConnected(false));
   }, [isAuthenticated]);
 

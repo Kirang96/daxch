@@ -60,19 +60,17 @@ export function useChartHover({
       const scaleX = viewBox.width / rect.width;
       const scaleY = viewBox.height / rect.height;
 
-      const svgX = (e.clientX - rect.left) * scaleX;
-      const svgY = (e.clientY - rect.top) * scaleY;
+      const svgX = Math.max(0, Math.min(plotWidth, (e.clientX - rect.left) * scaleX));
 
-      const step = plotWidth / (prices.length - 1);
-      const rawIndex = Math.round(svgX / step);
-      const index = Math.max(0, Math.min(prices.length - 1, rawIndex));
+      const n = prices.length;
+      const index = Math.min(n - 1, Math.max(0, Math.floor((svgX / plotWidth) * n)));
 
       const price = prices[index];
       const label = timestamps[index] ? formatLabel(timestamps[index], index) : `#${index + 1}`;
 
       setHover({
         index,
-        svgX: index * step,
+        svgX,
         svgY: yFor(price),
         price,
         label,

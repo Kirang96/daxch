@@ -1,33 +1,19 @@
 export const GUIDE_SECTIONS = [
   {
     id: "agents",
-    title: "What is an agent?",
-    body: "An agent is a monitoring job for one stock you chose. You set a planned limit price and quantity — that plan feeds the AI. It is not synced from your Demat. Monitoring and AI unit usage begin only after your LIMIT entry order fills on the exchange.",
+    title: "Agents & entry orders",
+    body: "An agent monitors one stock you chose. You set a planned limit price and quantity — that plan feeds the AI and is not synced from your Demat. When you create an agent, Daxch places a LIMIT buy at your chosen price. Monitoring and AI unit usage begin only after your order fills on the exchange. If placement fails, use Retry entry on the agent page; while awaiting fill, the agent stays paused.",
+    lifecycle: "Create → LIMIT order → Awaiting fill → Active monitoring → AI suggestion → You approve → Filled on exchange",
   },
   {
-    id: "plan-vs-demat",
-    title: "Your plan vs exchange position",
-    body: "The entry price and quantity on the agent page are your inputs to the AI thesis. Exchange trades below are real orders sent to Upstox after you approve a suggestion. P/L and positions appear only after orders fill on the exchange.",
+    id: "ai-approvals",
+    title: "AI suggestions & your plan",
+    body: "Your entry price and quantity on the agent page are inputs to the AI thesis. Exchange trades below are real orders sent to Upstox after you approve a suggestion. P/L and positions appear only after orders fill. On schedule, the agent researches the stock and may suggest buy more, sell, or hold — nothing is sent until you approve. Use Square off to exit part or all at market without waiting for AI.",
   },
   {
-    id: "entry-orders",
-    title: "Entry orders",
-    body: "When you create an agent, Daxch places a LIMIT buy at your chosen price. Outside market hours, orders may be sent as AMO (After Market Order). If placement fails, use Retry entry on the agent page. While awaiting fill, the agent stays paused.",
-  },
-  {
-    id: "suggestions",
-    title: "AI suggestions and approvals",
-    body: "On schedule, the agent researches the stock and may suggest buy more, sell, or hold. Nothing is sent to your broker until you approve. Use Square off to exit part or all of a position at market without waiting for AI.",
-  },
-  {
-    id: "ai-units",
-    title: "AI Units",
-    body: "Each analysis run and each monitoring check consumes AI Units from your monthly plan. Heavier models use more units per run. Starter uses GPT-4o Mini only; Pro and Ultra can choose other models in Settings.",
-  },
-  {
-    id: "broker",
-    title: "Broker connection",
-    body: "Daxch connects to Upstox via OAuth with read and trade scopes you approve. We never store your Upstox password. You can revoke access anytime from Upstox or by disconnecting in Daxch.",
+    id: "broker-units",
+    title: "Broker connection & AI Units",
+    body: "Daxch connects to Upstox via OAuth with read and trade scopes you approve. We never store your Upstox password; revoke access anytime from Upstox or by disconnecting in Daxch. Each analysis run and monitoring check consumes AI Units from your monthly plan. Starter uses GPT-4o Mini only; Pro and Ultra can choose other models in Settings.",
   },
 ] as const;
 
@@ -62,8 +48,12 @@ export const GUIDE_JOURNEY = [
   { step: "1", title: "Connect broker", desc: "Link Upstox so orders and positions sync.", href: "/broker" },
   { step: "2", title: "Create an agent", desc: "Pick a stock, set your goal and limit price.", href: "/agents/new" },
   { step: "3", title: "Entry fills", desc: "Your LIMIT order goes to the exchange; monitoring starts after fill.", href: "/agents" },
-  { step: "4", title: "AI monitors", desc: "Scheduled research produces buy, sell, or hold suggestions.", href: "/agents" },
-  { step: "5", title: "You decide", desc: "Approve or reject; Daxch sends orders to Upstox.", href: "/agents" },
+  {
+    step: "4",
+    title: "Monitor & decide",
+    desc: "Scheduled AI research produces suggestions — you approve before anything is sent to Upstox.",
+    href: "/agents",
+  },
 ] as const;
 
 export const GUIDE_FEATURES = [

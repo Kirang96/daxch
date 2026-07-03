@@ -20,7 +20,7 @@ from backend.app.models.entities import (
 from backend.app.schemas.agent import BrokerOrderStatus
 from backend.app.services.broker.factory import get_broker
 from backend.app.services.broker.upstox import BrokerConfigurationError
-from backend.app.services.positions.order_sync import sync_order_from_broker_status
+from backend.app.services.entry_order_state import apply_entry_order_broker_status
 from backend.app.services.broker.session import get_valid_broker_token
 from backend.app.services.notification_events import create_notification_event
 from backend.app.db.session import get_db
@@ -146,15 +146,17 @@ async def get_order_status(
     """Fetch live order status from the broker and sync it back to the DB."""
     # Verify the order belongs to this user via decision → agent → holding chain
     stmt = (
-        select(Order)
+        select(Order, MonitorAgent, StockHolding)
         .join(AgentDecision, Order.decision_id == AgentDecision.id)
         .join(MonitorAgent, AgentDecision.agent_id == MonitorAgent.id)
         .join(StockHolding, MonitorAgent.holding_id == StockHolding.id)
         .where(Order.id == UUID(order_id), StockHolding.user_id == current_user.id)
     )
-    order = db.execute(stmt).scalar_one_or_none()
-    if not order:
+    row = db.execute(stmt).first()
+    if not row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+
+    order, agent, holding = row
 
     if not order.broker_order_id:
         raise HTTPException(
@@ -175,7 +177,14 @@ async def get_order_status(
     except BrokerConfigurationError as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
 
-    sync_order_from_broker_status(order, live)
+    apply_entry_order_broker_status(
+        db,
+        agent=agent,
+        holding=holding,
+        order=order,
+        live=live,
+        notify=False,
+    )
     db.commit()
 
     return BrokerOrderStatus(

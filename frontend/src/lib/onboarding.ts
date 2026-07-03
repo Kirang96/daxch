@@ -1,4 +1,5 @@
 import { api } from "@/lib/api";
+import { BrokerConnectionStatus, isBrokerHealthy } from "@/lib/broker-status";
 import { MonitorAgent } from "@/types";
 
 const WELCOME_KEY = "daxch_onboarding_welcome";
@@ -24,8 +25,8 @@ export async function resolvePostAuthPath(): Promise<string> {
       return "/onboarding/welcome";
     }
     try {
-      const broker = await api.get<{ connected: boolean }>("/broker/connection-status");
-      if (!broker.connected) {
+      const broker = await api.get<BrokerConnectionStatus>("/broker/connection-status");
+      if (!isBrokerHealthy(broker)) {
         return "/onboarding/broker";
       }
     } catch {

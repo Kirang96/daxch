@@ -9,6 +9,7 @@ import { api, setToken } from "@/lib/api";
 import { resolvePostAuthPath } from "@/lib/onboarding";
 import { Badge, Disclaimer, GlassCard, Sparkline } from "@/components/daxch/primitives";
 import { Logo } from "@/components/daxch/logo";
+import { LandingAuthRedirect } from "@/components/landing/landing-auth-redirect";
 
 const inputClass =
   "h-11 w-full rounded-sm border border-border/20 bg-background pl-10 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30";
@@ -60,6 +61,7 @@ export default function LoginPage() {
 
   return (
     <div className="grid min-h-screen bg-background lg:grid-cols-2">
+      <LandingAuthRedirect />
       <div className="relative flex flex-col px-6 py-8 md:px-12">
         <div className="flex items-center justify-between">
           <Link href="/">

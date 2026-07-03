@@ -36,6 +36,7 @@ import { StrategySelector } from "@/components/analysis/strategy-selector";
 import { AppShell } from "@/components/layout/app-shell";
 import { Badge, Disclaimer, GlassCard, ThinkingDots, AlertBanner } from "@/components/daxch/primitives";
 import { api, ApiError } from "@/lib/api";
+import { isBrokerHealthy } from "@/lib/broker-status";
 import { logger } from "@/lib/logger";
 import { markWelcomeComplete } from "@/lib/onboarding";
 import { formatAiUnits } from "@/lib/ai-units";
@@ -112,6 +113,7 @@ function NewAgentWizard() {
   const [userFrequencySnapshot, setUserFrequencySnapshot] = useState("2");
   const [entryChoice, setEntryChoice] = useState<Choice>("user");
   const [frequencyChoice, setFrequencyChoice] = useState<Choice>("user");
+  const [forceEntry, setForceEntry] = useState(false);
   const [planTier, setPlanTier] = useState("starter");
   const [agentMonthlyEstimate, setAgentMonthlyEstimate] = useState<number | null>(null);
   const [brokerConnected, setBrokerConnected] = useState<boolean | null>(null);
@@ -132,8 +134,8 @@ function NewAgentWizard() {
 
   useEffect(() => {
     api
-      .get<{ connected: boolean }>("/broker/connection-status")
-      .then((res) => setBrokerConnected(res.connected))
+      .get<{ connected: boolean; expired?: boolean }>("/broker/connection-status")
+      .then((res) => setBrokerConnected(isBrokerHealthy(res)))
       .catch(() => setBrokerConnected(false));
   }, [brokerJustConnected]);
 
@@ -159,6 +161,21 @@ function NewAgentWizard() {
 
   const next = () => setStep((s) => Math.min(5, s + 1) as Step);
   const prev = () => setStep((s) => Math.max(1, s - 1) as Step);
+
+  const handleActiveAnalysisChange = (id: AnalysisStrategyId) => {
+    setActiveAnalysisId(id);
+    setForceEntry(false);
+    const result = analysisRuns.find((r) => r.strategy === id);
+    if (!result) return;
+    const aiFreq = result.suggested_polling_frequency ?? 2;
+    const aiFreqAdoptable = canAdoptFrequency(aiFreq, result.max_adoptable_polling_frequency ?? 2);
+    if (entryChoice === "ai" && result.suggested_entry == null) {
+      setEntryChoice("user");
+    }
+    if (frequencyChoice === "ai" && !aiFreqAdoptable) {
+      setFrequencyChoice("user");
+    }
+  };
 
   const loadQuote = async (): Promise<{
     quote: { ticker: string; name?: string | null; ltp: number; change_percent: number | null } | null;
@@ -292,6 +309,7 @@ function NewAgentWizard() {
         analysis_strategy: activeAnalysisId ?? activeResult?.strategy ?? selectedStrategy,
         analysis_snapshot: activeResult ?? undefined,
         entry_source: entryChoice,
+        force_entry: forceEntry,
       });
 
       try {
@@ -353,7 +371,8 @@ function NewAgentWizard() {
     next();
   };
 
-  const applyAssessmentChoicesAndContinue = () => {
+  const applyAssessmentChoicesAndContinue = (overrideDontEnter = false) => {
+    setForceEntry(overrideDontEnter);
     const activeResult =
       analysisRuns.find((r) => r.strategy === activeAnalysisId) ??
       analysisRuns[analysisRuns.length - 1];
@@ -482,7 +501,7 @@ function NewAgentWizard() {
           generating={generating}
           analysisRuns={analysisRuns}
           activeAnalysisId={activeAnalysisId}
-          onActiveAnalysisChange={setActiveAnalysisId}
+          onActiveAnalysisChange={handleActiveAnalysisChange}
           plannedTrade={plannedTrade}
           userFrequency={userFrequencySnapshot}
           entryChoice={entryChoice}
@@ -961,7 +980,7 @@ function Step3Assessment({
   frequencyChoice: Choice;
   onEntryChoiceChange: (choice: Choice) => void;
   onFrequencyChoiceChange: (choice: Choice) => void;
-  onNext: () => void;
+  onNext: (overrideDontEnter?: boolean) => void;
   onBack: () => void;
 }) {
   const userEntry = plannedTrade?.entry ?? "";
@@ -990,6 +1009,17 @@ function Step3Assessment({
           : "my choices";
 
   const isDontEnter = activeResult?.decision_type === "dont_enter";
+
+  const continueDisabled =
+    !plannedTrade || !activeResult || (entryChoice === "ai" && !aiEntry);
+
+  const disabledReason = !plannedTrade
+    ? "Complete Step 3 with a limit price and quantity first."
+    : !activeResult
+      ? "Run analysis to continue."
+      : entryChoice === "ai" && !aiEntry
+        ? "AI entry is unavailable for this strategy — choose your entry or pick another strategy."
+        : null;
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -1153,14 +1183,29 @@ function Step3Assessment({
         <button onClick={onBack} className="inline-flex items-center gap-2 rounded-xl border border-border/20 bg-background px-4 py-2.5 text-sm font-medium hover:bg-muted">
           <ArrowLeft className="h-4 w-4" /> Back
         </button>
-        <div className="flex flex-wrap justify-end gap-2">
-          <button
-            onClick={onNext}
-            disabled={!plannedTrade || !activeResult || (entryChoice === "ai" && !aiEntry) || isDontEnter}
-            className="inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-[oklch(0.15_0_0)] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Continue with {continueLabel} <ArrowRight className="h-4 w-4" />
-          </button>
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex flex-wrap justify-end gap-2">
+            {isDontEnter && !continueDisabled && (
+              <button
+                onClick={() => onNext(true)}
+                className="inline-flex items-center gap-2 rounded-sm border border-border/20 bg-background px-4 py-2.5 text-sm font-medium hover:bg-muted"
+              >
+                Continue with my plan anyway <ArrowRight className="h-4 w-4" />
+              </button>
+            )}
+            {!isDontEnter && (
+              <button
+                onClick={() => onNext()}
+                disabled={continueDisabled}
+                className="inline-flex items-center gap-2 rounded-sm bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-[oklch(0.15_0_0)] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Continue with {continueLabel} <ArrowRight className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          {disabledReason && !isDontEnter && (
+            <p className="text-right text-xs text-muted-foreground">{disabledReason}</p>
+          )}
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { AgentLiveCard } from "@/components/landing/agent-live-card";
+import { LandingAuthRedirect } from "@/components/landing/landing-auth-redirect";
 import { PricingComparisonTable } from "@/components/landing/pricing-comparison-table";
 import { getLandingPlans } from "@/lib/plan-features";
 
@@ -126,6 +127,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground antialiased selection:bg-primary selection:text-primary-foreground">
+      <LandingAuthRedirect />
       {/* Nav */}
       <nav className="border-b border-border/20 px-6 py-5">
         <div className="mx-auto flex max-w-6xl items-center justify-between">

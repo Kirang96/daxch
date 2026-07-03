@@ -341,13 +341,36 @@ async def retry_entry_order(
     return {"updated": True, "order_id": str(order.id), "order_status": order.status.value}
 
 
+def _entry_order_blocks_delete(db: Session, agent: MonitorAgent) -> bool:
+    """Return True if an open entry order should block agent deletion."""
+    if not agent_awaiting_entry_fill(agent):
+        return False
+
+    config = agent.agent_config or {}
+    order_id = config.get("entry_order_id")
+    decision_id = config.get("entry_decision_id")
+    order: Order | None = None
+    if order_id:
+        order = db.get(Order, UUID(order_id)) if order_id else None
+    if not order and decision_id:
+        order = db.execute(select(Order).where(Order.decision_id == UUID(decision_id))).scalar_one_or_none()
+
+    if order and order.status in (OrderStatus.failed, OrderStatus.cancelled):
+        stale_config = dict(agent.agent_config or {})
+        stale_config["awaiting_entry_fill"] = False
+        agent.agent_config = stale_config
+        return False
+
+    return True
+
+
 def delete_agent(
     db: Session,
     agent: MonitorAgent,
     *,
     delete_holding: bool = False,
 ) -> None:
-    if agent_awaiting_entry_fill(agent):
+    if _entry_order_blocks_delete(db, agent):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cancel the open entry order before deleting this agent.",

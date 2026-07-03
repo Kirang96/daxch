@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowUpRight, Plus } from "lucide-react";
 
 import { api } from "@/lib/api";
+import { isBrokerHealthy } from "@/lib/broker-status";
 import { AiUnitsUsageCard } from "@/components/daxch/ai-units-usage-card";
 import { AppShell } from "@/components/layout/app-shell";
 import {
@@ -71,8 +72,8 @@ export default function DashboardPage() {
       );
 
       try {
-        const broker = await api.get<{ connected: boolean }>("/broker/connection-status");
-        setBrokerConnected(broker.connected);
+        const broker = await api.get<{ connected: boolean; expired?: boolean }>("/broker/connection-status");
+        setBrokerConnected(isBrokerHealthy(broker));
       } catch {
         setBrokerConnected(false);
       }

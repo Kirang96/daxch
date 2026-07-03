@@ -24,13 +24,16 @@ export default function GuidePage() {
           <GlassCard key={section.id} id={section.id} className="p-5">
             <h3 className="font-medium">{section.title}</h3>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{section.body}</p>
+            {"lifecycle" in section && section.lifecycle && (
+              <p className="mt-3 font-mono text-xs text-muted-foreground">{section.lifecycle}</p>
+            )}
           </GlassCard>
         ))}
       </section>
 
       <section className="mb-10">
         <h2 className="font-serif text-2xl tracking-tight">Your journey</h2>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {GUIDE_JOURNEY.map((item) => (
             <Link key={item.step} href={item.href} className="group rounded-xl border border-border/15 bg-muted/40 p-4 hover:bg-muted/70">
               <div className="mb-3 grid h-8 w-8 place-items-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
@@ -46,60 +49,32 @@ export default function GuidePage() {
         </div>
       </section>
 
-      <section className="mb-10 grid gap-4 lg:grid-cols-2" id="agents">
-        <GlassCard>
-          <h3 className="font-medium">Your plan vs exchange position</h3>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            <strong className="text-foreground">Your plan</strong> — entry price, quantity, and goal stored for AI context. Not auto-synced from Demat.
-          </p>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            <strong className="text-foreground">Exchange position</strong> — real holdings from Upstox. P/L and square-off use this.
-          </p>
-        </GlassCard>
-        <GlassCard>
-          <h3 className="font-medium">Approvals & AI Units</h3>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            AI never places surprise trades. You confirm every suggestion. Analysis and monitoring consume{" "}
-            <Link href="/subscription" className="text-primary underline">AI Units</Link> from your monthly allowance.
-          </p>
-        </GlassCard>
-      </section>
-
       <section className="mb-10">
         <h2 className="font-serif text-2xl tracking-tight">Features</h2>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {GUIDE_FEATURES.map((f) => (
-            <Link key={f.href} href={f.href} className="rounded-xl border border-border/15 bg-background p-5 hover:bg-muted/50">
-              <h3 className="font-medium">{f.title}</h3>
-              <p className="mt-1 text-sm text-muted-foreground">{f.desc}</p>
-              <span className="mt-3 inline-block text-xs font-medium text-primary">Open →</span>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <section className="mb-10" id="ai-units">
-        <GlassCard>
-          <h3 className="font-medium">Agent lifecycle</h3>
-          <p className="mt-3 font-mono text-sm text-muted-foreground">
-            Create → LIMIT order → Awaiting fill → Active monitoring → AI suggestion → You approve → Filled on exchange
-          </p>
-          <p className="mt-2 text-xs text-muted-foreground">
-            If the entry order fails (e.g. broker rejection), the agent shows an error — not a false &quot;awaiting fill&quot; state.
-          </p>
+        <GlassCard className="mt-6 p-5">
+          <div className="grid gap-3 sm:grid-cols-2">
+            {GUIDE_FEATURES.map((f) => (
+              <Link key={f.href} href={f.href} className="rounded-lg border border-border/10 px-3 py-2.5 hover:bg-muted/50">
+                <div className="font-medium text-sm">{f.title}</div>
+                <div className="text-xs text-muted-foreground">{f.desc}</div>
+              </Link>
+            ))}
+          </div>
         </GlassCard>
       </section>
 
       <section className="mb-10">
         <h2 className="font-serif text-2xl tracking-tight">FAQ</h2>
-        <div className="mt-4 space-y-3">
+        <GlassCard className="mt-4 divide-y divide-border/15 p-0">
           {GUIDE_FAQ.map((item) => (
-            <GlassCard key={item.q} className="p-5">
-              <h3 className="text-sm font-medium">{item.q}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.a}</p>
-            </GlassCard>
+            <details key={item.q} className="group px-5 py-1">
+              <summary className="cursor-pointer list-none py-3 text-sm font-medium marker:content-none [&::-webkit-details-marker]:hidden">
+                {item.q}
+              </summary>
+              <p className="pb-4 text-sm leading-relaxed text-muted-foreground">{item.a}</p>
+            </details>
           ))}
-        </div>
+        </GlassCard>
       </section>
 
       <div className="flex flex-wrap gap-3">
