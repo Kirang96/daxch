@@ -23,10 +23,22 @@ def test_pipeline_context_includes_planned_entry(monkeypatch):
             risk_flags=[],
         ), {}
 
+    async def fake_eodhd_fetch(*args, **kwargs):
+        return {
+            "symbol": "RELIANCE.NSE",
+            "api_calls": 0,
+            "errors": [],
+            "news_articles": [],
+            "sentiment_trend": [],
+            "upcoming_earnings": [],
+            "price_context": {},
+        }
+
     pipeline = AnalysisPipeline()
     monkeypatch.setattr("backend.app.services.analysis.registry.StrategyRegistry.get", lambda _: FakeStrategy())
     monkeypatch.setattr(pipeline.llm, "complete_strategy", fake_complete)
     monkeypatch.setattr(pipeline.market_fetcher, "fetch", lambda *a, **k: {"quote": None, "candles": []})
+    monkeypatch.setattr(pipeline.eodhd_fetcher, "fetch", fake_eodhd_fetch)
 
     import asyncio
 

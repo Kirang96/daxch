@@ -30,7 +30,7 @@ class FivePaisaClient:
         headers = {"Content-Type": "application/json", "Accept": "application/json"}
         if access_token:
             headers["Authorization"] = f"Bearer {access_token}"
-        payload = {"head": {"key": self.app_key}, "body": body}
+        payload = {"head": {"Key": self.app_key}, "body": body}
         try:
             async with httpx.AsyncClient(timeout=30) as client:
                 response = await client.post(self._service_url(path), json=payload, headers=headers)

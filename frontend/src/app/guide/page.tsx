@@ -19,9 +19,9 @@ export default function GuidePage() {
         Daxch is not a SEBI-registered investment advisor. All output is informational — validate against your own risk profile.
       </GlassCard>
 
-      <section className="mb-10 max-w-3xl space-y-8">
+      <section className="mx-auto mb-10 max-w-3xl space-y-8">
         <h2 className="font-serif text-2xl tracking-tight">How it works</h2>
-        <div className="space-y-4 text-base leading-relaxed text-muted-foreground">
+        <div className="space-y-4 text-base leading-relaxed text-pretty text-muted-foreground">
           {GUIDE_OVERVIEW.map((paragraph) => (
             <p key={paragraph}>
               <GuideText text={paragraph} />
@@ -32,7 +32,7 @@ export default function GuidePage() {
           <section key={section.id} id={section.id} className="space-y-3 border-b border-border/10 pb-8 last:border-b-0">
             <h3 className="text-lg font-medium text-foreground">{section.title}</h3>
             {section.paragraphs.map((paragraph) => (
-              <p key={paragraph} className="text-sm leading-relaxed text-muted-foreground">
+              <p key={paragraph} className="text-sm leading-relaxed text-pretty text-muted-foreground">
                 <GuideText text={paragraph} />
               </p>
             ))}
@@ -75,7 +75,7 @@ export default function GuidePage() {
         </GlassCard>
       </section>
 
-      <section className="mb-10">
+      <section className="mx-auto mb-10 max-w-3xl">
         <h2 className="font-serif text-2xl tracking-tight">FAQ</h2>
         <GlassCard className="mt-4 divide-y divide-border/15 p-0">
           {GUIDE_FAQ.map((item) => (
@@ -83,7 +83,7 @@ export default function GuidePage() {
               <summary className="cursor-pointer list-none py-3 text-sm font-medium marker:content-none [&::-webkit-details-marker]:hidden">
                 {item.q}
               </summary>
-              <p className="pb-4 text-sm leading-relaxed text-muted-foreground">{item.a}</p>
+              <p className="pb-4 text-sm leading-relaxed text-pretty text-muted-foreground">{item.a}</p>
             </details>
           ))}
         </GlassCard>

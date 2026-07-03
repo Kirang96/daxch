@@ -12,15 +12,23 @@ class TechnicalTrendStrategy(AnalysisStrategy):
     min_plan = "starter"
 
     def required_data_types(self) -> set[str]:
-        return {"market"}
+        return {"market", "eodhd"}
 
     def build_prompt(self, context: dict) -> str:
+        eodhd = context.get("eodhd") or {}
         return TECHNICAL_TREND_PROMPT.format(
             ticker=context["ticker"],
             current_price=context["current_price"],
             planned_entry_price=context.get("planned_entry_price", "not_provided"),
             planned_quantity=context.get("planned_quantity", 0),
             technical_data=json.dumps(context.get("technical_data", {})),
+            eodhd_price_context=json.dumps(eodhd.get("price_context") or {}),
+            eodhd_valuation=json.dumps(
+                {
+                    "highlights": eodhd.get("highlights") or {},
+                    "valuation": eodhd.get("valuation") or {},
+                }
+            ),
         )
 
     def safe_fallback(self, ticker: str, reason: str = "") -> LLMStrategyOutput:

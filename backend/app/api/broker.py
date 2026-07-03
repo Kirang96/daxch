@@ -77,7 +77,15 @@ def broker_auth_url(broker_name: str, state: str = "daxch") -> dict:
     name = _normalize_broker_name(broker_name)
     broker = get_broker(name)
     try:
-        url = broker.get_auth_url(state)
+        if name == "5paisa" and hasattr(broker, "get_oauth_start"):
+            oauth = broker.get_oauth_start(state)
+            url = str(oauth["url"])
+            method = str(oauth.get("method") or "GET")
+            fields = oauth.get("fields") if isinstance(oauth.get("fields"), dict) else {}
+        else:
+            url = broker.get_auth_url(state)
+            method = "GET"
+            fields = {}
     except BrokerConfigurationError as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
     redirect_uri = None
@@ -89,7 +97,13 @@ def broker_auth_url(broker_name: str, state: str = "daxch") -> dict:
         from backend.app.core.config import get_settings
 
         redirect_uri = get_settings().fivepaisa_redirect_uri
-    return {"url": url, "redirect_uri": redirect_uri, "broker": name}
+    return {
+        "url": url,
+        "method": method,
+        "fields": fields,
+        "redirect_uri": redirect_uri,
+        "broker": name,
+    }
 
 
 @router.post("/{broker_name}/callback")

@@ -143,6 +143,7 @@ variable "app_secrets" {
     RAZORPAY_PLAN_ULTRA_ID   = ""
     TAVILY_API_KEY           = ""
     NEWS_API_KEY             = ""
+    EODHD_API_KEY            = ""
     SES_FROM_EMAIL           = ""
     FCM_CREDENTIALS_JSON     = ""
     FERNET_KEY               = ""

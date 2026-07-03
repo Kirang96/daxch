@@ -73,14 +73,35 @@ class FivePaisaBroker(BaseBroker):
             and not self.settings.fivepaisa_app_key
         )
 
-    def get_auth_url(self, state: str) -> str:
+    def get_oauth_start(self, state: str) -> dict[str, str | dict[str, str]]:
         self._validate_configuration()
         if self._demo_mode:
-            return f"{self.settings.frontend_base_url.rstrip('/')}/broker/callback?broker=5paisa&RequestToken=demo&state={state}"
+            url = (
+                f"{self.settings.frontend_base_url.rstrip('/')}/broker/callback"
+                f"?broker=5paisa&RequestToken=demo&state={state}"
+            )
+            return {"url": url, "method": "GET", "fields": {}}
+
         login_url = self.settings.fivepaisa_login_url.rstrip("/")
-        redirect = self.settings.fivepaisa_redirect_uri
-        vendor_key = self.settings.fivepaisa_app_key
-        query = urlencode({"VendorKey": vendor_key, "ResponseURL": redirect, "State": state})
+        return {
+            "url": login_url,
+            "method": "POST",
+            "fields": {
+                "VendorKey": self.settings.fivepaisa_app_key,
+                "ResponseURL": self.settings.fivepaisa_redirect_uri,
+                "State": state,
+            },
+        }
+
+    def get_auth_url(self, state: str) -> str:
+        start = self.get_oauth_start(state)
+        if start["method"] == "GET":
+            return str(start["url"])
+        login_url = str(start["url"])
+        fields = start.get("fields") or {}
+        if not isinstance(fields, dict):
+            return login_url
+        query = urlencode(fields)
         return f"{login_url}?{query}"
 
     async def authenticate(self, auth_code: str) -> TokenPair:

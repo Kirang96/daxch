@@ -27,6 +27,7 @@ class Settings(BaseSettings):
 
     news_api_key: str = Field(default="", alias="NEWS_API_KEY")
     tavily_api_key: str = Field(default="", alias="TAVILY_API_KEY")
+    eodhd_api_key: str = Field(default="", alias="EODHD_API_KEY")
 
     upstox_client_id: str = Field(default="", alias="UPSTOX_CLIENT_ID")
     upstox_client_secret: str = Field(default="", alias="UPSTOX_CLIENT_SECRET")
@@ -38,7 +39,7 @@ class Settings(BaseSettings):
     fivepaisa_user_id: str = Field(default="", alias="FIVEPAISA_USER_ID")
     fivepaisa_redirect_uri: str = Field(default="", alias="FIVEPAISA_REDIRECT_URI")
     fivepaisa_login_url: str = Field(
-        default="https://dev-openapi.5paisa.com/WebVendorLogin/VLogin/Index",
+        default="https://openapi.5paisa.com/WebVendorLogin/VLogin/Index",
         alias="FIVEPAISA_LOGIN_URL",
     )
     fivepaisa_api_url: str = Field(

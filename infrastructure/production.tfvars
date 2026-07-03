@@ -18,6 +18,7 @@ backend_env_vars = {
   AWS_REGION             = "ap-south-1"
   UPSTOX_REDIRECT_URI    = "https://daxch.app/broker/callback"
   FIVEPAISA_REDIRECT_URI = "https://daxch.app/broker/callback"
+  FIVEPAISA_LOGIN_URL    = "https://openapi.5paisa.com/WebVendorLogin/VLogin/Index"
   ADMIN_EMAILS           = "hello.daxch@gmail.com"
 }
 

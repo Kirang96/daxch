@@ -9,6 +9,8 @@ def suggest_polling_frequency(
     user_polling_frequency: int,
     decision_type: str,
     risk_flags: list[str],
+    *,
+    earnings_within_days: int | None = None,
 ) -> tuple[int, str, list[str]]:
     vol_level = "moderate"
     trend = technical_data.get("trend") or {}
@@ -45,6 +47,14 @@ def suggest_polling_frequency(
     if "HIGH_VOLATILITY" in risk_flags or "VOLATILITY_HIGH" in risk_flags:
         suggested = min(12, suggested + 2)
         factors.append("High volatility flagged in analysis")
+
+    if earnings_within_days is not None and earnings_within_days <= 14:
+        suggested = min(12, suggested + 1)
+        factors.append(f"Earnings report expected in {earnings_within_days} day(s)")
+
+    if "EARNINGS_SOON" in risk_flags and "Earnings report expected" not in " ".join(factors):
+        suggested = min(12, suggested + 1)
+        factors.append("Upcoming earnings event flagged in analysis")
 
     if user_polling_frequency > suggested:
         factors.append(f"You requested {user_polling_frequency}/day — assessed against current conditions")

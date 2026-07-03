@@ -12,9 +12,15 @@ class NewsSentimentStrategy(AnalysisStrategy):
     min_plan = "starter"
 
     def required_data_types(self) -> set[str]:
-        return {"news", "web_search"}
+        return {"news", "web_search", "eodhd"}
 
     def build_prompt(self, context: dict) -> str:
+        eodhd = context.get("eodhd") or {}
+        calendar_events = {
+            "upcoming_earnings": eodhd.get("upcoming_earnings") or [],
+            "upcoming_dividends": eodhd.get("upcoming_dividends") or [],
+            "recent_splits": eodhd.get("recent_splits") or [],
+        }
         return NEWS_SENTIMENT_PROMPT.format(
             ticker=context["ticker"],
             exchange=context.get("exchange", "NSE"),
@@ -23,6 +29,8 @@ class NewsSentimentStrategy(AnalysisStrategy):
             planned_quantity=context.get("planned_quantity", 0),
             news_articles=json.dumps(context.get("news_articles", [])),
             web_search_results=json.dumps(context.get("web_search_results", [])),
+            eodhd_sentiment_trend=json.dumps(eodhd.get("sentiment_trend") or []),
+            eodhd_calendar_events=json.dumps(calendar_events),
             intention=context.get("intention", "long_term"),
         )
 

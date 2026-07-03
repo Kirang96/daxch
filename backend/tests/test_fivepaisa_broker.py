@@ -31,7 +31,7 @@ def test_map_order_status_fully_executed() -> None:
     assert _map_order_status("Xmitted") == "pending"
 
 
-def test_get_auth_url_includes_vendor_key(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_get_oauth_start_returns_post_fields(monkeypatch: pytest.MonkeyPatch) -> None:
     broker = FivePaisaBroker()
 
     class FakeSettings:
@@ -39,7 +39,31 @@ def test_get_auth_url_includes_vendor_key(monkeypatch: pytest.MonkeyPatch) -> No
         fivepaisa_encryption_key = "ENC"
         fivepaisa_user_id = "USER"
         fivepaisa_redirect_uri = "https://staging.daxch.app/broker/callback"
-        fivepaisa_login_url = "https://dev-openapi.5paisa.com/WebVendorLogin/VLogin/Index"
+        fivepaisa_login_url = "https://openapi.5paisa.com/WebVendorLogin/VLogin/Index"
+        enable_demo_mode = False
+        is_production = False
+        frontend_base_url = "http://localhost:3000"
+
+    monkeypatch.setattr(broker, "settings", FakeSettings())
+    oauth = broker.get_oauth_start("5paisa:onboarding")
+    assert oauth["url"] == "https://openapi.5paisa.com/WebVendorLogin/VLogin/Index"
+    assert oauth["method"] == "POST"
+    assert oauth["fields"] == {
+        "VendorKey": "APPKEY",
+        "ResponseURL": "https://staging.daxch.app/broker/callback",
+        "State": "5paisa:onboarding",
+    }
+
+
+def test_get_auth_url_legacy_get_query(monkeypatch: pytest.MonkeyPatch) -> None:
+    broker = FivePaisaBroker()
+
+    class FakeSettings:
+        fivepaisa_app_key = "APPKEY"
+        fivepaisa_encryption_key = "ENC"
+        fivepaisa_user_id = "USER"
+        fivepaisa_redirect_uri = "https://staging.daxch.app/broker/callback"
+        fivepaisa_login_url = "https://openapi.5paisa.com/WebVendorLogin/VLogin/Index"
         enable_demo_mode = False
         is_production = False
         frontend_base_url = "http://localhost:3000"

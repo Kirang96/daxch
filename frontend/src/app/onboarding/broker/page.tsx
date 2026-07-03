@@ -10,7 +10,7 @@ import { Logo } from "@/components/daxch/logo";
 import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
 import { formatBrokerName, isBrokerHealthy } from "@/lib/broker-status";
-import { BROKER_OAUTH_STATE, encodeBrokerOAuthState } from "@/lib/broker-oauth";
+import { BROKER_OAUTH_STATE, encodeBrokerOAuthState, startBrokerOAuth, type BrokerAuthUrlResponse } from "@/lib/broker-oauth";
 import { logger } from "@/lib/logger";
 
 type SupportedBroker = {
@@ -55,11 +55,11 @@ export default function OnboardingBrokerPage() {
     setStatus("");
     try {
       const state = encodeBrokerOAuthState(brokerId, BROKER_OAUTH_STATE.ONBOARDING);
-      const response = await api.get<{ url: string }>(
+      const response = await api.get<BrokerAuthUrlResponse>(
         `/broker/${brokerId}/auth-url?state=${encodeURIComponent(state)}`
       );
       if (response.url) {
-        window.location.href = response.url;
+        startBrokerOAuth(response);
         return;
       }
       setStatus("Could not start broker connection. Try again from Settings.");

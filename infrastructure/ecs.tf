@@ -119,6 +119,10 @@ locals {
       valueFrom = "${aws_secretsmanager_secret.app.arn}:NEWS_API_KEY::"
     },
     {
+      name      = "EODHD_API_KEY"
+      valueFrom = "${aws_secretsmanager_secret.app.arn}:EODHD_API_KEY::"
+    },
+    {
       name      = "SES_FROM_EMAIL"
       valueFrom = "${aws_secretsmanager_secret.app.arn}:SES_FROM_EMAIL::"
     },

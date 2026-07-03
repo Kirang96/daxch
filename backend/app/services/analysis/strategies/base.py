@@ -12,7 +12,7 @@ class AnalysisStrategy(ABC):
 
     @abstractmethod
     def required_data_types(self) -> set[str]:
-        """Return set of: market, news, web_search"""
+        """Return set of: market, news, web_search, eodhd"""
 
     @abstractmethod
     def build_prompt(self, context: dict[str, Any]) -> str:

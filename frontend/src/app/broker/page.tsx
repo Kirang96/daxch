@@ -9,7 +9,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { AlertBanner, Badge, Disclaimer, GlassCard } from "@/components/daxch/primitives";
 import { BrokerFundsCheck } from "@/components/daxch/broker-funds-check";
 import { api } from "@/lib/api";
-import { BROKER_OAUTH_STATE, encodeBrokerOAuthState } from "@/lib/broker-oauth";
+import { BROKER_OAUTH_STATE, encodeBrokerOAuthState, startBrokerOAuth, type BrokerAuthUrlResponse } from "@/lib/broker-oauth";
 import { formatBrokerName } from "@/lib/broker-status";
 import { logger } from "@/lib/logger";
 
@@ -56,6 +56,7 @@ function BrokerPageContent() {
   const [connectingId, setConnectingId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [fivePaisaRedirectUri, setFivePaisaRedirectUri] = useState<string | null>(null);
 
   const checkStatus = async () => {
     try {
@@ -83,14 +84,23 @@ function BrokerPageContent() {
     router.replace("/broker", { scroll: false });
   }, [justConnected, router]);
 
+  useEffect(() => {
+    void api
+      .get<BrokerAuthUrlResponse>("/broker/5paisa/auth-url?state=5paisa:app")
+      .then((response) => setFivePaisaRedirectUri(response.redirect_uri || null))
+      .catch(() => setFivePaisaRedirectUri(null));
+  }, []);
+
   const connect = async (brokerId: string) => {
     setConnectingId(brokerId);
     setMessage("");
     try {
       const state = encodeBrokerOAuthState(brokerId, BROKER_OAUTH_STATE.APP);
-      const response = await api.get<{ url: string }>(`/broker/${brokerId}/auth-url?state=${encodeURIComponent(state)}`);
+      const response = await api.get<BrokerAuthUrlResponse>(
+        `/broker/${brokerId}/auth-url?state=${encodeURIComponent(state)}`
+      );
       if (response.url) {
-        window.location.href = response.url;
+        startBrokerOAuth(response);
         return;
       }
       setMessage("Broker auth URL unavailable.");
@@ -154,6 +164,12 @@ function BrokerPageContent() {
                     )}
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground">{broker.description}</p>
+                  {broker.id === "5paisa" && fivePaisaRedirectUri && (
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Register this redirect URL in your Xstream dashboard:{" "}
+                      <code className="rounded bg-muted px-1 py-0.5 font-mono text-[11px]">{fivePaisaRedirectUri}</code>
+                    </p>
+                  )}
                   {isActiveBroker && (
                     <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
                       <li className="flex gap-2">
@@ -205,6 +221,12 @@ function BrokerPageContent() {
                         Broker: {connectedBroker || "—"} · Expires:{" "}
                         {status?.expires_at ? new Date(status.expires_at).toLocaleString() : "—"}
                       </p>
+                      {connectedBroker === "5paisa" && fivePaisaRedirectUri && (
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          OAuth redirect URI (must match Xstream dashboard):{" "}
+                          <code className="rounded bg-muted px-1 py-0.5 font-mono text-[11px]">{fivePaisaRedirectUri}</code>
+                        </p>
+                      )}
                       <button
                         type="button"
                         onClick={refreshToken}

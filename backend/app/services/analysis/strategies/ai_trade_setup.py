@@ -12,7 +12,7 @@ class AITradeSetupStrategy(AnalysisStrategy):
     min_plan = "pro"
 
     def required_data_types(self) -> set[str]:
-        return {"market", "news", "web_search"}
+        return {"market", "news", "web_search", "eodhd"}
 
     def build_prompt(self, context: dict) -> str:
         return AI_TRADE_SETUP_PROMPT.format(
@@ -25,6 +25,7 @@ class AITradeSetupStrategy(AnalysisStrategy):
             news_summary=json.dumps(context.get("news_articles", [])),
             web_search_results=json.dumps(context.get("web_search_results", [])),
             volatility=json.dumps(context.get("volatility", {})),
+            eodhd=json.dumps(context.get("eodhd", {})),
         )
 
     def safe_fallback(self, ticker: str, reason: str = "") -> LLMStrategyOutput:
