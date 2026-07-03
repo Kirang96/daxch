@@ -13,6 +13,7 @@ const LINKS = [
   { href: "/admin/agents", label: "Agents" },
   { href: "/admin/orders", label: "Orders" },
   { href: "/admin/subscriptions", label: "Subscriptions" },
+  { href: "/admin/payments", label: "Payments" },
   { href: "/admin/webhooks", label: "Webhooks" },
   { href: "/admin/ai-usage", label: "AI usage" },
   { href: "/admin/audit", label: "Audit" },

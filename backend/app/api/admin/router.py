@@ -9,6 +9,7 @@ from backend.app.db.session import get_db
 from backend.app.middleware.auth import get_admin_user
 from backend.app.models.entities import (
     AgentDecision,
+    AiUnitTopupPurchase,
     AiUsageEvent,
     AuditLog,
     BrokerConnection,
@@ -22,6 +23,7 @@ from backend.app.models.entities import (
     UserSettings,
     WebhookEvent,
 )
+from backend.app.services.ai_units.service import AiUnitsService
 from backend.app.services.subscription_access import get_latest_subscription
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -274,19 +276,138 @@ def admin_ai_usage(
     db: Session = Depends(get_db),
     _: User = Depends(get_admin_user),
 ) -> dict:
-    events = db.execute(select(AiUsageEvent).order_by(AiUsageEvent.created_at.desc()).limit(limit)).scalars().all()
+    stmt = (
+        select(AiUsageEvent, User.email)
+        .join(User, AiUsageEvent.user_id == User.id)
+        .order_by(AiUsageEvent.created_at.desc())
+        .limit(limit)
+    )
+    rows = db.execute(stmt).all()
     return {
         "items": [
             {
                 "id": str(e.id),
                 "user_id": str(e.user_id),
+                "email": email,
                 "operation": e.operation_type,
                 "model": e.model,
+                "ticker": e.ticker,
                 "units_consumed": e.units_charged,
                 "created_at": e.created_at.isoformat(),
             }
-            for e in events
+            for e, email in rows
         ]
+    }
+
+
+@router.get("/ai-usage/by-user")
+def admin_ai_usage_by_user(
+    search: str = "",
+    limit: int = Query(default=100, le=500),
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_admin_user),
+) -> dict:
+    stmt = select(User).order_by(User.created_at.desc())
+    if search.strip():
+        pattern = f"%{search.strip().lower()}%"
+        stmt = stmt.where(User.email.ilike(pattern))
+    count_stmt = select(func.count()).select_from(User)
+    if search.strip():
+        count_stmt = count_stmt.where(User.email.ilike(pattern))
+    total = db.execute(count_stmt).scalar_one()
+    users = db.execute(stmt.offset(offset).limit(limit)).scalars().all()
+
+    items = []
+    for user in users:
+        quota = AiUnitsService.get_quota(db, user)
+        sub = get_latest_subscription(db, user.id)
+        events_in_period = db.execute(
+            select(func.count())
+            .select_from(AiUsageEvent)
+            .where(
+                AiUsageEvent.user_id == user.id,
+                AiUsageEvent.period_start == quota.period_start,
+            )
+        ).scalar_one()
+        items.append(
+            {
+                "user_id": str(user.id),
+                "email": user.email,
+                "name": user.name,
+                "plan_tier": user.plan_tier.value,
+                "subscription_status": sub.status if sub else None,
+                "plan_allowance": quota.plan_allowance,
+                "plan_consumed": quota.plan_consumed,
+                "bonus_balance": quota.bonus_balance,
+                "total_remaining": quota.total_remaining,
+                "percent_used": quota.percent_used,
+                "period_start": quota.period_start.isoformat(),
+                "period_end": quota.period_end.isoformat(),
+                "events_in_period": int(events_in_period or 0),
+            }
+        )
+
+    return {"total": int(total or 0), "items": items}
+
+
+@router.get("/payments")
+def admin_payments(
+    limit: int = Query(default=200, le=500),
+    db: Session = Depends(get_db),
+    _: User = Depends(get_admin_user),
+) -> dict:
+    invoice_rows = db.execute(
+        select(InvoiceRecord, User.email, Subscription.plan)
+        .join(User, InvoiceRecord.user_id == User.id)
+        .outerjoin(Subscription, InvoiceRecord.subscription_id == Subscription.id)
+        .order_by(InvoiceRecord.invoice_date.desc())
+        .limit(limit)
+    ).all()
+    topup_rows = db.execute(
+        select(AiUnitTopupPurchase, User.email)
+        .join(User, AiUnitTopupPurchase.user_id == User.id)
+        .order_by(AiUnitTopupPurchase.created_at.desc())
+        .limit(limit)
+    ).all()
+
+    return {
+        "invoices": [
+            {
+                "id": str(inv.id),
+                "user_id": str(inv.user_id),
+                "email": email,
+                "type": "subscription",
+                "invoice_id": inv.invoice_id,
+                "plan": plan.value if plan else None,
+                "amount": inv.amount,
+                "currency": inv.currency,
+                "status": inv.status,
+                "invoice_date": inv.invoice_date.isoformat(),
+                "period_start": inv.period_start.isoformat() if inv.period_start else None,
+                "period_end": inv.period_end.isoformat() if inv.period_end else None,
+                "download_url": inv.download_url,
+            }
+            for inv, email, plan in invoice_rows
+        ],
+        "topups": [
+            {
+                "id": str(p.id),
+                "user_id": str(p.user_id),
+                "email": email,
+                "type": "ai_topup",
+                "pack_id": p.pack_id,
+                "units_granted": p.units_granted,
+                "amount": p.amount_inr,
+                "currency": "INR",
+                "status": p.status,
+                "razorpay_order_id": p.razorpay_order_id,
+                "razorpay_payment_id": p.razorpay_payment_id,
+                "created_at": p.created_at.isoformat(),
+                "paid_at": p.paid_at.isoformat() if p.paid_at else None,
+            }
+            for p, email in topup_rows
+        ],
     }
 
 
