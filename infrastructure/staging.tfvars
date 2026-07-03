@@ -13,5 +13,5 @@ backend_env_vars = {
   CORS_ORIGINS        = "https://staging.daxch.app"
   AWS_REGION          = "ap-south-1"
   UPSTOX_REDIRECT_URI = "https://staging.daxch.app/broker/callback"
-  ADMIN_EMAILS        = "hello@daxch.gmail.com"
+  ADMIN_EMAILS        = "hello.daxch@gmail.com"
 }

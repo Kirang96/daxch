@@ -95,7 +95,8 @@ async def request_magic_link(payload: MagicLinkRequest) -> dict:
     try:
         await email_service.send_magic_link(str(payload.email), verify_url)
     except EmailDeliveryError as exc:
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+        if settings.is_production:
+            raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
 
     response: dict[str, str] = {"message": "Magic link sent to email."}
     if not settings.is_production:

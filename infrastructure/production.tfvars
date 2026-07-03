@@ -17,7 +17,7 @@ backend_env_vars = {
   CORS_ORIGINS        = "https://daxch.app"
   AWS_REGION          = "ap-south-1"
   UPSTOX_REDIRECT_URI = "https://daxch.app/broker/callback"
-  ADMIN_EMAILS        = "hello@daxch.gmail.com"
+  ADMIN_EMAILS        = "hello.daxch@gmail.com"
 }
 
 desired_count_frontend = 2
