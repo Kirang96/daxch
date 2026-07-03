@@ -14,7 +14,9 @@ from backend.app.models.entities import (
     OrderStatus,
     StockHolding,
 )
-from backend.app.services.broker.factory import get_broker
+from backend.app.services.broker.base import BrokerConfigurationError
+from backend.app.services.broker.connection import require_user_broker
+from backend.app.services.broker.order_status import build_order_status_query
 from backend.app.services.broker.session import get_valid_broker_token_for_user
 from backend.app.services.entry_fill import activate_agent_after_entry_fill, agent_awaiting_entry_fill
 from backend.app.services.entry_order_state import apply_entry_order_broker_status
@@ -83,12 +85,15 @@ async def _poll_pending_entry_orders() -> int:
                 processed += 1
                 continue
 
-            broker = get_broker("upstox")
+            connection, broker = require_user_broker(db, holding.user_id)
             try:
                 _, token = await get_valid_broker_token_for_user(
                     db=db, user_id=holding.user_id, broker=broker
                 )
-                live = await broker.get_order_status(order.broker_order_id, token)
+                live = await broker.get_order_status(
+                    token,
+                    build_order_status_query(connection, order, holding),
+                )
             except Exception:
                 continue
 

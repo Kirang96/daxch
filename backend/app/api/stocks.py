@@ -18,10 +18,10 @@ from backend.app.schemas.stock import (
     StockResponse,
 )
 from backend.app.services.analysis.data.company_names import resolve_company_name
-from backend.app.services.broker.base import OrderRequest
-from backend.app.services.broker.factory import get_broker
+from backend.app.services.broker.base import BrokerConfigurationError, OrderRequest
+from backend.app.services.broker.connection import require_user_broker
 from backend.app.services.broker.session import get_valid_broker_token
-from backend.app.services.broker.upstox import BrokerConfigurationError
+from backend.app.services.broker.connection import require_user_broker
 from backend.app.services.entry_activation import activate_with_entry_order
 from backend.app.services.plan_limits import get_agent_limit, get_max_polling_frequency
 from backend.app.services.positions.exchange import aggregate_exchange_positions, aggregate_portfolio_summary
@@ -37,7 +37,7 @@ async def get_stock_quote(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> StockQuoteResponse:
-    broker = get_broker("upstox")
+    connection, broker = require_user_broker(db, current_user.id)
     _, token = await get_valid_broker_token(db=db, user=current_user, broker=broker)
     try:
         quote = await broker.get_quote(ticker=ticker.upper(), exchange=exchange, access_token=token)
@@ -64,7 +64,7 @@ async def get_stock_candles(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> dict:
-    broker = get_broker("upstox")
+    connection, broker = require_user_broker(db, current_user.id)
     _, token = await get_valid_broker_token(db=db, user=current_user, broker=broker)
     try:
         bars = await broker.get_ohlcv_candles(
@@ -92,7 +92,7 @@ async def get_market_summary(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list:
-    broker = get_broker("upstox")
+    connection, broker = require_user_broker(db, current_user.id)
     _, token = await get_valid_broker_token(db=db, user=current_user, broker=broker)
 
     indices = [
@@ -202,8 +202,8 @@ async def list_exchange_positions(
     holdings = db.execute(select(StockHolding).where(StockHolding.user_id == current_user.id)).scalars().all()
     quotes: dict[str, float] = {}
     if holdings:
-        broker = get_broker("upstox")
         try:
+            connection, broker = require_user_broker(db, current_user.id)
             _, token = await get_valid_broker_token(db=db, user=current_user, broker=broker)
             for holding in holdings:
                 key = f"{holding.ticker}:{holding.exchange}"
@@ -248,7 +248,7 @@ async def execute_buy(
     if not holding or holding.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Holding not found")
 
-    broker = get_broker("upstox")
+    connection, broker = require_user_broker(db, current_user.id)
     _, token = await get_valid_broker_token(db=db, user=current_user, broker=broker)
 
     try:

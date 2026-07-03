@@ -4,12 +4,14 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { api } from "@/lib/api";
-import { resolveBrokerOAuthReturnPath } from "@/lib/broker-oauth";
+import { parseBrokerOAuthState, resolveBrokerOAuthReturnPath } from "@/lib/broker-oauth";
 
 function BrokerCallbackContent() {
   const params = useSearchParams();
   const router = useRouter();
   const code = useMemo(() => params.get("code") || "", [params]);
+  const requestToken = useMemo(() => params.get("RequestToken") || "", [params]);
+  const brokerParam = useMemo(() => params.get("broker") || "", [params]);
   const state = useMemo(() => params.get("state") || "", [params]);
   const [status, setStatus] = useState("Finalizing broker connection...");
   const handledRef = useRef(false);
@@ -18,8 +20,13 @@ function BrokerCallbackContent() {
     if (handledRef.current) {
       return;
     }
-    if (!code) {
-      setStatus("Missing authorization code from broker.");
+
+    const { brokerId } = parseBrokerOAuthState(state);
+    const broker = (brokerParam || brokerId).toLowerCase();
+    const authValue = broker === "5paisa" ? requestToken : code;
+
+    if (!authValue) {
+      setStatus("Missing authorization token from broker.");
       return;
     }
 
@@ -27,7 +34,11 @@ function BrokerCallbackContent() {
 
     const connect = async () => {
       try {
-        await api.post(`/broker/upstox/callback?code=${encodeURIComponent(code)}`, {});
+        const query =
+          broker === "5paisa"
+            ? `RequestToken=${encodeURIComponent(authValue)}`
+            : `code=${encodeURIComponent(authValue)}`;
+        await api.post(`/broker/${broker}/callback?${query}`, {});
         const nextPath = resolveBrokerOAuthReturnPath(state);
         setStatus("Broker connected! Redirecting...");
         router.replace(nextPath);
@@ -37,7 +48,7 @@ function BrokerCallbackContent() {
       }
     };
     void connect();
-  }, [code, router, state]);
+  }, [brokerParam, code, requestToken, router, state]);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-6 text-foreground">

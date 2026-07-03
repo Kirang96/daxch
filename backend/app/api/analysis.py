@@ -12,7 +12,8 @@ from backend.app.services.analysis.pipeline import AnalysisPipeline
 from backend.app.services.analysis.registry import StrategyAccessError, StrategyRegistry
 from backend.app.services.broker.factory import get_broker
 from backend.app.services.broker.session import get_valid_broker_token
-from backend.app.services.broker.upstox import BrokerConfigurationError
+from backend.app.services.broker.base import BrokerConfigurationError
+from backend.app.services.broker.connection import require_user_broker
 from backend.app.services.plan_limits import get_max_polling_frequency
 
 router = APIRouter(prefix="/analysis", tags=["analysis"])
@@ -52,7 +53,7 @@ async def run_analysis(
 
     check_analysis_quota(db, current_user)
 
-    broker = get_broker("upstox")
+    connection, broker = require_user_broker(db, current_user.id)
     _, token = await get_valid_broker_token(db=db, user=current_user, broker=broker)
 
     pipeline = AnalysisPipeline()

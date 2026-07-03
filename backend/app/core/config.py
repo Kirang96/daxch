@@ -33,6 +33,21 @@ class Settings(BaseSettings):
     upstox_redirect_uri: str = Field(default="", alias="UPSTOX_REDIRECT_URI")
     upstox_base_url: str = Field(default="https://api.upstox.com/v2", alias="UPSTOX_BASE_URL")
 
+    fivepaisa_app_key: str = Field(default="", alias="FIVEPAISA_APP_KEY")
+    fivepaisa_encryption_key: str = Field(default="", alias="FIVEPAISA_ENCRYPTION_KEY")
+    fivepaisa_user_id: str = Field(default="", alias="FIVEPAISA_USER_ID")
+    fivepaisa_redirect_uri: str = Field(default="", alias="FIVEPAISA_REDIRECT_URI")
+    fivepaisa_login_url: str = Field(
+        default="https://dev-openapi.5paisa.com/WebVendorLogin/VLogin/Index",
+        alias="FIVEPAISA_LOGIN_URL",
+    )
+    fivepaisa_api_url: str = Field(
+        default="https://Openapi.5paisa.com/VendorsAPI/Service1.svc",
+        alias="FIVEPAISA_API_URL",
+    )
+    fivepaisa_market_url: str = Field(default="https://openapi.5paisa.com/V2", alias="FIVEPAISA_MARKET_URL")
+    fivepaisa_algo_id: str = Field(default="0", alias="FIVEPAISA_ALGO_ID")
+
     razorpay_key_id: str = Field(default="", alias="RAZORPAY_KEY_ID")
     razorpay_key_secret: str = Field(default="", alias="RAZORPAY_KEY_SECRET")
     razorpay_webhook_secret: str = Field(default="", alias="RAZORPAY_WEBHOOK_SECRET")

@@ -23,7 +23,8 @@ from backend.app.models.entities import (
 from backend.app.schemas.agent import OrderSnapshot
 from backend.app.schemas.stock import StockCreateRequest, StockResponse
 from backend.app.services.audit import log_event
-from backend.app.services.broker.factory import get_broker
+from backend.app.services.broker.base import BrokerConfigurationError
+from backend.app.services.broker.connection import require_user_broker
 from backend.app.services.broker.order_execution import OrderPlacementError, place_and_sync_order
 from backend.app.services.entry_fill import activate_agent_after_entry_fill, agent_awaiting_entry_fill
 from backend.app.services.notification_events import create_notification_event
@@ -71,20 +72,18 @@ async def activate_with_entry_order(
     _validate_entry_preconditions(payload)
     _check_duplicate_entry(db, current_user.id, payload.ticker)
 
-    broker = get_broker("upstox")
+    try:
+        connection, broker = require_user_broker(db, current_user.id)
+    except BrokerConfigurationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Connect your broker account before placing an entry order.",
+        ) from exc
+
     if broker._demo_mode:  # noqa: SLF001
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Real broker orders are disabled in demo mode. Connect Upstox credentials to place orders.",
-        )
-
-    connection = db.execute(
-        select(BrokerConnection).where(BrokerConnection.user_id == current_user.id)
-    ).scalar_one_or_none()
-    if not connection:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Connect your Upstox account before placing an entry order.",
+            detail="Real broker orders are disabled in demo mode. Connect broker credentials to place orders.",
         )
 
     agent_limit = get_agent_limit(current_user.plan_tier.value)
@@ -198,7 +197,7 @@ async def activate_with_entry_order(
             current_user.id,
             NotificationType.agent,
             f"{holding.ticker}: entry order placed",
-            f"LIMIT buy for {payload.quantity} shares at ₹{payload.entry_price:.2f} sent to Upstox.",
+            f"LIMIT buy for {payload.quantity} shares at ₹{payload.entry_price:.2f} sent to your broker.",
             {"decision_id": str(decision.id), "order_id": str(order.id), "ticker": holding.ticker},
         )
         if is_order_fully_filled(order):
@@ -259,7 +258,7 @@ async def retry_entry_order(
     if not connection:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Connect your Upstox account before placing an entry order.",
+            detail="Connect your broker account before placing an entry order.",
         )
 
     prior = db.execute(
@@ -334,7 +333,7 @@ async def retry_entry_order(
         current_user.id,
         NotificationType.agent,
         f"{holding.ticker}: entry order retry placed",
-        f"LIMIT buy for {holding.quantity} shares at ₹{holding.entry_price:.2f} sent to Upstox.",
+        f"LIMIT buy for {holding.quantity} shares at ₹{holding.entry_price:.2f} sent to your broker.",
         {"decision_id": str(decision.id), "order_id": str(order.id), "ticker": holding.ticker},
     )
     db.commit()

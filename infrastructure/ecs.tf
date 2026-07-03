@@ -75,6 +75,18 @@ locals {
       valueFrom = "${aws_secretsmanager_secret.app.arn}:UPSTOX_CLIENT_SECRET::"
     },
     {
+      name      = "FIVEPAISA_APP_KEY"
+      valueFrom = "${aws_secretsmanager_secret.app.arn}:FIVEPAISA_APP_KEY::"
+    },
+    {
+      name      = "FIVEPAISA_ENCRYPTION_KEY"
+      valueFrom = "${aws_secretsmanager_secret.app.arn}:FIVEPAISA_ENCRYPTION_KEY::"
+    },
+    {
+      name      = "FIVEPAISA_USER_ID"
+      valueFrom = "${aws_secretsmanager_secret.app.arn}:FIVEPAISA_USER_ID::"
+    },
+    {
       name      = "RAZORPAY_KEY_ID"
       valueFrom = "${aws_secretsmanager_secret.app.arn}:RAZORPAY_KEY_ID::"
     },

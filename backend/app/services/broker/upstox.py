@@ -7,20 +7,19 @@ from backend.app.core.config import get_settings
 from backend.app.services.market_hours import should_use_amo
 from backend.app.services.broker.base import (
     BaseBroker,
+    BrokerConfigurationError,
     CandleBar,
     OrderRequest,
     OrderResponse,
+    OrderStatusQuery,
     OrderStatusResponse,
     StockQuote,
     TokenPair,
 )
 
 
-class BrokerConfigurationError(RuntimeError):
-    pass
-
-
 class UpstoxBroker(BaseBroker):
+    name = "upstox"
     def __init__(self) -> None:
         self.settings = get_settings()
         self.token_url = "https://api.upstox.com/v2/login/authorization/token"
@@ -175,6 +174,16 @@ class UpstoxBroker(BaseBroker):
             raise BrokerConfigurationError(f"No supported instrument mapping found for {ticker} on {exchange}.")
         return str(resolved)
 
+    def get_auth_url(self, state: str) -> str:
+        self._validate_configuration()
+        if not self.settings.upstox_client_id or not self.settings.upstox_redirect_uri:
+            raise BrokerConfigurationError("Upstox OAuth is not configured.")
+        return (
+            "https://api.upstox.com/v2/login/authorization/dialog"
+            f"?response_type=code&client_id={self.settings.upstox_client_id}"
+            f"&redirect_uri={self.settings.upstox_redirect_uri}&state={state}"
+        )
+
     async def authenticate(self, auth_code: str) -> TokenPair:
         self._validate_configuration()
         if self._demo_mode:
@@ -287,7 +296,7 @@ class UpstoxBroker(BaseBroker):
             raise BrokerConfigurationError("Order placed but no order_id was returned by broker.")
         return OrderResponse(order_id=str(order_id), status="placed")
 
-    async def cancel_order(self, broker_order_id: str, access_token: str) -> None:
+    async def cancel_order(self, access_token: str, exchange_order_id: str) -> None:
         self._validate_configuration()
         if self._demo_mode:
             return
@@ -297,11 +306,12 @@ class UpstoxBroker(BaseBroker):
             "DELETE",
             "/order/cancel",
             access_token=token,
-            params={"order_id": broker_order_id},
+            params={"order_id": exchange_order_id},
         )
 
-    async def get_order_status(self, broker_order_id: str, access_token: str) -> OrderStatusResponse:
+    async def get_order_status(self, access_token: str, query: OrderStatusQuery) -> OrderStatusResponse:
         self._validate_configuration()
+        broker_order_id = query.broker_order_id
         if self._demo_mode:
             return OrderStatusResponse(
                 broker_order_id=broker_order_id,

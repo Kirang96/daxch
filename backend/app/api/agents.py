@@ -31,9 +31,9 @@ from backend.app.schemas.agent import (
     SquareOffRequest,
 )
 from backend.app.services.audit import log_event
-from backend.app.services.broker.factory import get_broker
+from backend.app.services.broker.base import BrokerConfigurationError
+from backend.app.services.broker.connection import require_user_broker
 from backend.app.services.broker.order_execution import OrderPlacementError, place_and_sync_order
-from backend.app.services.broker.upstox import BrokerConfigurationError
 from backend.app.services.entry_activation import delete_agent, retry_entry_order
 from backend.app.services.entry_fill import agent_awaiting_entry_fill
 from backend.app.services.notification_events import create_notification_event
@@ -281,13 +281,14 @@ async def cancel_entry_order(
 
     holding = db.get(StockHolding, agent.holding_id)
     if order.broker_order_id and holding:
-        broker = get_broker("upstox")
         try:
+            connection, broker = require_user_broker(db, current_user.id)
             from backend.app.services.broker.session import get_valid_broker_token
 
             _, token = await get_valid_broker_token(db=db, user=current_user, broker=broker)
-            if hasattr(broker, "cancel_order"):
-                await broker.cancel_order(order.broker_order_id, token)
+            exch_order_id = (order.broker_metadata or {}).get("exchange_order_id")
+            cancel_id = str(exch_order_id) if exch_order_id else order.broker_order_id
+            await broker.cancel_order(token, cancel_id)
         except (BrokerConfigurationError, OrderPlacementError):
             pass
 

@@ -1,7 +1,20 @@
-from backend.app.services.broker.base import BaseBroker, CandleBar, OrderRequest, OrderResponse, StockQuote, TokenPair
+from backend.app.services.broker.base import (
+    BaseBroker,
+    BrokerConfigurationError,
+    CandleBar,
+    OrderRequest,
+    OrderResponse,
+    OrderStatusQuery,
+    OrderStatusResponse,
+    StockQuote,
+    TokenPair,
+)
 
 
 class ZerodhaBroker(BaseBroker):
+    async def get_auth_url(self, state: str) -> str:  # pragma: no cover
+        raise NotImplementedError("Zerodha integration is planned for a future release.")
+
     async def authenticate(self, auth_code: str) -> TokenPair:  # pragma: no cover - future integration
         raise NotImplementedError("Zerodha integration is planned for a future release.")
 
@@ -16,10 +29,15 @@ class ZerodhaBroker(BaseBroker):
     ) -> StockQuote:  # pragma: no cover - future integration
         raise NotImplementedError("Zerodha integration is planned for a future release.")
 
-    async def place_order(self, access_token: str, order: OrderRequest) -> OrderResponse:  # pragma: no cover - future integration
+    async def place_order(self, access_token: str, order: OrderRequest) -> OrderResponse:  # pragma: no cover
         raise NotImplementedError("Zerodha integration is planned for a future release.")
 
-    async def get_order_status(self, broker_order_id: str, access_token: str):  # pragma: no cover
+    async def get_order_status(
+        self, access_token: str, query: OrderStatusQuery
+    ) -> OrderStatusResponse:  # pragma: no cover
+        raise NotImplementedError("Zerodha integration is planned for a future release.")
+
+    async def cancel_order(self, access_token: str, exchange_order_id: str) -> None:  # pragma: no cover
         raise NotImplementedError("Zerodha integration is planned for a future release.")
 
     async def get_candles(

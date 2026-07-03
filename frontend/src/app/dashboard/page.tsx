@@ -251,7 +251,7 @@ export default function DashboardPage() {
         items={[
           {
             id: "broker",
-            label: "Connect Upstox",
+            label: "Connect your broker",
             done: brokerConnected,
             href: "/broker",
             optional: true,

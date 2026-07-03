@@ -27,7 +27,8 @@ from backend.app.services.audit import log_event
 from backend.app.services.broker.base import OrderRequest
 from backend.app.services.broker.factory import get_broker
 from backend.app.services.broker.session import get_valid_broker_token_for_user
-from backend.app.services.broker.upstox import BrokerConfigurationError
+from backend.app.services.broker.base import BrokerConfigurationError
+from backend.app.services.broker.order_status import build_order_status_query
 from backend.app.services.ai_units.exceptions import AiQuotaExceededError
 from backend.app.services.ai_units.pricing import compute_units
 from backend.app.services.ai_units.service import AiUnitsService, UsageEventInput
@@ -277,14 +278,20 @@ async def _auto_execute_due_confirmations() -> int:
                     quantity=order.quantity,
                     order_type="MARKET",
                     price=order.price,
+                    remote_order_id=str(order.id),
                 )
                 try:
                     _, token = await get_valid_broker_token_for_user(db=db, user_id=holding.user_id, broker=broker)
                     result = await broker.place_order(token, request)
                     order.broker_order_id = result.order_id
+                    if result.metadata:
+                        order.broker_metadata = {**(order.broker_metadata or {}), **result.metadata}
                     order.status = OrderStatus.placed
                     try:
-                        live = await broker.get_order_status(result.order_id, token)
+                        live = await broker.get_order_status(
+                            token,
+                            build_order_status_query(connection, order, holding),
+                        )
                         sync_order_from_broker_status(order, live)
                     except Exception:
                         pass

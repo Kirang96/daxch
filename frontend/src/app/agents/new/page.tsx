@@ -408,7 +408,7 @@ function NewAgentWizard() {
         </div>
       )}
       {brokerJustConnected && (
-        <AlertBanner variant="info" className="mb-4" title="Upstox connected">
+        <AlertBanner variant="info" className="mb-4" title="Broker connected">
           You can approve trades on this agent once the AI suggests an action.
         </AlertBanner>
       )}
@@ -1538,14 +1538,14 @@ function Step5Configure({
         <div className="text-xs uppercase tracking-wider text-muted-foreground">Step 5 · Confirm & place order</div>
         <h2 className="mt-2 text-2xl font-semibold tracking-tight">Place limit order & start agent</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          A LIMIT buy will be sent to Upstox at your confirmed price. Monitoring begins after the order fills.
+          A LIMIT buy will be sent to your broker at your confirmed price. Monitoring begins after the order fills.
         </p>
 
         {brokerConnected === false && (
-          <AlertBanner variant="warning" className="mt-4" title="Upstox not connected">
+          <AlertBanner variant="warning" className="mt-4" title="Broker not connected">
             Connect your broker to place the entry order.{" "}
             <Link href={`/broker?return=${brokerReturn}`} className="font-medium text-primary underline">
-              Connect Upstox
+              Connect broker
             </Link>
           </AlertBanner>
         )}
@@ -1588,7 +1588,7 @@ function Step5Configure({
           <div>
             <div className="text-sm font-medium">Automatic action suggestions</div>
             <div className="text-xs text-muted-foreground">
-              Your entry order is sent to Upstox now. Future buy/sell suggestions still need your approval.
+              Your entry order is sent to your broker now. Future buy/sell suggestions still need your approval.
             </div>
           </div>
           <Switch on={autoSuggestions} onChange={onAutoSuggestionsChange} />

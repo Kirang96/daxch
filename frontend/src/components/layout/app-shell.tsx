@@ -25,7 +25,7 @@ import {
 
 import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
-import { BrokerConnectionStatus, isBrokerHealthy } from "@/lib/broker-status";
+import { BrokerConnectionStatus, formatBrokerName, isBrokerHealthy } from "@/lib/broker-status";
 import { scheduleSessionRefresh } from "@/lib/session";
 import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
@@ -174,6 +174,7 @@ export function AppShell({ title, subtitle, actions, eyebrow, children }: AppShe
 
   const brokerHealthy = isBrokerHealthy(brokerStatus);
   const brokerSessionExpired = Boolean(brokerStatus?.connected && brokerStatus?.expired);
+  const brokerLabel = formatBrokerName(brokerStatus?.broker);
 
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
@@ -292,7 +293,7 @@ export function AppShell({ title, subtitle, actions, eyebrow, children }: AppShe
                     brokerHealthy ? "pulse-ring bg-[color:var(--forest)]" : "bg-[color:var(--destructive)]"
                   )}
                 />
-                {brokerHealthy ? "Upstox" : brokerSessionExpired ? "Reconnect" : "Not connected"}
+                {brokerHealthy ? brokerLabel : brokerSessionExpired ? "Reconnect" : "Not connected"}
               </span>
             </Link>
 
@@ -358,8 +359,8 @@ export function AppShell({ title, subtitle, actions, eyebrow, children }: AppShe
               <div className="flex flex-wrap items-center gap-3 text-xs text-[color:var(--ink-2)]">
                 <AlertTriangle className="h-3.5 w-3.5 text-[color:oklch(0.55_0.14_55)]" />
                 <span>
-                  <strong className="text-[color:var(--ink)]">Upstox session expired.</strong> Reconnect to sync orders
-                  and place trades.{" "}
+                  <strong className="text-[color:var(--ink)]">{brokerLabel} session expired.</strong> Reconnect to sync
+                  orders and place trades.{" "}
                   <Link href="/broker" className="ml-1 underline underline-offset-4">
                     Reconnect →
                   </Link>

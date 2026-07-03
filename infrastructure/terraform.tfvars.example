@@ -29,6 +29,7 @@ backend_env_vars = {
   CORS_ORIGINS        = "https://app.example.com"
   AWS_REGION          = "ap-south-1"
   UPSTOX_REDIRECT_URI = "https://app.example.com/broker/callback"
+  FIVEPAISA_REDIRECT_URI = "https://app.example.com/broker/callback"
 }
 
 app_secrets = {
@@ -36,6 +37,9 @@ app_secrets = {
   OPENAI_API_KEY           = "replace-me"
   UPSTOX_CLIENT_ID         = "replace-me"
   UPSTOX_CLIENT_SECRET     = "replace-me"
+  FIVEPAISA_APP_KEY        = "replace-me"
+  FIVEPAISA_ENCRYPTION_KEY = "replace-me"
+  FIVEPAISA_USER_ID        = "replace-me"
   RAZORPAY_KEY_ID          = "replace-me"
   RAZORPAY_KEY_SECRET      = "replace-me"
   RAZORPAY_WEBHOOK_SECRET  = "replace-me"

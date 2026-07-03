@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from backend.app.models.entities import Order, OrderStatus, StockHolding
 from backend.app.services.broker.base import OrderStatusResponse
 
-FILLED_BROKER_STATUSES = frozenset({"complete", "filled", "trade_complete"})
+FILLED_BROKER_STATUSES = frozenset({"complete", "filled", "trade_complete", "fully executed"})
 TERMINAL_BROKER_STATUSES = frozenset({"complete", "filled", "trade_complete", "rejected", "cancelled", "canceled", "failed"})
 
 
@@ -13,11 +13,15 @@ def sync_order_from_broker_status(order: Order, live: OrderStatusResponse) -> No
         "complete": OrderStatus.placed,
         "filled": OrderStatus.placed,
         "trade_complete": OrderStatus.placed,
+        "fully executed": OrderStatus.placed,
         "open": OrderStatus.pending,
         "pending": OrderStatus.pending,
         "rejected": OrderStatus.failed,
+        "rejected by 5p": OrderStatus.failed,
+        "rejected by exch": OrderStatus.failed,
         "cancelled": OrderStatus.cancelled,
         "modified": OrderStatus.pending,
+        "xmitted": OrderStatus.pending,
     }
     broker_status = (live.status or "").lower()
     new_status = status_map.get(broker_status, order.status)

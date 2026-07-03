@@ -3,8 +3,8 @@ import asyncio
 import httpx
 import pytest
 
-from backend.app.services.broker.base import OrderRequest
-from backend.app.services.broker.upstox import BrokerConfigurationError, UpstoxBroker
+from backend.app.services.broker.base import BrokerConfigurationError, OrderRequest
+from backend.app.services.broker.upstox import UpstoxBroker
 
 
 def test_instrument_search_params_for_nse_equity() -> None:

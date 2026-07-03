@@ -11,19 +11,19 @@ export const GUIDE_SECTIONS = [
   {
     id: "ai-approvals",
     title: "AI suggestions & your plan",
-    body: "Your entry price and quantity on the agent page are inputs to the AI thesis. Exchange trades below are real orders sent to Upstox after you approve a suggestion. P/L and positions appear only after orders fill. On schedule, the agent researches the stock and may suggest buy more, sell, or hold — nothing is sent until you approve. Use Square off to exit part or all at market without waiting for AI.",
+    body: "Your entry price and quantity on the agent page are inputs to the AI thesis. Exchange trades below are real orders sent to your broker after you approve a suggestion. P/L and positions appear only after orders fill. On schedule, the agent researches the stock and may suggest buy more, sell, or hold — nothing is sent until you approve. Use Square off to exit part or all at market without waiting for AI.",
   },
   {
     id: "broker-units",
     title: "Broker connection & AI Units",
-    body: "Daxch connects to Upstox via OAuth with read and trade scopes you approve. We never store your Upstox password; revoke access anytime from Upstox or by disconnecting in Daxch. Each analysis run and monitoring check consumes AI Units from your monthly plan. Starter uses GPT-4o Mini only; Pro and Ultra can choose other models in Settings.",
+    body: "Daxch connects to your broker via OAuth with read and trade scopes you approve. We never store your broker password; revoke access anytime from your broker or by disconnecting in Daxch. Each analysis run and monitoring check consumes AI Units from your monthly plan. Starter uses GPT-4o Mini only; Pro and Ultra can choose other models in Settings.",
   },
 ] as const;
 
 export const GUIDE_FAQ = [
   {
     q: "Does Daxch trade automatically?",
-    a: "No. AI suggests buy, sell, or hold — you approve every trade before it is sent to Upstox. The only exception is the LIMIT entry order you explicitly set when creating an agent.",
+    a: "No. AI suggests buy, sell, or hold — you approve every trade before it is sent to your broker. The only exception is the LIMIT entry order you explicitly set when creating an agent.",
   },
   {
     q: "What happens if my entry order doesn't fill?",
@@ -48,13 +48,13 @@ export const GUIDE_FAQ = [
 ] as const;
 
 export const GUIDE_JOURNEY = [
-  { step: "1", title: "Connect broker", desc: "Link Upstox so orders and positions sync.", href: "/broker" },
+  { step: "1", title: "Connect broker", desc: "Link your broker so orders and positions sync.", href: "/broker" },
   { step: "2", title: "Create an agent", desc: "Pick a stock, set your goal and limit price.", href: "/agents/new" },
   { step: "3", title: "Entry fills", desc: "Your LIMIT order goes to the exchange; monitoring starts after fill.", href: "/agents" },
   {
     step: "4",
     title: "Monitor & decide",
-    desc: "Scheduled AI research produces suggestions — you approve before anything is sent to Upstox.",
+    desc: "Scheduled AI research produces suggestions — you approve before anything is sent to your broker.",
     href: "/agents",
   },
 ] as const;

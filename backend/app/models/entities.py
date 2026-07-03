@@ -91,6 +91,7 @@ class BrokerConnection(Base):
     access_token: Mapped[str] = mapped_column(Text, nullable=False)
     refresh_token: Mapped[str] = mapped_column(Text, nullable=False)
     token_expiry: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    connection_metadata: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
 
     user: Mapped[User] = relationship(back_populates="broker_connection")
@@ -187,6 +188,7 @@ class Order(Base):
     average_price: Mapped[float | None] = mapped_column(Float, nullable=True)
     transaction_type: Mapped[str | None] = mapped_column(String(8), nullable=True)
     broker_status: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    broker_metadata: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     filled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
 
