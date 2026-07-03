@@ -9,16 +9,16 @@ domain_name = "daxch.app"
 cloudfront_acm_certificate_arn = "arn:aws:acm:us-east-1:264711513534:certificate/5ed8ace6-e106-44de-9291-174a45b19c39"
 
 backend_env_vars = {
-  ENVIRONMENT         = "production"
-  DEBUG               = "false"
-  ENABLE_DEMO_MODE    = "false"
-  API_PREFIX          = "/api/v1"
-  FRONTEND_BASE_URL   = "https://daxch.app"
-  CORS_ORIGINS        = "https://daxch.app"
-  AWS_REGION          = "ap-south-1"
-  UPSTOX_REDIRECT_URI = "https://daxch.app/broker/callback"
+  ENVIRONMENT            = "production"
+  DEBUG                  = "false"
+  ENABLE_DEMO_MODE       = "false"
+  API_PREFIX             = "/api/v1"
+  FRONTEND_BASE_URL      = "https://daxch.app"
+  CORS_ORIGINS           = "https://daxch.app"
+  AWS_REGION             = "ap-south-1"
+  UPSTOX_REDIRECT_URI    = "https://daxch.app/broker/callback"
   FIVEPAISA_REDIRECT_URI = "https://daxch.app/broker/callback"
-  ADMIN_EMAILS        = "hello.daxch@gmail.com"
+  ADMIN_EMAILS           = "hello.daxch@gmail.com"
 }
 
 desired_count_frontend = 2

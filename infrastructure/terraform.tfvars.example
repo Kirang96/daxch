@@ -28,7 +28,7 @@ backend_env_vars = {
   FRONTEND_BASE_URL   = "https://app.example.com"
   CORS_ORIGINS        = "https://app.example.com"
   AWS_REGION          = "ap-south-1"
-  UPSTOX_REDIRECT_URI = "https://app.example.com/broker/callback"
+  UPSTOX_REDIRECT_URI    = "https://app.example.com/broker/callback"
   FIVEPAISA_REDIRECT_URI = "https://app.example.com/broker/callback"
 }
 
