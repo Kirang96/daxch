@@ -274,7 +274,7 @@ resource "aws_ecs_service" "frontend" {
   task_definition                    = aws_ecs_task_definition.frontend.arn
   desired_count                      = var.desired_count_frontend
   launch_type                        = "FARGATE"
-  deployment_minimum_healthy_percent = 100
+  deployment_minimum_healthy_percent = 0
   deployment_maximum_percent         = 100
   health_check_grace_period_seconds  = 60
 
