@@ -1,19 +1,42 @@
 "use client";
+
+import Link from "next/link";
 import { useEffect, useState } from "react";
-import { GlassCard } from "@/components/daxch/primitives";
+
+import { AdminTable } from "@/components/admin/admin-table";
 import { api } from "@/lib/api";
 
 export default function AdminSubscriptionsPage() {
   const [items, setItems] = useState<Record<string, unknown>[]>([]);
-  useEffect(() => { void api.get<{ items: Record<string, unknown>[] }>("/admin/subscriptions").then((r) => setItems(r.items)); }, []);
-  const cols = ["user_id", "plan", "status", "razorpay_sub_id", "current_period_end"];
+
+  useEffect(() => {
+    void api.get<{ items: Record<string, unknown>[] }>("/admin/subscriptions").then((r) => setItems(r.items));
+  }, []);
+
   return (
     <div>
       <h2 className="text-xl font-semibold">Subscriptions</h2>
-      <GlassCard className="mt-4 overflow-x-auto p-0">
-        <table className="w-full text-sm"><thead className="border-b bg-muted/40 text-xs uppercase text-muted-foreground"><tr>{cols.map((h) => <th key={h} className="px-4 py-3">{h}</th>)}</tr></thead>
-        <tbody>{items.map((row) => <tr key={String(row.id)} className="border-b">{cols.map((k) => <td key={k} className="px-4 py-3 font-mono text-xs">{String(row[k] ?? "—")}</td>)}</tr>)}</tbody></table>
-      </GlassCard>
+      <div className="mt-4">
+        <AdminTable
+          columns={[
+            {
+              key: "email",
+              label: "User",
+              render: (row) => (
+                <Link href={`/admin/users/${row.user_id}`} className="text-primary underline">
+                  {String(row.email)}
+                </Link>
+              ),
+            },
+            { key: "plan", label: "Plan" },
+            { key: "status", label: "Status" },
+            { key: "razorpay_sub_id", label: "Razorpay ID" },
+            { key: "current_period_end", label: "Period end" },
+            { key: "created_at", label: "Created" },
+          ]}
+          rows={items}
+        />
+      </div>
     </div>
   );
 }

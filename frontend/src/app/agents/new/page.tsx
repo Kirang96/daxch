@@ -1190,7 +1190,7 @@ function Step3Assessment({
                 onClick={() => onNext(true)}
                 className="inline-flex items-center gap-2 rounded-sm border border-border/20 bg-background px-4 py-2.5 text-sm font-medium hover:bg-muted"
               >
-                Continue with my plan anyway <ArrowRight className="h-4 w-4" />
+                Continue <ArrowRight className="h-4 w-4" />
               </button>
             )}
             {!isDontEnter && (

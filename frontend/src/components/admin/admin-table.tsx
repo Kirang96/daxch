@@ -1,13 +1,21 @@
 "use client";
 
+import { ReactNode } from "react";
+
 import { GlassCard } from "@/components/daxch/primitives";
+
+type Column = {
+  key: string;
+  label: string;
+  render?: (row: Record<string, unknown>) => ReactNode;
+};
 
 export function AdminTable({
   columns,
   rows,
   emptyLabel = "No records",
 }: {
-  columns: { key: string; label: string }[];
+  columns: Column[];
   rows: Record<string, unknown>[];
   emptyLabel?: string;
 }) {
@@ -28,7 +36,7 @@ export function AdminTable({
             <tr key={String(row.id ?? row.user_id ?? i)} className="border-b border-border/10">
               {columns.map((c) => (
                 <td key={c.key} className="max-w-xs truncate px-4 py-3 font-mono text-xs">
-                  {formatCell(row[c.key])}
+                  {c.render ? c.render(row) : formatCell(row[c.key])}
                 </td>
               ))}
             </tr>

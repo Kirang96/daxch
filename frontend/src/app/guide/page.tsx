@@ -5,7 +5,7 @@ import { ArrowRight, BookOpen } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { Disclaimer, GlassCard } from "@/components/daxch/primitives";
-import { GUIDE_FAQ, GUIDE_FEATURES, GUIDE_JOURNEY, GUIDE_SECTIONS } from "@/lib/guide-content";
+import { GUIDE_FAQ, GUIDE_FEATURES, GUIDE_JOURNEY, GUIDE_OVERVIEW, GUIDE_SECTIONS } from "@/lib/guide-content";
 
 export default function GuidePage() {
   return (
@@ -20,6 +20,9 @@ export default function GuidePage() {
 
       <section className="mb-10 space-y-4">
         <h2 className="font-serif text-2xl tracking-tight">How it works</h2>
+        <GlassCard className="p-5">
+          <p className="text-sm leading-relaxed text-muted-foreground">{GUIDE_OVERVIEW}</p>
+        </GlassCard>
         {GUIDE_SECTIONS.map((section) => (
           <GlassCard key={section.id} id={section.id} className="p-5">
             <h3 className="font-medium">{section.title}</h3>

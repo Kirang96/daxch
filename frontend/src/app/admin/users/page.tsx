@@ -1,75 +1,69 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { GlassCard } from "@/components/daxch/primitives";
+import { AdminTable } from "@/components/admin/admin-table";
 import { api } from "@/lib/api";
 
-function AdminTablePage({
-  title,
-  endpoint,
-  columns,
-}: {
-  title: string;
-  endpoint: string;
-  columns: { key: string; label: string }[];
-}) {
-  const [items, setItems] = useState<Record<string, unknown>[]>([]);
+type UserRow = {
+  id: string;
+  email: string;
+  plan_tier: string;
+  is_active: boolean;
+  is_admin: boolean;
+  subscription_status: string | null;
+  broker_connected: boolean;
+  broker_expired: boolean;
+  created_at: string;
+};
+
+export default function AdminUsersPage() {
+  const [search, setSearch] = useState("");
+  const [items, setItems] = useState<UserRow[]>([]);
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
-    void api.get<{ items: Record<string, unknown>[] }>(endpoint).then((res) => setItems(res.items ?? []));
-  }, [endpoint]);
+    const query = search.trim() ? `?search=${encodeURIComponent(search.trim())}` : "";
+    void api.get<{ items: UserRow[]; total: number }>(`/admin/users${query}`).then((res) => {
+      setItems(res.items);
+      setTotal(res.total);
+    });
+  }, [search]);
 
   return (
     <div>
-      <h2 className="text-xl font-semibold">{title}</h2>
-      <GlassCard className="mt-4 overflow-x-auto p-0">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-border/15 bg-muted/40 text-xs uppercase tracking-wider text-muted-foreground">
-            <tr>
-              {columns.map((c) => (
-                <th key={c.key} className="px-4 py-3 font-medium">
-                  {c.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((row, i) => (
-              <tr key={String(row.id ?? i)} className="border-b border-border/10">
-                {columns.map((c) => (
-                  <td key={c.key} className="max-w-xs truncate px-4 py-3 font-mono text-xs">
-                    {String(row[c.key] ?? "—")}
-                  </td>
-                ))}
-              </tr>
-            ))}
-            {!items.length && (
-              <tr>
-                <td colSpan={columns.length} className="px-4 py-8 text-center text-muted-foreground">
-                  No records
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </GlassCard>
+      <h2 className="text-xl font-semibold">Users</h2>
+      <p className="mt-1 text-sm text-muted-foreground">{total} users</p>
+      <input
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search by email…"
+        className="mt-4 h-10 w-full max-w-sm rounded-lg border border-border/20 bg-background px-3 text-sm"
+      />
+      <div className="mt-4">
+        <AdminTable
+          columns={[
+            {
+              key: "email",
+              label: "Email",
+              render: (row) => (
+                <Link href={`/admin/users/${row.id}`} className="text-primary underline">
+                  {String(row.email)}
+                </Link>
+              ),
+            },
+            { key: "plan_tier", label: "Plan" },
+            { key: "subscription_status", label: "Sub status" },
+            { key: "broker_connected", label: "Broker" },
+            { key: "broker_expired", label: "Expired" },
+            { key: "is_active", label: "Active" },
+            { key: "is_admin", label: "Admin" },
+            { key: "created_at", label: "Created" },
+          ]}
+          rows={items}
+        />
+      </div>
     </div>
-  );
-}
-
-export default function AdminUsersPage() {
-  return (
-    <AdminTablePage
-      title="Users"
-      endpoint="/admin/users"
-      columns={[
-        { key: "email", label: "Email" },
-        { key: "plan_tier", label: "Plan" },
-        { key: "is_active", label: "Active" },
-        { key: "is_admin", label: "Admin" },
-        { key: "created_at", label: "Created" },
-      ]}
-    />
   );
 }

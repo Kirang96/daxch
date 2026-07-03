@@ -1,3 +1,6 @@
+export const GUIDE_OVERVIEW =
+  "Daxch helps you trade with more context, not more noise. Before you buy, use Research to run AI analysis on a stock — fundamentals, technicals, news, and sentiment — so you can decide with evidence instead of guesswork. Once you own a position, monitoring agents watch the stock and what moves around it on a schedule you choose: earnings, headlines, price action, and macro shifts. Buying is only one part of the story; the harder work is knowing when to hold, add, or exit. Daxch surfaces that ongoing picture and suggests next steps — you stay in control and approve every trade.";
+
 export const GUIDE_SECTIONS = [
   {
     id: "agents",

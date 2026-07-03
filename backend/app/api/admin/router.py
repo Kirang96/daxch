@@ -1,10 +1,15 @@
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from backend.app.api.admin.serializers import (
+    serialize_agent_detail,
+    serialize_user_360,
+    serialize_user_brief,
+)
 from backend.app.db.session import get_db
 from backend.app.middleware.auth import get_admin_user
 from backend.app.models.entities import (
@@ -20,25 +25,12 @@ from backend.app.models.entities import (
     StockHolding,
     Subscription,
     User,
-    UserSettings,
     WebhookEvent,
 )
 from backend.app.services.ai_units.service import AiUnitsService
 from backend.app.services.subscription_access import get_latest_subscription
 
 router = APIRouter(prefix="/admin", tags=["admin"])
-
-
-def _redact_broker(conn: BrokerConnection | None) -> dict | None:
-    if not conn:
-        return None
-    return {
-        "id": str(conn.id),
-        "broker_name": conn.broker_name,
-        "is_connected": bool(conn.access_token),
-        "token_expires_at": conn.token_expiry.isoformat() if conn.token_expiry else None,
-        "created_at": conn.created_at.isoformat() if conn.created_at else None,
-    }
 
 
 @router.get("/overview")
@@ -63,6 +55,11 @@ def admin_overview(
     ai_units_today = db.execute(
         select(func.coalesce(func.sum(AiUsageEvent.units_charged), 0)).where(AiUsageEvent.created_at >= day_ago)
     ).scalar_one()
+    expired_brokers = db.execute(
+        select(func.count()).select_from(BrokerConnection).where(
+            BrokerConnection.token_expiry < now
+        )
+    ).scalar_one()
     return {
         "users": users,
         "agents": agents,
@@ -70,7 +67,25 @@ def admin_overview(
         "failed_orders_24h": failed_orders,
         "webhook_events": webhooks,
         "ai_units_consumed_24h": int(ai_units_today or 0),
+        "expired_brokers": int(expired_brokers or 0),
     }
+
+
+@router.get("/users/lookup")
+def admin_user_lookup(
+    email: str = Query(..., min_length=3),
+    db: Session = Depends(get_db),
+    _: User = Depends(get_admin_user),
+) -> dict:
+    normalized = email.strip().lower()
+    user = db.execute(select(User).where(User.email == normalized)).scalar_one_or_none()
+    if not user:
+        user = db.execute(
+            select(User).where(User.email.ilike(f"%{normalized}%")).order_by(User.created_at.desc()).limit(1)
+        ).scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return {"user_id": str(user.id), "email": user.email, "name": user.name}
 
 
 @router.get("/users")
@@ -82,25 +97,16 @@ def admin_list_users(
     _: User = Depends(get_admin_user),
 ) -> dict:
     stmt = select(User).order_by(User.created_at.desc())
+    count_stmt = select(func.count()).select_from(User)
     if search.strip():
         pattern = f"%{search.strip().lower()}%"
         stmt = stmt.where(User.email.ilike(pattern))
-    total = len(db.execute(stmt).scalars().all())
+        count_stmt = count_stmt.where(User.email.ilike(pattern))
+    total = db.execute(count_stmt).scalar_one()
     users = db.execute(stmt.offset(offset).limit(limit)).scalars().all()
     return {
-        "total": total,
-        "items": [
-            {
-                "id": str(u.id),
-                "email": u.email,
-                "name": u.name,
-                "plan_tier": u.plan_tier.value,
-                "is_active": u.is_active,
-                "is_admin": u.is_admin,
-                "created_at": u.created_at.isoformat(),
-            }
-            for u in users
-        ],
+        "total": int(total or 0),
+        "items": [serialize_user_brief(u, db) for u in users],
     }
 
 
@@ -112,55 +118,8 @@ def admin_user_detail(
 ) -> dict:
     user = db.get(User, user_id)
     if not user:
-        return {"error": "not_found"}
-    sub = get_latest_subscription(db, user.id)
-    settings = db.execute(select(UserSettings).where(UserSettings.user_id == user.id)).scalar_one_or_none()
-    broker = db.execute(select(BrokerConnection).where(BrokerConnection.user_id == user.id)).scalar_one_or_none()
-    holdings = db.execute(select(StockHolding).where(StockHolding.user_id == user.id)).scalars().all()
-    agents = db.execute(
-        select(MonitorAgent)
-        .join(StockHolding, MonitorAgent.holding_id == StockHolding.id)
-        .where(StockHolding.user_id == user.id)
-    ).scalars().all()
-    return {
-        "user": {
-            "id": str(user.id),
-            "email": user.email,
-            "name": user.name,
-            "plan_tier": user.plan_tier.value,
-            "is_active": user.is_active,
-            "is_admin": user.is_admin,
-            "created_at": user.created_at.isoformat(),
-        },
-        "subscription": {
-            "plan": sub.plan.value,
-            "status": sub.status,
-            "current_period_end": sub.current_period_end.isoformat() if sub and sub.current_period_end else None,
-        }
-        if sub
-        else None,
-        "settings": {
-            "preferred_ai_model": settings.preferred_ai_model if settings else None,
-            "timezone": settings.timezone if settings else None,
-        },
-        "broker": _redact_broker(broker),
-        "holdings_count": len(holdings),
-        "agents_count": len(agents),
-        "holdings": [
-            {"id": str(h.id), "ticker": h.ticker, "exchange": h.exchange, "quantity": h.quantity, "entry_price": h.entry_price}
-            for h in holdings
-        ],
-        "agents": [
-            {
-                "id": str(a.id),
-                "status": a.status.value,
-                "polling_frequency": a.polling_frequency,
-                "awaiting_entry_fill": bool((a.agent_config or {}).get("awaiting_entry_fill")),
-                "entry_order_error": (a.agent_config or {}).get("entry_order_error"),
-            }
-            for a in agents
-        ],
-    }
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return serialize_user_360(db, user)
 
 
 @router.get("/agents")
@@ -171,8 +130,9 @@ def admin_list_agents(
     _: User = Depends(get_admin_user),
 ) -> dict:
     stmt = (
-        select(MonitorAgent, StockHolding)
+        select(MonitorAgent, StockHolding, User.email)
         .join(StockHolding, MonitorAgent.holding_id == StockHolding.id)
+        .join(User, StockHolding.user_id == User.id)
         .order_by(MonitorAgent.id.desc())
     )
     rows = db.execute(stmt.offset(offset).limit(limit)).all()
@@ -185,28 +145,45 @@ def admin_list_agents(
                 "next_poll_at": agent.next_poll_at.isoformat() if agent.next_poll_at else None,
                 "ticker": holding.ticker,
                 "user_id": str(holding.user_id),
+                "user_email": email,
                 "awaiting_entry_fill": bool((agent.agent_config or {}).get("awaiting_entry_fill")),
                 "entry_order_error": (agent.agent_config or {}).get("entry_order_error"),
             }
-            for agent, holding in rows
+            for agent, holding, email in rows
         ]
     }
 
 
+@router.get("/agents/{agent_id}")
+def admin_agent_detail(
+    agent_id: UUID,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_admin_user),
+) -> dict:
+    agent = db.get(MonitorAgent, agent_id)
+    if not agent:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agent not found")
+    return serialize_agent_detail(db, agent)
+
+
 @router.get("/orders")
 def admin_list_orders(
+    user_id: UUID | None = None,
     limit: int = Query(default=100, le=500),
     db: Session = Depends(get_db),
     _: User = Depends(get_admin_user),
 ) -> dict:
     stmt = (
-        select(Order, AgentDecision, MonitorAgent, StockHolding)
+        select(Order, AgentDecision, MonitorAgent, StockHolding, User.email)
         .join(AgentDecision, Order.decision_id == AgentDecision.id)
         .join(MonitorAgent, AgentDecision.agent_id == MonitorAgent.id)
         .join(StockHolding, MonitorAgent.holding_id == StockHolding.id)
+        .join(User, StockHolding.user_id == User.id)
         .order_by(Order.created_at.desc())
         .limit(limit)
     )
+    if user_id:
+        stmt = stmt.where(StockHolding.user_id == user_id)
     rows = db.execute(stmt).all()
     return {
         "items": [
@@ -214,16 +191,20 @@ def admin_list_orders(
                 "id": str(order.id),
                 "status": order.status.value,
                 "broker_status": order.broker_status,
+                "broker_order_id": order.broker_order_id,
                 "order_type": order.order_type,
                 "transaction_type": order.transaction_type,
                 "price": order.price,
                 "quantity": order.quantity,
+                "filled_quantity": order.filled_quantity,
+                "average_price": order.average_price,
                 "ticker": holding.ticker,
                 "user_id": str(holding.user_id),
+                "email": email,
                 "agent_id": str(agent.id),
                 "created_at": order.created_at.isoformat(),
             }
-            for order, _decision, agent, holding in rows
+            for order, _decision, agent, holding, email in rows
         ]
     }
 
@@ -233,19 +214,25 @@ def admin_list_subscriptions(
     db: Session = Depends(get_db),
     _: User = Depends(get_admin_user),
 ) -> dict:
-    subs = db.execute(select(Subscription).order_by(Subscription.created_at.desc()).limit(200)).scalars().all()
+    rows = db.execute(
+        select(Subscription, User.email)
+        .join(User, Subscription.user_id == User.id)
+        .order_by(Subscription.created_at.desc())
+        .limit(200)
+    ).all()
     return {
         "items": [
             {
                 "id": str(s.id),
                 "user_id": str(s.user_id),
+                "email": email,
                 "plan": s.plan.value,
                 "status": s.status,
                 "razorpay_sub_id": s.razorpay_sub_id,
                 "current_period_end": s.current_period_end.isoformat() if s.current_period_end else None,
                 "created_at": s.created_at.isoformat(),
             }
-            for s in subs
+            for s, email in rows
         ]
     }
 
@@ -272,6 +259,7 @@ def admin_list_webhooks(
 
 @router.get("/ai-usage")
 def admin_ai_usage(
+    user_id: UUID | None = None,
     limit: int = Query(default=100, le=500),
     db: Session = Depends(get_db),
     _: User = Depends(get_admin_user),
@@ -282,6 +270,8 @@ def admin_ai_usage(
         .order_by(AiUsageEvent.created_at.desc())
         .limit(limit)
     )
+    if user_id:
+        stmt = stmt.where(AiUsageEvent.user_id == user_id)
     rows = db.execute(stmt).all()
     return {
         "items": [
@@ -434,22 +424,33 @@ def admin_audit(
 
 @router.get("/notifications")
 def admin_notifications(
+    user_id: UUID | None = None,
     limit: int = Query(default=100, le=500),
     db: Session = Depends(get_db),
     _: User = Depends(get_admin_user),
 ) -> dict:
-    events = db.execute(select(NotificationEvent).order_by(NotificationEvent.created_at.desc()).limit(limit)).scalars().all()
+    stmt = (
+        select(NotificationEvent, User.email)
+        .join(User, NotificationEvent.user_id == User.id)
+        .order_by(NotificationEvent.created_at.desc())
+        .limit(limit)
+    )
+    if user_id:
+        stmt = stmt.where(NotificationEvent.user_id == user_id)
+    rows = db.execute(stmt).all()
     return {
         "items": [
             {
                 "id": str(e.id),
                 "user_id": str(e.user_id),
+                "email": email,
                 "type": e.type.value,
                 "title": e.title,
                 "body": e.body,
+                "read_at": e.read_at.isoformat() if e.read_at else None,
                 "created_at": e.created_at.isoformat(),
                 "payload": e.payload,
             }
-            for e in events
+            for e, email in rows
         ]
     }

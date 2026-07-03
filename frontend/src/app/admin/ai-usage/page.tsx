@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { AdminTable } from "@/components/admin/admin-table";
@@ -33,7 +35,9 @@ type UsageEvent = {
 };
 
 export default function AdminAiUsagePage() {
-  const [tab, setTab] = useState<"by-user" | "events">("by-user");
+  const searchParams = useSearchParams();
+  const filterUserId = searchParams.get("user_id");
+  const [tab, setTab] = useState<"by-user" | "events">(filterUserId ? "events" : "by-user");
   const [search, setSearch] = useState("");
   const [byUser, setByUser] = useState<UserUsage[]>([]);
   const [events, setEvents] = useState<UsageEvent[]>([]);
@@ -46,8 +50,9 @@ export default function AdminAiUsagePage() {
 
   useEffect(() => {
     if (tab !== "events") return;
-    void api.get<{ items: UsageEvent[] }>("/admin/ai-usage").then((r) => setEvents(r.items));
-  }, [tab]);
+    const query = filterUserId ? `?user_id=${encodeURIComponent(filterUserId)}` : "";
+    void api.get<{ items: UsageEvent[] }>(`/admin/ai-usage${query}`).then((r) => setEvents(r.items));
+  }, [tab, filterUserId]);
 
   return (
     <div>
@@ -81,7 +86,15 @@ export default function AdminAiUsagePage() {
           />
           <AdminTable
             columns={[
-              { key: "email", label: "User" },
+              {
+                key: "email",
+                label: "User",
+                render: (row) => (
+                  <Link href={`/admin/users/${row.user_id}`} className="text-primary underline">
+                    {String(row.email)}
+                  </Link>
+                ),
+              },
               { key: "plan_tier", label: "Plan" },
               { key: "subscription_status", label: "Sub status" },
               { key: "plan_consumed", label: "Used" },
@@ -99,9 +112,25 @@ export default function AdminAiUsagePage() {
 
       {tab === "events" && (
         <div className="mt-4">
+          {filterUserId && (
+            <p className="mb-2 text-sm text-muted-foreground">
+              Filtered to user{" "}
+              <Link href={`/admin/users/${filterUserId}`} className="text-primary underline">
+                {filterUserId}
+              </Link>
+            </p>
+          )}
           <AdminTable
             columns={[
-              { key: "email", label: "User" },
+              {
+                key: "email",
+                label: "User",
+                render: (row) => (
+                  <Link href={`/admin/users/${row.user_id}`} className="text-primary underline">
+                    {String(row.email)}
+                  </Link>
+                ),
+              },
               { key: "operation", label: "Operation" },
               { key: "model", label: "Model" },
               { key: "ticker", label: "Ticker" },

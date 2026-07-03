@@ -130,7 +130,7 @@ async def create_subscription(
         trial_ends_at=sub.trial_ends_at,
         days_left=None,
         is_trial=False,
-        checkout_url=None,
+        checkout_url=provider_data.get("checkout_url"),
         provider_subscription_id=sub.razorpay_sub_id,
         key_id=get_settings().razorpay_key_id or None,
     )

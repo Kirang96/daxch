@@ -28,6 +28,23 @@ function defaultFormatLabel(ts: string, index: number) {
   return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
 
+/** Map screen X to viewBox X accounting for preserveAspectRatio="xMidYMid meet" letterboxing. */
+function clientXToViewBoxX(svg: SVGSVGElement, clientX: number, plotWidth: number): number {
+  const rect = svg.getBoundingClientRect();
+  const vb = svg.viewBox.baseVal;
+  const vbW = vb.width || plotWidth;
+  const vbH = vb.height || 1;
+
+  const scale = Math.min(rect.width / vbW, rect.height / vbH);
+  const renderedW = vbW * scale;
+  const offsetX = (rect.width - renderedW) / 2;
+
+  const localX = clientX - rect.left - offsetX;
+  const svgX = localX / scale;
+
+  return Math.max(0, Math.min(plotWidth, svgX));
+}
+
 export function useChartHover({
   prices,
   timestamps = [],
@@ -55,22 +72,19 @@ export function useChartHover({
       const svg = svgRef.current;
       if (!svg || prices.length < 2) return;
 
-      const rect = svg.getBoundingClientRect();
-      const viewBox = svg.viewBox.baseVal;
-      const scaleX = viewBox.width / rect.width;
-      const scaleY = viewBox.height / rect.height;
-
-      const svgX = Math.max(0, Math.min(plotWidth, (e.clientX - rect.left) * scaleX));
+      const svgX = clientXToViewBoxX(svg, e.clientX, plotWidth);
 
       const n = prices.length;
-      const index = Math.min(n - 1, Math.max(0, Math.floor((svgX / plotWidth) * n)));
+      const step = plotWidth / (n - 1);
+      const index = Math.min(n - 1, Math.max(0, Math.round(svgX / step)));
+      const snappedX = index * step;
 
       const price = prices[index];
       const label = timestamps[index] ? formatLabel(timestamps[index], index) : `#${index + 1}`;
 
       setHover({
         index,
-        svgX,
+        svgX: snappedX,
         svgY: yFor(price),
         price,
         label,

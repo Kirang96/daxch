@@ -40,6 +40,7 @@ function OnboardingSubscriptionContent() {
   const [status, setStatus] = useState("");
   const [devActivateAvailable, setDevActivateAvailable] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [subscribingPlan, setSubscribingPlan] = useState<PlanId | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -90,11 +91,14 @@ function OnboardingSubscriptionContent() {
 
   const subscribe = async (plan: PlanId) => {
     try {
+      setSubscribingPlan(plan);
       setStatus("");
       const response = await api.post<Subscription>("/subscriptions", { plan });
       await startSubscriptionCheckout(response, plan, refresh, setStatus);
     } catch (error) {
       setStatus((error as Error).message);
+    } finally {
+      setSubscribingPlan(null);
     }
   };
 
@@ -180,14 +184,16 @@ function OnboardingSubscriptionContent() {
                     <Button
                       className="mt-8 w-full"
                       variant={plan.highlighted ? "primary" : "secondary"}
-                      disabled={ctaState === "current"}
+                      disabled={ctaState === "current" || subscribingPlan !== null}
                       onClick={() => ctaState !== "current" && subscribe(planId)}
                     >
-                      {ctaState === "current"
-                        ? "Current plan"
-                        : ctaState === "upgrade"
-                          ? `Upgrade to ${plan.name}`
-                          : `Subscribe to ${plan.name}`}
+                      {subscribingPlan === planId
+                        ? "Opening checkout…"
+                        : ctaState === "current"
+                          ? "Current plan"
+                          : ctaState === "upgrade"
+                            ? `Upgrade to ${plan.name}`
+                            : `Subscribe to ${plan.name}`}
                     </Button>
                   )}
                   {devActivateAvailable && ctaState !== "current" && ctaState !== "included" && (

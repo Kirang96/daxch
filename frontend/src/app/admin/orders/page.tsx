@@ -1,33 +1,45 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
-import { GlassCard } from "@/components/daxch/primitives";
+
+import { AdminTable } from "@/components/admin/admin-table";
 import { api } from "@/lib/api";
 
-function Table({ title, endpoint, cols }: { title: string; endpoint: string; cols: string[] }) {
+export default function AdminOrdersPage() {
   const [items, setItems] = useState<Record<string, unknown>[]>([]);
-  useEffect(() => { void api.get<{ items: Record<string, unknown>[] }>(endpoint).then((r) => setItems(r.items)); }, [endpoint]);
+
+  useEffect(() => {
+    void api.get<{ items: Record<string, unknown>[] }>("/admin/orders").then((r) => setItems(r.items));
+  }, []);
+
   return (
     <div>
-      <h2 className="text-xl font-semibold">{title}</h2>
-      <GlassCard className="mt-4 overflow-x-auto p-0">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-border/15 bg-muted/40 text-xs uppercase text-muted-foreground">
-            <tr>{cols.map((h) => <th key={h} className="px-4 py-3">{h}</th>)}</tr>
-          </thead>
-          <tbody>
-            {items.map((row, i) => (
-              <tr key={String(row.id ?? i)} className="border-b border-border/10">
-                {cols.map((k) => <td key={k} className="max-w-xs truncate px-4 py-3 font-mono text-xs">{String(row[k] ?? "—")}</td>)}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </GlassCard>
+      <h2 className="text-xl font-semibold">Orders</h2>
+      <div className="mt-4">
+        <AdminTable
+          columns={[
+            { key: "ticker", label: "Ticker" },
+            { key: "status", label: "Status" },
+            { key: "broker_status", label: "Broker status" },
+            { key: "broker_order_id", label: "Broker order ID" },
+            { key: "transaction_type", label: "Side" },
+            { key: "quantity", label: "Qty" },
+            { key: "filled_quantity", label: "Filled" },
+            {
+              key: "email",
+              label: "User",
+              render: (row) => (
+                <Link href={`/admin/users/${row.user_id}`} className="text-primary underline">
+                  {String(row.email)}
+                </Link>
+              ),
+            },
+            { key: "created_at", label: "When" },
+          ]}
+          rows={items}
+        />
+      </div>
     </div>
   );
-}
-
-export default function AdminOrdersPage() {
-  return <Table title="Orders" endpoint="/admin/orders" cols={["ticker", "status", "broker_status", "transaction_type", "quantity", "user_id", "created_at"]} />;
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowUpRight, Bot, Plus, Trash2 } from "lucide-react";
+import { ArrowUpRight, BarChart3, Bot, Plus, Trash2 } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { Badge, Disclaimer, GlassCard, Sparkline, AlertBanner } from "@/components/daxch/primitives";
@@ -197,12 +197,20 @@ export default function WatchlistPage() {
                 )}
               </div>
 
-              <Link
-                href={`/agents/new?ticker=${item.ticker}`}
-                className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-sm bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-[oklch(0.15_0_0)]"
-              >
-                <Bot className="h-4 w-4" /> Promote to agent
-              </Link>
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <Link
+                  href={`/research?ticker=${encodeURIComponent(item.ticker)}`}
+                  className="inline-flex items-center justify-center gap-2 rounded-sm border border-border/20 bg-background px-3 py-2 text-sm font-medium hover:bg-muted"
+                >
+                  <BarChart3 className="h-4 w-4" /> Research
+                </Link>
+                <Link
+                  href={`/agents/new?ticker=${item.ticker}`}
+                  className="inline-flex items-center justify-center gap-2 rounded-sm bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-[oklch(0.15_0_0)]"
+                >
+                  <Bot className="h-4 w-4" /> Promote to agent
+                </Link>
+              </div>
             </GlassCard>
           );
         })}

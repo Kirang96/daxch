@@ -77,23 +77,27 @@ export async function openSubscriptionCheckout(options: {
   const callbackUrl = checkoutCallbackUrl();
 
   return new Promise((resolve) => {
-    const rzp = new Razorpay({
-      key: options.keyId,
-      subscription_id: options.subscriptionId,
-      name: "Daxch",
-      description: `${options.planName} plan`,
-      callback_url: callbackUrl,
-      redirect: true,
-      handler: async () => {
-        await options.onSuccess?.();
-        window.location.href = "/subscription?payment=success";
-        resolve(true);
-      },
-      modal: {
-        ondismiss: () => resolve(false)
-      }
-    });
-    rzp.open();
+    try {
+      const rzp = new Razorpay({
+        key: options.keyId,
+        subscription_id: options.subscriptionId,
+        name: "Daxch",
+        description: `${options.planName} plan`,
+        callback_url: callbackUrl,
+        redirect: true,
+        handler: async () => {
+          await options.onSuccess?.();
+          window.location.href = "/subscription?payment=success";
+          resolve(true);
+        },
+        modal: {
+          ondismiss: () => resolve(false),
+        },
+      });
+      rzp.open();
+    } catch {
+      resolve(false);
+    }
   });
 }
 
@@ -105,17 +109,31 @@ export async function startSubscriptionCheckout(
 ): Promise<void> {
   if (response.provider_subscription_id && response.key_id) {
     setStatus("Opening Razorpay checkout...");
-    const opened = await openSubscriptionCheckout({
-      keyId: response.key_id,
-      subscriptionId: response.provider_subscription_id,
-      planName: plan,
-      onSuccess: async () => {
-        setStatus("Payment received. Activating subscription...");
-        await onRefresh();
+    try {
+      const opened = await openSubscriptionCheckout({
+        keyId: response.key_id,
+        subscriptionId: response.provider_subscription_id,
+        planName: plan,
+        onSuccess: async () => {
+          setStatus("Payment received. Activating subscription...");
+          await onRefresh();
+        },
+      });
+      if (!opened) {
+        if (response.checkout_url) {
+          setStatus("Opening Razorpay checkout. Return to Daxch after payment.");
+          window.location.href = response.checkout_url;
+          return;
+        }
+        setStatus("Payment gateway unavailable. Try again later.");
       }
-    });
-    if (!opened) {
-      setStatus("Payment gateway unavailable. Try again later.");
+    } catch (error) {
+      if (response.checkout_url) {
+        setStatus("Opening Razorpay checkout. Return to Daxch after payment.");
+        window.location.href = response.checkout_url;
+        return;
+      }
+      setStatus((error as Error).message || "Could not open payment checkout.");
     }
     return;
   }

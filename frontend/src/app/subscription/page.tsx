@@ -22,6 +22,7 @@ export default function SubscriptionPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [status, setStatus] = useState("");
   const [devActivateAvailable, setDevActivateAvailable] = useState(false);
+  const [subscribingPlan, setSubscribingPlan] = useState<PlanId | null>(null);
 
   const refresh = async () => {
     try {
@@ -43,10 +44,14 @@ export default function SubscriptionPage() {
 
   const subscribe = async (plan: PlanId) => {
     try {
+      setSubscribingPlan(plan);
+      setStatus("");
       const response = await api.post<Subscription>("/subscriptions", { plan });
       await startSubscriptionCheckout(response, plan, refresh, setStatus);
     } catch (error) {
       setStatus((error as Error).message);
+    } finally {
+      setSubscribingPlan(null);
     }
   };
 
@@ -161,14 +166,16 @@ export default function SubscriptionPage() {
                       <Button
                         className="w-full"
                         variant={plan.highlighted ? "primary" : "secondary"}
-                        disabled={ctaState === "current"}
+                        disabled={ctaState === "current" || subscribingPlan !== null}
                         onClick={() => ctaState !== "current" && subscribe(planId)}
                       >
-                        {ctaState === "current"
-                          ? "Current plan"
-                          : ctaState === "upgrade"
-                            ? `Upgrade to ${plan.name}`
-                            : `Subscribe to ${plan.name}`}
+                        {subscribingPlan === planId
+                          ? "Opening checkout…"
+                          : ctaState === "current"
+                            ? "Current plan"
+                            : ctaState === "upgrade"
+                              ? `Upgrade to ${plan.name}`
+                              : `Subscribe to ${plan.name}`}
                       </Button>
                     )}
                     {devActivateAvailable && ctaState !== "current" && ctaState !== "included" && (
