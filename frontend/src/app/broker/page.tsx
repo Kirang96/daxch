@@ -7,6 +7,7 @@ import { Check, ChevronDown, PlugZap, RefreshCw, ShieldCheck } from "lucide-reac
 
 import { AppShell } from "@/components/layout/app-shell";
 import { AlertBanner, Badge, Disclaimer, GlassCard } from "@/components/daxch/primitives";
+import { BrokerFundsCheck } from "@/components/daxch/broker-funds-check";
 import { api } from "@/lib/api";
 import { BROKER_OAUTH_STATE, encodeBrokerOAuthState } from "@/lib/broker-oauth";
 import { formatBrokerName } from "@/lib/broker-status";
@@ -211,6 +212,7 @@ function BrokerPageContent() {
                       >
                         <RefreshCw className="h-3 w-3" /> Refresh token
                       </button>
+                      {isConnected && <BrokerFundsCheck />}
                     </div>
                   )}
                 </div>

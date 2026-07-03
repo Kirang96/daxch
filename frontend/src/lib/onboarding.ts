@@ -32,14 +32,6 @@ export async function resolvePostAuthPath(): Promise<string> {
     } catch {
       return "/onboarding/broker";
     }
-    try {
-      const subscription = await api.get<{ status?: string } | null>("/subscriptions/current");
-      if (!subscription || subscription.status !== "active") {
-        return "/onboarding/subscription";
-      }
-    } catch {
-      return "/onboarding/subscription";
-    }
     return "/dashboard";
   } catch {
     return "/onboarding/welcome";

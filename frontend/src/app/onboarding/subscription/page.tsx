@@ -94,10 +94,12 @@ function OnboardingSubscriptionContent() {
       setSubscribingPlan(plan);
       setStatus("");
       const response = await api.post<Subscription>("/subscriptions", { plan });
-      await startSubscriptionCheckout(response, plan, refresh, setStatus);
+      const result = await startSubscriptionCheckout(response, plan, refresh, setStatus, () => setSubscribingPlan(null));
+      if (result === "failed") {
+        setSubscribingPlan(null);
+      }
     } catch (error) {
       setStatus((error as Error).message);
-    } finally {
       setSubscribingPlan(null);
     }
   };
@@ -149,7 +151,11 @@ function OnboardingSubscriptionContent() {
           </AlertBanner>
         )}
 
-        {status && <p className="mt-6 rounded-sm border border-border/15 bg-muted p-3 text-sm text-muted-foreground">{status}</p>}
+        {status && (
+          <AlertBanner variant="warning" className="mt-6" title="Subscription">
+            {status}
+          </AlertBanner>
+        )}
 
         <div className="mt-10 grid gap-6 sm:grid-cols-1 lg:grid-cols-3 lg:gap-8">
           {loading ? (

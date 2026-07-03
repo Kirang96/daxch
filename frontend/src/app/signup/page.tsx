@@ -118,7 +118,7 @@ export default function SignupPage() {
             <Field icon={<Mail className="h-4 w-4" />} label="Email" type="email" placeholder="you@company.com" value={email} onChange={setEmail} />
             {!magicLinkEnabled && (
               <>
-                <Field icon={<Lock className="h-4 w-4" />} label="Password" type="password" placeholder="Min. 8 characters" value={password} onChange={setPassword} />
+                <Field icon={<Lock className="h-4 w-4" />} label="Password" type="password" placeholder="At least 8 characters" value={password} onChange={setPassword} />
                 <Field icon={<Lock className="h-4 w-4" />} label="Confirm password" type="password" placeholder="Repeat password" value={confirmPassword} onChange={setConfirmPassword} />
               </>
             )}

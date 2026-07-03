@@ -19,7 +19,7 @@ from backend.app.models.entities import (
 )
 from backend.app.schemas.agent import BrokerOrderStatus
 from backend.app.services.broker.base import BrokerConfigurationError
-from backend.app.services.broker.connection import get_user_broker_connection
+from backend.app.services.broker.connection import get_user_broker_connection, require_user_broker
 from backend.app.services.broker.factory import get_broker, list_supported_brokers
 from backend.app.services.broker.order_status import build_order_status_query
 from backend.app.services.broker.session import get_valid_broker_token
@@ -200,6 +200,33 @@ def connection_status(
         "broker": connection.broker_name,
         "expires_at": connection.token_expiry,
         "expired": connection.token_expiry < datetime.now(tz=timezone.utc),
+    }
+
+
+@router.get("/funds")
+async def broker_funds(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    connection, broker = require_user_broker(db, current_user.id)
+    try:
+        _, token = await get_valid_broker_token(db=db, user=current_user, broker=broker)
+        metadata = connection.connection_metadata or {}
+        client_code = metadata.get("client_code")
+        if isinstance(client_code, str):
+            client_code = client_code.strip() or None
+        else:
+            client_code = None
+        summary = await broker.get_available_funds(token, client_code=client_code)
+    except BrokerConfigurationError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+
+    return {
+        "broker": connection.broker_name,
+        "available_margin": summary.available_margin,
+        "ledger_balance": summary.ledger_balance,
+        "currency": summary.currency,
+        "fetched_at": summary.as_of.isoformat(),
     }
 
 

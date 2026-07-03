@@ -43,7 +43,7 @@ export default function DashboardPage() {
   const [currentPlan, setCurrentPlan] = useState("unknown");
   const [quotes, setQuotes] = useState<Record<string, { ltp: number; change_percent: number | null }>>({});
   const [portfolioHistory, setPortfolioHistory] = useState<number[]>([]);
-  const [timeframe, setTimeframe] = useState<ChartTimeframe>("1M");
+  const [timeframe, setTimeframe] = useState<ChartTimeframe>("1Y");
   const [marketSummary, setMarketSummary] = useState<MarketIndex[]>([]);
   const [profileName, setProfileName] = useState("");
   const [brokerConnected, setBrokerConnected] = useState(false);

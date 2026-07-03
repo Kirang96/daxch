@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class BrokerConfigurationError(RuntimeError):
@@ -80,6 +80,14 @@ class BrokerMeta:
     available: bool
 
 
+@dataclass
+class BrokerFundsSummary:
+    available_margin: float
+    ledger_balance: float | None = None
+    currency: str = "INR"
+    as_of: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+
 class BaseBroker(ABC):
     name: str = "base"
 
@@ -130,3 +138,11 @@ class BaseBroker(ABC):
         interval: str,
         access_token: str,
     ) -> list[CandleBar]: ...
+
+    @abstractmethod
+    async def get_available_funds(
+        self,
+        access_token: str,
+        *,
+        client_code: str | None = None,
+    ) -> BrokerFundsSummary: ...

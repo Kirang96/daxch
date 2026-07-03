@@ -1,5 +1,7 @@
 export type ChartTimeframe = "1D" | "1W" | "1M" | "3M" | "1Y" | "All";
 
+export const DEFAULT_CHART_TIMEFRAME: ChartTimeframe = "1Y";
+
 function sliceCount(timeframe: ChartTimeframe): number | null {
   switch (timeframe) {
     case "1D":

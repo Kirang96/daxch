@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta, timezone
 
+import hashlib
+
+import bcrypt
 from jose import jwt
-from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -9,8 +11,13 @@ from backend.app.core.config import get_settings
 from backend.app.models.entities import User
 from backend.app.utils.security import create_access_token
 
-_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+_BCRYPT_ROUNDS = 12
 _MIN_PASSWORD_LEN = 8
+_MAX_PASSWORD_LEN = 128
+
+
+def _password_prehash(password: str) -> bytes:
+    return hashlib.sha256(password.encode("utf-8")).digest()
 
 
 class AuthService:
@@ -18,16 +25,25 @@ class AuthService:
         self.settings = get_settings()
 
     def hash_password(self, password: str) -> str:
-        return _pwd_context.hash(password)
+        try:
+            hashed = bcrypt.hashpw(_password_prehash(password), bcrypt.gensalt(rounds=_BCRYPT_ROUNDS))
+            return hashed.decode("ascii")
+        except ValueError as exc:
+            raise ValueError("Could not set password. Choose a different password and try again.") from exc
 
     def verify_password(self, password: str, password_hash: str | None) -> bool:
         if not password_hash:
             return False
-        return _pwd_context.verify(password, password_hash)
+        try:
+            return bcrypt.checkpw(_password_prehash(password), password_hash.encode("ascii"))
+        except ValueError:
+            return False
 
     def _validate_password(self, password: str) -> None:
         if len(password) < _MIN_PASSWORD_LEN:
             raise ValueError(f"Password must be at least {_MIN_PASSWORD_LEN} characters.")
+        if len(password) > _MAX_PASSWORD_LEN:
+            raise ValueError(f"Password must be at most {_MAX_PASSWORD_LEN} characters.")
 
     def _sync_admin_flag(self, db: Session, user: User) -> None:
         allowed = self.settings.admin_emails_list

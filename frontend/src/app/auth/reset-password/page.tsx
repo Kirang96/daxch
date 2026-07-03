@@ -44,7 +44,7 @@ function ResetPasswordForm() {
         New password
         <div className="relative mt-1.5">
           <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={8} className="h-11 w-full rounded-sm border border-border/20 pl-10 pr-3" required />
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={8} placeholder="At least 8 characters" className="h-11 w-full rounded-sm border border-border/20 pl-10 pr-3" required />
         </div>
       </label>
       <label className="block text-sm">

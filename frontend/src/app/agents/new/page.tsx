@@ -35,6 +35,7 @@ import { AnalysisResultPanel } from "@/components/analysis/analysis-result-panel
 import { StrategySelector } from "@/components/analysis/strategy-selector";
 import { AppShell } from "@/components/layout/app-shell";
 import { Badge, Disclaimer, GlassCard, ThinkingDots, AlertBanner } from "@/components/daxch/primitives";
+import { BrokerFundsCheck } from "@/components/daxch/broker-funds-check";
 import { api, ApiError } from "@/lib/api";
 import { isBrokerHealthy } from "@/lib/broker-status";
 import { logger } from "@/lib/logger";
@@ -1549,6 +1550,8 @@ function Step5Configure({
             </Link>
           </AlertBanner>
         )}
+
+        {brokerConnected === true && <BrokerFundsCheck compact />}
 
         <div className="mt-6 rounded-2xl border border-border/15 bg-muted/60 p-4">
           <div className="text-xs uppercase tracking-wider text-muted-foreground">Order summary</div>

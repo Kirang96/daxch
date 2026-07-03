@@ -5,6 +5,8 @@ type RazorpayInstance = { open: () => void };
 
 type RazorpayConstructor = new (options: Record<string, unknown>) => RazorpayInstance;
 
+export type CheckoutStartResult = "started" | "failed";
+
 function getRazorpay(): RazorpayConstructor | null {
   if (typeof window === "undefined") {
     return null;
@@ -33,6 +35,12 @@ function checkoutCallbackUrl(): string | undefined {
     return undefined;
   }
   return `${window.location.origin}/api/v1/subscriptions/checkout-callback`;
+}
+
+function redirectToCheckout(checkoutUrl: string, setStatus: (message: string) => void): CheckoutStartResult {
+  setStatus("Opening Razorpay checkout. Return to Daxch after payment.");
+  window.location.href = checkoutUrl;
+  return "started";
 }
 
 export async function syncSubscriptionStatus(): Promise<Subscription> {
@@ -68,6 +76,7 @@ export async function openSubscriptionCheckout(options: {
   subscriptionId: string;
   planName: string;
   onSuccess?: () => void | Promise<void>;
+  onDismiss?: () => void;
 }): Promise<boolean> {
   const Razorpay = await loadRazorpayScript();
   if (!Razorpay) {
@@ -91,11 +100,15 @@ export async function openSubscriptionCheckout(options: {
           resolve(true);
         },
         modal: {
-          ondismiss: () => resolve(false),
+          ondismiss: () => {
+            options.onDismiss?.();
+            resolve(false);
+          },
         },
       });
       rzp.open();
     } catch {
+      options.onDismiss?.();
       resolve(false);
     }
   });
@@ -105,47 +118,60 @@ export async function startSubscriptionCheckout(
   response: Subscription,
   plan: string,
   onRefresh: () => Promise<void>,
-  setStatus: (message: string) => void
-): Promise<void> {
-  if (response.provider_subscription_id && response.key_id) {
+  setStatus: (message: string) => void,
+  onCheckoutEnd?: () => void
+): Promise<CheckoutStartResult> {
+  const checkoutUrl = response.checkout_url;
+  const hasModalPayload = Boolean(response.provider_subscription_id && response.key_id);
+
+  if (!hasModalPayload && !checkoutUrl) {
+    setStatus(
+      "Payment could not be started: Razorpay returned no checkout URL or subscription ID. Check staging payment secrets."
+    );
+    onCheckoutEnd?.();
+    return "failed";
+  }
+
+  if (hasModalPayload) {
     setStatus("Opening Razorpay checkout...");
     try {
       const opened = await openSubscriptionCheckout({
-        keyId: response.key_id,
-        subscriptionId: response.provider_subscription_id,
+        keyId: response.key_id!,
+        subscriptionId: response.provider_subscription_id!,
         planName: plan,
         onSuccess: async () => {
           setStatus("Payment received. Activating subscription...");
           await onRefresh();
         },
+        onDismiss: onCheckoutEnd,
       });
-      if (!opened) {
-        if (response.checkout_url) {
-          setStatus("Opening Razorpay checkout. Return to Daxch after payment.");
-          window.location.href = response.checkout_url;
-          return;
-        }
-        setStatus("Payment gateway unavailable. Try again later.");
+      if (opened) {
+        return "started";
       }
+      if (checkoutUrl) {
+        return redirectToCheckout(checkoutUrl, setStatus);
+      }
+      setStatus("Payment window closed before checkout opened. Try again.");
+      onCheckoutEnd?.();
+      return "failed";
     } catch (error) {
-      if (response.checkout_url) {
-        setStatus("Opening Razorpay checkout. Return to Daxch after payment.");
-        window.location.href = response.checkout_url;
-        return;
+      if (checkoutUrl) {
+        return redirectToCheckout(checkoutUrl, setStatus);
       }
       setStatus((error as Error).message || "Could not open payment checkout.");
+      onCheckoutEnd?.();
+      return "failed";
     }
-    return;
   }
 
-  if (response.checkout_url) {
-    setStatus("Opening Razorpay checkout. Return to Daxch after payment.");
-    window.location.href = response.checkout_url;
-    return;
+  if (checkoutUrl) {
+    return redirectToCheckout(checkoutUrl, setStatus);
   }
 
   setStatus(`Subscription created (${response.status}). Waiting for payment confirmation...`);
   await onRefresh();
+  onCheckoutEnd?.();
+  return "failed";
 }
 
 export async function refreshPendingSubscription(

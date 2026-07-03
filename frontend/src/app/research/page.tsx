@@ -75,7 +75,7 @@ function ResearchContent() {
   const [chartData, setChartData] = useState<number[]>([]);
   const [chartTimestamps, setChartTimestamps] = useState<string[]>([]);
   const [candleMeta, setCandleMeta] = useState<{ high: number | null; low: number | null }>({ high: null, low: null });
-  const [timeframe, setTimeframe] = useState<ChartTimeframe>("1M");
+  const [timeframe, setTimeframe] = useState<ChartTimeframe>("1Y");
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");

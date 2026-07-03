@@ -22,7 +22,7 @@ export default function PortfolioPage() {
   const [exchangeSummary, setExchangeSummary] = useState<ExchangePositionsResponse["summary"] | null>(null);
   const [quotes, setQuotes] = useState<Record<string, { ltp: number; change_percent: number | null }>>({});
   const [portfolioHistory, setPortfolioHistory] = useState<number[]>([]);
-  const [timeframe, setTimeframe] = useState<ChartTimeframe>("1M");
+  const [timeframe, setTimeframe] = useState<ChartTimeframe>("1Y");
   const [error, setError] = useState("");
 
   const displayChartData = useMemo(() => sliceByTimeframe(portfolioHistory, timeframe), [portfolioHistory, timeframe]);

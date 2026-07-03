@@ -47,10 +47,12 @@ export default function SubscriptionPage() {
       setSubscribingPlan(plan);
       setStatus("");
       const response = await api.post<Subscription>("/subscriptions", { plan });
-      await startSubscriptionCheckout(response, plan, refresh, setStatus);
+      const result = await startSubscriptionCheckout(response, plan, refresh, setStatus, () => setSubscribingPlan(null));
+      if (result === "failed") {
+        setSubscribingPlan(null);
+      }
     } catch (error) {
       setStatus((error as Error).message);
-    } finally {
       setSubscribingPlan(null);
     }
   };
@@ -97,7 +99,11 @@ export default function SubscriptionPage() {
           Subscribe below to create agents and use monitoring. Checkout is processed securely via Razorpay.
         </AlertBanner>
       )}
-      {status && <p className="mb-4 rounded-xl border border-border/20 bg-background p-3 text-sm text-muted-foreground">{status}</p>}
+      {status && (
+        <AlertBanner variant="warning" className="mb-4" title="Subscription">
+          {status}
+        </AlertBanner>
+      )}
       {!isActive && current?.provider_subscription_id && (
         <div className="mb-4">
           <Button

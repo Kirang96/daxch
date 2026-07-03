@@ -5,6 +5,7 @@ import { ArrowRight, BookOpen } from "lucide-react";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { Disclaimer, GlassCard } from "@/components/daxch/primitives";
+import { GuideText } from "@/components/daxch/guide-text";
 import { GUIDE_FAQ, GUIDE_FEATURES, GUIDE_JOURNEY, GUIDE_OVERVIEW, GUIDE_SECTIONS } from "@/lib/guide-content";
 
 export default function GuidePage() {
@@ -18,19 +19,27 @@ export default function GuidePage() {
         Daxch is not a SEBI-registered investment advisor. All output is informational — validate against your own risk profile.
       </GlassCard>
 
-      <section className="mb-10 space-y-4">
+      <section className="mb-10 max-w-3xl space-y-8">
         <h2 className="font-serif text-2xl tracking-tight">How it works</h2>
-        <GlassCard className="p-5">
-          <p className="text-sm leading-relaxed text-muted-foreground">{GUIDE_OVERVIEW}</p>
-        </GlassCard>
+        <div className="space-y-4 text-base leading-relaxed text-muted-foreground">
+          {GUIDE_OVERVIEW.map((paragraph) => (
+            <p key={paragraph}>
+              <GuideText text={paragraph} />
+            </p>
+          ))}
+        </div>
         {GUIDE_SECTIONS.map((section) => (
-          <GlassCard key={section.id} id={section.id} className="p-5">
-            <h3 className="font-medium">{section.title}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{section.body}</p>
+          <section key={section.id} id={section.id} className="space-y-3 border-b border-border/10 pb-8 last:border-b-0">
+            <h3 className="text-lg font-medium text-foreground">{section.title}</h3>
+            {section.paragraphs.map((paragraph) => (
+              <p key={paragraph} className="text-sm leading-relaxed text-muted-foreground">
+                <GuideText text={paragraph} />
+              </p>
+            ))}
             {"lifecycle" in section && section.lifecycle && (
-              <p className="mt-3 font-mono text-xs text-muted-foreground">{section.lifecycle}</p>
+              <p className="rounded-sm bg-muted/50 px-3 py-2 font-mono text-xs text-muted-foreground">{section.lifecycle}</p>
             )}
-          </GlassCard>
+          </section>
         ))}
       </section>
 

@@ -8,6 +8,7 @@ from backend.app.services.market_hours import should_use_amo
 from backend.app.services.broker.base import (
     BaseBroker,
     BrokerConfigurationError,
+    BrokerFundsSummary,
     CandleBar,
     OrderRequest,
     OrderResponse,
@@ -464,5 +465,28 @@ class UpstoxBroker(BaseBroker):
     ) -> list[float]:
         bars = await self.get_ohlcv_candles(ticker, exchange, interval, access_token)
         return [bar.close for bar in bars]
+
+    async def get_available_funds(
+        self,
+        access_token: str,
+        *,
+        client_code: str | None = None,
+    ) -> BrokerFundsSummary:
+        self._validate_configuration()
+        if self._demo_mode:
+            return BrokerFundsSummary(available_margin=125_000.50, ledger_balance=130_000.0)
+
+        data = await self._request(
+            "GET",
+            "/user/get-funds-and-margin",
+            access_token=access_token,
+            params={"segment": "SEC"},
+        )
+        equity = (data.get("data") or {}).get("equity") or {}
+        ledger = equity.get("ledger_balance")
+        return BrokerFundsSummary(
+            available_margin=float(equity.get("available_margin") or 0),
+            ledger_balance=float(ledger) if ledger is not None else None,
+        )
 
 

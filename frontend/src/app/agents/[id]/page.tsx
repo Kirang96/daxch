@@ -18,9 +18,10 @@ import {
 
 import { AppShell } from "@/components/layout/app-shell";
 import { StockPriceChart } from "@/components/charts/stock-price-chart";
-import { Badge, Disclaimer, GlassCard, ThinkingDots, AlertBanner } from "@/components/daxch/primitives";
+import { Badge, Disclaimer, GlassCard, ThinkingDots, AlertBanner, TimeframeTabs } from "@/components/daxch/primitives";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
+import { DEFAULT_CHART_TIMEFRAME, sliceSeriesByTimeframe, type ChartTimeframe } from "@/lib/chart";
 import { formatAiUnits } from "@/lib/ai-units";
 import {
   lifecycleStepIndex,
@@ -52,6 +53,8 @@ function OrderStatusBadge({ status }: { status: string }) {
   return <Badge variant={cfg.variant}>{cfg.label}</Badge>;
 }
 
+const AGENT_TIMEFRAME_OPTIONS = ["1D", "1W", "1M", "3M", "1Y", "All"] as const;
+
 export default function AgentDetailPage() {
   const params = useParams<{ id: string }>();
   const id = (params?.id || "agent").toUpperCase();
@@ -77,6 +80,7 @@ export default function AgentDetailPage() {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [retrySubmitting, setRetrySubmitting] = useState(false);
+  const [timeframe, setTimeframe] = useState<ChartTimeframe>(DEFAULT_CHART_TIMEFRAME);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -239,6 +243,12 @@ export default function AgentDetailPage() {
   );
 
   const currentPrice = liveQuote?.ltp ?? null;
+  const displayChart = useMemo(
+    () => sliceSeriesByTimeframe(candlesData, candleMeta.timestamps, timeframe),
+    [candlesData, candleMeta.timestamps, timeframe]
+  );
+  const displayHigh = displayChart.prices.length ? Math.max(...displayChart.prices) : candleMeta.high;
+  const displayLow = displayChart.prices.length ? Math.min(...displayChart.prices) : candleMeta.low;
 
   const confirmDecision = async (approve: boolean) => {
     if (!latestDecision) return;
@@ -513,13 +523,21 @@ export default function AgentDetailPage() {
               </div>
             </div>
           </div>
-          <div className="mt-6">
-            {candlesData.length >= 2 ? (
+          <div className="mt-6 flex justify-end">
+            <TimeframeTabs
+              value={timeframe}
+              onChange={setTimeframe}
+              options={AGENT_TIMEFRAME_OPTIONS}
+              size="xs"
+            />
+          </div>
+          <div className="mt-4">
+            {displayChart.prices.length >= 2 ? (
               <StockPriceChart
-                prices={candlesData}
-                timestamps={candleMeta.timestamps}
-                high={candleMeta.high}
-                low={candleMeta.low}
+                prices={displayChart.prices}
+                timestamps={displayChart.timestamps}
+                high={displayHigh}
+                low={displayLow}
                 ltp={currentPrice}
                 entryPrice={data?.holding?.entry_price ?? null}
               />

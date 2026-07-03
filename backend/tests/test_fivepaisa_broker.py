@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timezone
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 
@@ -45,9 +46,10 @@ def test_get_auth_url_includes_vendor_key(monkeypatch: pytest.MonkeyPatch) -> No
 
     monkeypatch.setattr(broker, "settings", FakeSettings())
     url = broker.get_auth_url("5paisa:onboarding")
-    assert "VendorKey=APPKEY" in url
-    assert "ResponseURL=https://staging.daxch.app/broker/callback" in url
-    assert "State=5paisa:onboarding" in url
+    parsed = parse_qs(urlparse(url).query)
+    assert parsed["VendorKey"] == ["APPKEY"]
+    assert parsed["ResponseURL"] == ["https://staging.daxch.app/broker/callback"]
+    assert parsed["State"] == ["5paisa:onboarding"]
 
 
 def test_authenticate_get_access_token(monkeypatch: pytest.MonkeyPatch) -> None:

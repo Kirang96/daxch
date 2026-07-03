@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from urllib.parse import urlencode
 from zoneinfo import ZoneInfo
 
 from backend.app.core.config import get_settings
 from backend.app.services.broker.base import (
     BaseBroker,
     BrokerConfigurationError,
+    BrokerFundsSummary,
     CandleBar,
     OrderRequest,
     OrderResponse,
@@ -78,7 +80,8 @@ class FivePaisaBroker(BaseBroker):
         login_url = self.settings.fivepaisa_login_url.rstrip("/")
         redirect = self.settings.fivepaisa_redirect_uri
         vendor_key = self.settings.fivepaisa_app_key
-        return f"{login_url}?VendorKey={vendor_key}&ResponseURL={redirect}&State={state}"
+        query = urlencode({"VendorKey": vendor_key, "ResponseURL": redirect, "State": state})
+        return f"{login_url}?{query}"
 
     async def authenticate(self, auth_code: str) -> TokenPair:
         self._validate_configuration()
@@ -377,3 +380,31 @@ class FivePaisaBroker(BaseBroker):
     ) -> list[float]:
         bars = await self.get_ohlcv_candles(ticker, exchange, interval, access_token)
         return [bar.close for bar in bars]
+
+    async def get_available_funds(
+        self,
+        access_token: str,
+        *,
+        client_code: str | None = None,
+    ) -> BrokerFundsSummary:
+        self._validate_configuration()
+        if self._demo_mode:
+            return BrokerFundsSummary(available_margin=98_500.75, ledger_balance=100_000.0)
+
+        token = self._require_token(access_token)
+        if not client_code:
+            raise BrokerConfigurationError("Missing 5paisa client code for funds lookup.")
+
+        data = await self.client.post_service(
+            "V4/Margin",
+            {"ClientCode": client_code},
+            access_token=token,
+        )
+        body = data.get("body") or {}
+        rows = body.get("EquityMargin") or []
+        row = rows[0] if rows else {}
+        ledger = row.get("Ledgerbalance")
+        return BrokerFundsSummary(
+            available_margin=float(row.get("NetAvailableMargin") or 0),
+            ledger_balance=float(ledger) if ledger is not None else None,
+        )
