@@ -19,6 +19,11 @@ resource "aws_lb_target_group" "frontend" {
     matcher  = "200-399"
     interval = 30
   }
+  stickiness {
+    type            = "lb_cookie"
+    cookie_duration = 86400
+    enabled         = true
+  }
   tags = local.tags
 }
 
@@ -108,6 +113,26 @@ resource "aws_cloudfront_distribution" "main" {
   }
 
   ordered_cache_behavior {
+    path_pattern           = "/_next/static/*"
+    target_origin_id       = "alb-origin"
+    viewer_protocol_policy = "redirect-to-https"
+    allowed_methods        = ["GET", "HEAD", "OPTIONS"]
+    cached_methods         = ["GET", "HEAD"]
+    compress               = true
+    min_ttl                = 31536000
+    default_ttl            = 31536000
+    max_ttl                = 31536000
+
+    forwarded_values {
+      query_string = false
+      headers      = ["Origin"]
+      cookies {
+        forward = "none"
+      }
+    }
+  }
+
+  ordered_cache_behavior {
     path_pattern           = "/api/*"
     target_origin_id       = "alb-origin"
     viewer_protocol_policy = "redirect-to-https"
@@ -133,6 +158,9 @@ resource "aws_cloudfront_distribution" "main" {
     allowed_methods        = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
     cached_methods         = ["GET", "HEAD"]
     compress               = true
+    min_ttl                = 0
+    default_ttl            = 0
+    max_ttl                = 0
 
     forwarded_values {
       query_string = true

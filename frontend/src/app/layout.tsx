@@ -4,6 +4,8 @@ import React from "react";
 import Script from "next/script";
 import { IBM_Plex_Mono, IBM_Plex_Sans, Libre_Baskerville } from "next/font/google";
 
+import { ChunkLoadRecovery } from "@/components/chunk-load-recovery";
+
 const libreBaskerville = Libre_Baskerville({
   subsets: ["latin"],
   weight: ["400", "700"],
@@ -43,6 +45,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body
         className={`${libreBaskerville.variable} ${ibmPlexSans.variable} ${ibmPlexMono.variable} bg-background font-sans text-foreground antialiased`}
       >
+        <ChunkLoadRecovery />
         <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
         {children}
       </body>
