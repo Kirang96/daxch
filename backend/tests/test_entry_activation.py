@@ -103,9 +103,13 @@ def test_place_and_sync_order_limit_payload():
         quantity=3,
     )
     db = MagicMock()
+    connection = MagicMock()
+    connection.broker_name = "upstox"
     broker = MagicMock()
     broker._demo_mode = False
-    broker.place_order = AsyncMock(return_value=MagicMock(order_id="brk-123", status="placed"))
+    broker.place_order = AsyncMock(
+        return_value=MagicMock(order_id="brk-123", status="placed", exchange_order_id=None, metadata={})
+    )
     broker.get_order_status = AsyncMock(
         return_value=MagicMock(
             status="open",
@@ -113,13 +117,17 @@ def test_place_and_sync_order_limit_payload():
             pending_quantity=3,
             average_price=None,
             transaction_type="BUY",
+            exchange_order_id=None,
         )
     )
 
-    with patch("backend.app.services.broker.order_execution.get_broker", return_value=broker), patch(
+    with patch(
+        "backend.app.services.broker.order_execution.require_user_broker",
+        return_value=(connection, broker),
+    ), patch(
         "backend.app.services.broker.order_execution.get_valid_broker_token",
         new_callable=AsyncMock,
-        return_value=(MagicMock(), "token"),
+        return_value=(connection, "token"),
     ):
         broker_order_id = asyncio.run(
             place_and_sync_order(
@@ -138,3 +146,4 @@ def test_place_and_sync_order_limit_payload():
     call_args = broker.place_order.await_args[0][1]
     assert call_args.order_type == "LIMIT"
     assert call_args.price == 1500.0
+    assert call_args.remote_order_id == str(order.id)
